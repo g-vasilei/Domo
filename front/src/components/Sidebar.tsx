@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Cpu, LayoutDashboard, Monitor, ShieldAlert,Users, X, Zap } from 'lucide-react';
+import { Cpu, LayoutDashboard, Monitor, ShieldAlert, Users, X, Zap } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { api } from '../lib/api';

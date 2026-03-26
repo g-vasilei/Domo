@@ -219,9 +219,7 @@ export default function DeviceCard({ device }: { device: any }) {
 
               {/* Timer button */}
               <button
-                onClick={() =>
-                  activeTimer ? cancelTimer(device.id) : setShowTimerModal(true)
-                }
+                onClick={() => (activeTimer ? cancelTimer(device.id) : setShowTimerModal(true))}
                 disabled={!device.online}
                 title={activeTimer ? 'Cancel timer' : 'Set auto-off timer'}
                 className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${

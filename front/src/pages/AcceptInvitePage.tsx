@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { Eye, EyeOff, Zap } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate,useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useAuthStore } from '../store/auth.store';
 

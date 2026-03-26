@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Delete,Home, LogOut, Shield, ShieldAlert, ShieldOff } from 'lucide-react';
-import { useCallback,useEffect, useState } from 'react';
+import { Delete, Home, LogOut, Shield, ShieldAlert, ShieldOff } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../lib/api';
 import { useCountdownSound } from '../lib/useCountdownSound';
-import { AlarmSettings,secondsLeft, useAlarmStore } from '../store/alarm.store';
+import { AlarmSettings, secondsLeft, useAlarmStore } from '../store/alarm.store';
 
 function useAlarmSettings() {
   const { setSettings } = useAlarmStore();

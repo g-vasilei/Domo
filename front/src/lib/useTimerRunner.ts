@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-import { api } from './api';
 import { useTimerStore } from '../store/timer.store';
+import { api } from './api';
 
 /**
  * Mounted once at the app level. Every second it checks for expired timers

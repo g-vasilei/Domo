@@ -1,5 +1,5 @@
-import { Home, LogOut, ShieldCheck,X } from 'lucide-react';
-import { useEffect, useRef,useState } from 'react';
+import { Home, LogOut, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   mode: 'home' | 'away';

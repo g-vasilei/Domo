@@ -86,7 +86,9 @@ export class TuyaService {
               ? roomDevices
               : (roomDevices?.devices ?? []);
             roomDeviceIds = devArr.map((d: any) => d.id ?? d.device_id).filter(Boolean);
-          } catch (_e) { /* device list unavailable for room — skip */ }
+          } catch (_e) {
+            /* device list unavailable for room — skip */
+          }
           const devices = allDevices.filter((d) => roomDeviceIds.includes(d.id));
           devices.forEach((d) => assignedDeviceIds.add(d.id));
           rooms.push({ id: roomId, name: room.name, devices });

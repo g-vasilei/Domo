@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { Allow,IsArray, IsString, ValidateNested } from 'class-validator';
+import { Allow, IsArray, IsString, ValidateNested } from 'class-validator';
 
 class CommandDto {
   @IsString()

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, BellOff, Check, Eye, EyeOff, Shield, Thermometer } from 'lucide-react';
-import { useEffect,useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import PinPromptModal from '../components/PinPromptModal';
 import { api } from '../lib/api';

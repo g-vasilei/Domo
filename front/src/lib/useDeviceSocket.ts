@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-import { AlarmState,useAlarmStore } from '../store/alarm.store';
+import { AlarmState, useAlarmStore } from '../store/alarm.store';
 import { useAuthStore } from '../store/auth.store';
 import { useNotificationsStore } from '../store/notifications.store';
 import { usePrefsStore } from '../store/prefs.store';

@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles,RolesGuard } from '../auth/guards/roles.guard';
+import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';

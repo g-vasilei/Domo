@@ -20,10 +20,10 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import TimerModal from '../components/TimerModal';
 import { api } from '../lib/api';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
 import { useTimerStore } from '../store/timer.store';
-import TimerModal from '../components/TimerModal';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -522,9 +522,7 @@ export default function DeviceDetailPage() {
     ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu })
     : { label: '', Icon: Cpu };
   const iconUrl = device?.icon ? formatIconUrl(device.icon) : '';
-  const primarySwitchCode = device
-    ? (detectSwitchCodes(device.status ?? [])[0] ?? null)
-    : null;
+  const primarySwitchCode = device ? (detectSwitchCodes(device.status ?? [])[0] ?? null) : null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -598,8 +596,7 @@ export default function DeviceDetailPage() {
                   switchCode={primarySwitchCode}
                   online={device.online}
                   onTurnOn={() =>
-                    primarySwitchCode &&
-                    sendCommand([{ code: primarySwitchCode, value: true }])
+                    primarySwitchCode && sendCommand([{ code: primarySwitchCode, value: true }])
                   }
                 />
                 <NotifToggle deviceId={device.id} deviceName={device.name} />

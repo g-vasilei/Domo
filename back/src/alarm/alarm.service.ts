@@ -1,5 +1,5 @@
-import { BadRequestException,Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { AlarmAction,AlarmState } from '@prisma/client';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { AlarmAction, AlarmState } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { DevicesGateway } from '../devices/devices.gateway';

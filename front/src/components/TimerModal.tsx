@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Timer, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface Props {
   deviceName: string;
@@ -29,11 +29,16 @@ export default function TimerModal({ deviceName, onConfirm, onClose }: Props) {
               <Timer size={16} className="text-brand" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Auto-off Timer</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Auto-off Timer
+              </p>
               <p className="text-xs text-slate-400 truncate max-w-[160px]">{deviceName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+          >
             <X size={18} />
           </button>
         </div>
@@ -41,7 +46,9 @@ export default function TimerModal({ deviceName, onConfirm, onClose }: Props) {
         {/* Time display */}
         <div className="text-center my-6">
           <p className="text-5xl font-bold text-brand tabular-nums">{formatTime(minutes)}</p>
-          <p className="text-xs text-slate-400 mt-2">Device turns off automatically after this delay</p>
+          <p className="text-xs text-slate-400 mt-2">
+            Device turns off automatically after this delay
+          </p>
         </div>
 
         {/* Slider */}

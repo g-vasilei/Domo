@@ -35,7 +35,8 @@ export const useTimerStore = create<TimerStore>()(
           ],
         });
       },
-      cancel: (deviceId) => set((s) => ({ timers: s.timers.filter((t) => t.deviceId !== deviceId) })),
+      cancel: (deviceId) =>
+        set((s) => ({ timers: s.timers.filter((t) => t.deviceId !== deviceId) })),
       remove: (id) => set((s) => ({ timers: s.timers.filter((t) => t.id !== id) })),
     }),
     { name: 'domo-device-timers' },

@@ -1,4 +1,4 @@
-import { BadGatewayException,BadRequestException, Injectable } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { TuyaService } from '../tuya/tuya.service';

@@ -17,8 +17,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight,Cpu, GripVertical, Home, WifiOff } from 'lucide-react';
-import { useCallback,useEffect, useState } from 'react';
+import { ArrowLeftRight, Cpu, GripVertical, Home, WifiOff } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import DeviceCard from '../components/DeviceCard';
 import { api } from '../lib/api';
@@ -60,7 +60,6 @@ function applyOrder(
     return { ...room, devices: devSorted };
   });
 }
-
 
 // Sortable device wrapper
 function SortableDevice({ device, rearranging }: { device: any; rearranging: boolean }) {

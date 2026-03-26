@@ -18,11 +18,11 @@ import {
   Wind,
   Zap,
 } from 'lucide-react';
-import { useMemo,useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import ArmControls from '../components/ArmControls';
 import { api } from '../lib/api';
-import { AlarmSettings,useAlarmStore } from '../store/alarm.store';
+import { AlarmSettings, useAlarmStore } from '../store/alarm.store';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

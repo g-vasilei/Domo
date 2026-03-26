@@ -1,5 +1,5 @@
 import { Delete, X } from 'lucide-react';
-import { useCallback,useState } from 'react';
+import { useCallback, useState } from 'react';
 
 interface Props {
   title: string;

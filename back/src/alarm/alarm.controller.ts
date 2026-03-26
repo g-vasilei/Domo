@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles,RolesGuard } from '../auth/guards/roles.guard';
+import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AlarmService } from './alarm.service';
 import {
   ArmDto,

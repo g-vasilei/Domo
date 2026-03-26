@@ -14,13 +14,13 @@ import {
   Sun,
   User,
 } from 'lucide-react';
-import { useEffect, useRef,useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api';
 import { AlarmState } from '../store/alarm.store';
 import { useAuthStore } from '../store/auth.store';
-import { AppNotification, NotifKind,useNotificationsStore } from '../store/notifications.store';
+import { AppNotification, NotifKind, useNotificationsStore } from '../store/notifications.store';
 import { useThemeStore } from '../store/theme.store';
 
 interface Props {

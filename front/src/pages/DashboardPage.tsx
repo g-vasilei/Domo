@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Cpu, Home, Shield, ShieldAlert,ShieldOff, Wifi, WifiOff } from 'lucide-react';
+import { Cpu, Home, Shield, ShieldAlert, ShieldOff, Wifi, WifiOff } from 'lucide-react';
 
 import ArmControls from '../components/ArmControls';
 import { api } from '../lib/api';
