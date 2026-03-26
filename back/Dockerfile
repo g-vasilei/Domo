@@ -1,6 +1,8 @@
 ## Stage 1 — build
 FROM node:24-alpine AS builder
 
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -16,6 +18,8 @@ RUN npm run build
 
 ## Stage 2 — production image
 FROM node:24-alpine
+
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
