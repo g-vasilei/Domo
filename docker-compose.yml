@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: domo-postgres
+    restart: unless-stopped
+    env_file: ./postgres.env
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - /apps/domo/data/postgres:/var/lib/postgresql/data
+    networks:
+      - domo
+
+  redis:
+    image: redis:7-alpine
+    container_name: domo-redis
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:6379:6379
+    networks:
+      - domo
+
+  backend:
+    build:
+      context: .
+      dockerfile: back/Dockerfile
+    container_name: domo-backend
+    restart: unless-stopped
+    env_file: ./back/.env
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - domo
+
+  frontend:
+    build:
+      context: .
+      dockerfile: front/Dockerfile
+    container_name: domo-frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+    networks:
+      - domo
+
+networks:
+  domo:
+    driver: bridge
