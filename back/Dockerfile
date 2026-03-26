@@ -28,6 +28,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY back/prisma ./back/prisma
 
 ENV NODE_ENV=production
+ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
 EXPOSE 3000
 
 WORKDIR /app/back
