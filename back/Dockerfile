@@ -1,12 +1,16 @@
+## Stage 1 — build
 FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-COPY back/package*.json ./
+COPY package*.json ./
+COPY back/package.json ./back/
 RUN npm ci
 
-COPY back/ ./
+COPY back/ ./back/
+COPY tsconfig.base.json ./
 
+WORKDIR /app/back
 RUN npm run build
 RUN npx prisma generate
 
@@ -15,15 +19,16 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-COPY back/package*.json ./
+COPY package*.json ./
+COPY back/package.json ./back/
 RUN npm ci --omit=dev
 
-# Copy compiled output and prisma files
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/back/dist ./back/dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY back/prisma ./prisma
+COPY back/prisma ./back/prisma
 
 ENV NODE_ENV=production
 EXPOSE 3000
 
+WORKDIR /app/back
 CMD ["node", "dist/main"]
