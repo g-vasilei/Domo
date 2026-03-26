@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+enum AlarmState {
+  DISARMED
+  ARMED_HOME
+  ARMED_AWAY
+  EXIT_DELAY
+  ENTRY_DELAY
+  TRIGGERED
+}
+
+enum AlarmAction {
+  ENTRY_DELAY
+  IMMEDIATE
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?
+  googleId     String?   @unique
+  role         Role      @default(OWNER)
+  createdById  String?
+  createdBy    User?     @relation("ManagedUsers", fields: [createdById], references: [id])
+  managedUsers User[]    @relation("ManagedUsers")
+
+  tuyaCredentials  TuyaCredentials?
+  permissions      MemberPermissions?
+  refreshTokens    RefreshToken[]
+  logs             Log[]
+  alarmSettings    AlarmSettings?
+  alarmRules       AlarmRule[]
+  sentInvitations  Invitation[] @relation("InvitedBy")
+  deviceNotifPrefs DeviceNotifPref[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeviceNotifPref {
+  id         String  @id @default(cuid())
+  userId     String
+  deviceId   String
+  deviceName String  @default("")
+  enabled    Boolean @default(true)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+}
+
+model TuyaCredentials {
+  id          String @id @default(cuid())
+  userId      String @unique
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessId    String // AES-256 encrypted
+  accessSecret String // AES-256 encrypted
+  region      String // eu | us | cn
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MemberPermissions {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canViewDevices      Boolean  @default(true)
+  canControlDevices   Boolean  @default(false)
+  canCreateSchedules  Boolean  @default(false)
+  canManageMembers    Boolean  @default(false)
+  canArmAlarm         Boolean  @default(false)
+  canSetAlarmPin      Boolean  @default(false)
+  allowedDeviceIds    String[] // empty array = all devices
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model AlarmSettings {
+  id             String     @id @default(cuid())
+  userId         String     @unique
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  state          AlarmState @default(DISARMED)
+  stateAt        DateTime   @default(now())
+  pinHash        String?
+  exitDelaySecs  Int        @default(30)
+  entryDelaySecs Int        @default(30)
+  // Display mode
+  displayMode    Boolean    @default(false)
+  showClock      Boolean    @default(true)
+  showTemp       Boolean    @default(true)
+  showHumidity   Boolean    @default(true)
+  tempDeviceId   String?
+  humidDeviceId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AlarmRule {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId     String
+  deviceName   String
+  triggerCode  String
+  triggerValue Json
+  activeInHome Boolean     @default(false)
+  activeInAway Boolean     @default(true)
+  action       AlarmAction @default(ENTRY_DELAY)
+  enabled      Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  token       String   @unique
+  invitedById String
+  invitedBy   User     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  accepted    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  level     String   // info | warn | error | debug
+  message   String
+  context   String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+}

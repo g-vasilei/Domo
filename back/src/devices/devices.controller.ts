@@ -1,0 +1,58 @@
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { DevicesService } from './devices.service';
+import { SendCommandDto } from './dto/send-command.dto';
+
+@ApiTags('devices')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('devices')
+export class DevicesController {
+  constructor(private readonly devicesService: DevicesService) {}
+
+  @Get()
+  getDevices(@Req() req: any) {
+    return this.devicesService.getDevices(req.user.id);
+  }
+
+  @Get('rooms')
+  getRooms(@Req() req: any) {
+    return this.devicesService.getRooms(req.user.id);
+  }
+
+  @Get('diagnose-rooms')
+  diagnoseRooms(@Req() req: any) {
+    return this.devicesService.diagnoseRooms(req.user.id);
+  }
+
+  @Get(':id')
+  getDevice(@Req() req: any, @Param('id') deviceId: string) {
+    return this.devicesService.getDevice(req.user.id, deviceId);
+  }
+
+  @Get(':id/status')
+  getDeviceStatus(@Req() req: any, @Param('id') deviceId: string) {
+    return this.devicesService.getDeviceStatus(req.user.id, deviceId);
+  }
+
+  @Post(':id/commands')
+  sendCommand(@Req() req: any, @Param('id') deviceId: string, @Body() dto: SendCommandDto) {
+    return this.devicesService.sendCommand(req.user.id, deviceId, dto.commands);
+  }
+
+  @Get(':id/notif-pref')
+  getNotifPref(@Req() req: any, @Param('id') deviceId: string) {
+    return this.devicesService.getNotifPref(req.user.id, deviceId);
+  }
+
+  @Patch(':id/notif-pref')
+  setNotifPref(
+    @Req() req: any,
+    @Param('id') deviceId: string,
+    @Body() body: { enabled: boolean; deviceName?: string },
+  ) {
+    return this.devicesService.setNotifPref(req.user.id, deviceId, body.enabled, body.deviceName);
+  }
+}

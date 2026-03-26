@@ -1,0 +1,8 @@
+# Prisma generated client (reinstalled via postinstall)
+node_modules/.prisma/
+
+# Migration lock (keep migrations, ignore lock)
+# prisma/migrations/ — keep these, they are source of truth
+
+# NestJS build
+dist/
