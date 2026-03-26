@@ -1,20 +1,19 @@
-import {
-  Injectable, Logger, UnauthorizedException, BadRequestException,
-} from '@nestjs/common';
+import { BadRequestException,Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { AlarmAction,AlarmState } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
+
 import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
-import { AlarmState, AlarmAction } from '@prisma/client';
-import { UpdateDisplayDto, CreateRuleDto, UpdateRuleDto } from './dto/alarm.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateRuleDto, UpdateDisplayDto, UpdateRuleDto } from './dto/alarm.dto';
 
 @Injectable()
 export class AlarmService {
   private readonly logger = new Logger(AlarmService.name);
 
-  private exitTimers  = new Map<string, NodeJS.Timeout>();
+  private exitTimers = new Map<string, NodeJS.Timeout>();
   private entryTimers = new Map<string, NodeJS.Timeout>();
-  private pollTimers  = new Map<string, NodeJS.Timeout>();
+  private pollTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private prisma: PrismaService,
@@ -173,23 +172,26 @@ export class AlarmService {
 
   private startPolling(userId: string, armedState: 'ARMED_HOME' | 'ARMED_AWAY') {
     this.stopPolling(userId);
-    const timer = setInterval(
-      () => this.checkRules(userId, armedState),
-      15_000,
-    );
+    const timer = setInterval(() => this.checkRules(userId, armedState), 15_000);
     this.pollTimers.set(userId, timer);
     this.logger.log(`Polling started for user ${userId} (${armedState})`);
   }
 
   private stopPolling(userId: string) {
     const t = this.pollTimers.get(userId);
-    if (t) { clearInterval(t); this.pollTimers.delete(userId); }
+    if (t) {
+      clearInterval(t);
+      this.pollTimers.delete(userId);
+    }
   }
 
   private async checkRules(userId: string, armedState: 'ARMED_HOME' | 'ARMED_AWAY') {
     const settings = await this.getSettings(userId);
     // Re-check state hasn't changed since timer was started
-    if (settings.state !== armedState) { this.stopPolling(userId); return; }
+    if (settings.state !== armedState) {
+      this.stopPolling(userId);
+      return;
+    }
 
     const isHome = armedState === 'ARMED_HOME';
     const rules = await this.prisma.alarmRule.findMany({
@@ -243,7 +245,10 @@ export class AlarmService {
     this.logger.log(`Alarm → ${state} (user ${userId})`);
 
     // Broadcast to owner + all their members so every connected session gets the update
-    const members = await this.prisma.user.findMany({ where: { createdById: userId }, select: { id: true } });
+    const members = await this.prisma.user.findMany({
+      where: { createdById: userId },
+      select: { id: true },
+    });
     const groupIds = [userId, ...members.map((m) => m.id)];
 
     const payload = {
@@ -272,9 +277,15 @@ export class AlarmService {
 
   private clearDelayTimers(userId: string) {
     const exit = this.exitTimers.get(userId);
-    if (exit) { clearTimeout(exit); this.exitTimers.delete(userId); }
+    if (exit) {
+      clearTimeout(exit);
+      this.exitTimers.delete(userId);
+    }
     const entry = this.entryTimers.get(userId);
-    if (entry) { clearTimeout(entry); this.entryTimers.delete(userId); }
+    if (entry) {
+      clearTimeout(entry);
+      this.entryTimers.delete(userId);
+    }
   }
 
   private clearAll(userId: string) {

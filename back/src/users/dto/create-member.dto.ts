@@ -1,6 +1,7 @@
-import { IsEmail, IsString, MinLength, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsEmail, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+
 import { UpdateMemberPermissionsDto } from './update-member-permissions.dto';
 
 export class CreateMemberDto {

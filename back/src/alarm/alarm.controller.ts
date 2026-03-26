@@ -1,8 +1,26 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Request, UseGuards } from '@nestjs/common';
-import { AlarmService } from './alarm.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { ArmDto, DisarmDto, SetPinDto, UpdateDisplayDto, CreateRuleDto, UpdateRuleDto } from './dto/alarm.dto';
+import { Roles,RolesGuard } from '../auth/guards/roles.guard';
+import { AlarmService } from './alarm.service';
+import {
+  ArmDto,
+  CreateRuleDto,
+  DisarmDto,
+  SetPinDto,
+  UpdateDisplayDto,
+  UpdateRuleDto,
+} from './dto/alarm.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('OWNER')

@@ -46,9 +46,7 @@ export const useAlarmStore = create<AlarmStore>((set) => ({
   settings: null,
   setSettings: (settings) => set({ settings: { ...DEFAULTS, ...settings } }),
   patchState: (state, stateAt) =>
-    set((s) =>
-      s.settings ? { settings: { ...s.settings, state, stateAt } } : s,
-    ),
+    set((s) => (s.settings ? { settings: { ...s.settings, state, stateAt } } : s)),
 }));
 
 /** Returns seconds remaining in an exit/entry delay, or 0 if expired */
@@ -57,8 +55,8 @@ export function secondsLeft(settings: AlarmSettings): number {
     settings.state === 'EXIT_DELAY'
       ? settings.exitDelaySecs
       : settings.state === 'ENTRY_DELAY'
-      ? settings.entryDelaySecs
-      : 0;
+        ? settings.entryDelaySecs
+        : 0;
   if (total === 0) return 0;
   const elapsed = (Date.now() - new Date(settings.stateAt).getTime()) / 1000;
   return Math.max(0, Math.ceil(total - elapsed));

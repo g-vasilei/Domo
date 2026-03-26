@@ -1,28 +1,28 @@
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Shield,
-  ShieldAlert,
-  Home,
-  Plus,
-  Trash2,
-  Eye,
-  EyeOff,
+  ArrowLeft,
   Check,
   ChevronDown,
   ChevronUp,
-  DoorOpen,
-  Thermometer,
-  Wind,
-  Plug,
-  Zap,
-  Lightbulb,
   Cpu,
-  ArrowLeft,
+  DoorOpen,
+  Eye,
+  EyeOff,
+  Lightbulb,
+  Plug,
+  Plus,
+  Shield,
+  ShieldAlert,
+  Thermometer,
+  Trash2,
+  Wind,
+  Zap,
 } from 'lucide-react';
-import { api } from '../lib/api';
-import { useAlarmStore, AlarmSettings } from '../store/alarm.store';
+import { useMemo,useState } from 'react';
+
 import ArmControls from '../components/ArmControls';
+import { api } from '../lib/api';
+import { AlarmSettings,useAlarmStore } from '../store/alarm.store';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -104,7 +104,7 @@ const STATE_META: Record<AlarmState, { label: string; color: string; bg: string 
 };
 
 // Human-readable label for a trigger value
-function triggerLabel(code: string, value: unknown): string {
+function _triggerLabel(code: string, value: unknown): string {
   if (typeof value === 'boolean') return value ? `${code} = ON` : `${code} = OFF`;
   return `${code} = ${String(value)}`;
 }
@@ -608,7 +608,7 @@ function RuleCard({
   onUpdate: (patch: Partial<AlarmRule>) => void;
   onDelete: () => void;
 }) {
-  const Icon = CATEGORY_ICONS['mcs'] ?? Cpu; // fallback; could store category in rule
+  const _Icon = CATEGORY_ICONS['mcs'] ?? Cpu; // fallback; could store category in rule
 
   return (
     <div

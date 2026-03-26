@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsArray, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class UpdateMemberPermissionsDto {
   @IsOptional() @IsBoolean() canViewDevices?: boolean;

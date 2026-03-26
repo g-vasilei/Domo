@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Home, WifiOff } from 'lucide-react';
-import { api } from '../lib/api';
+
 import DeviceCard from '../components/DeviceCard';
+import { api } from '../lib/api';
 
 function EmptyRoom() {
   return (
@@ -39,7 +40,11 @@ function RoomSection({ room }: { room: { id: string; name: string; devices: any[
 }
 
 export default function RoomsPage() {
-  const { data: rooms = [], isLoading, error } = useQuery({
+  const {
+    data: rooms = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['rooms'],
     queryFn: () => api.get('/devices/rooms').then((r) => r.data),
     refetchInterval: 30_000,
@@ -61,7 +66,10 @@ export default function RoomsPage() {
               <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-3" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(3)].map((_, j) => (
-                  <div key={j} className="h-40 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm animate-pulse" />
+                  <div
+                    key={j}
+                    className="h-40 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm animate-pulse"
+                  />
                 ))}
               </div>
             </div>
@@ -74,7 +82,9 @@ export default function RoomsPage() {
           <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4">
             <WifiOff size={24} className="text-red-400" />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">Could not load rooms</h3>
+          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Could not load rooms
+          </h3>
           <p className="text-sm text-red-400 max-w-sm">{errorMessage}</p>
         </div>
       )}
@@ -84,14 +94,16 @@ export default function RoomsPage() {
           <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-4">
             <Home size={24} className="text-slate-300" />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">No rooms found</h3>
-          <p className="text-sm text-slate-400 max-w-xs">Create rooms in the Smart Life app and assign devices to them.</p>
+          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            No rooms found
+          </h3>
+          <p className="text-sm text-slate-400 max-w-xs">
+            Create rooms in the Smart Life app and assign devices to them.
+          </p>
         </div>
       )}
 
-      {!isLoading && !error && rooms.map((room: any) => (
-        <RoomSection key={room.id} room={room} />
-      ))}
+      {!isLoading && !error && rooms.map((room: any) => <RoomSection key={room.id} room={room} />)}
     </div>
   );
 }

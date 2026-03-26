@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
-import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { DevicesModule } from './devices/devices.module';
-import { TuyaModule } from './tuya/tuya.module';
 import { AlarmModule } from './alarm/alarm.module';
+import { AuthModule } from './auth/auth.module';
+import { DevicesModule } from './devices/devices.module';
 import { MailModule } from './mail/mail.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { TuyaModule } from './tuya/tuya.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [

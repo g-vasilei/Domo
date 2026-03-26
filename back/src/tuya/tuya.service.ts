@@ -13,7 +13,11 @@ const REGION_HOSTS: Record<TuyaRegion, string> = {
 export class TuyaService {
   private readonly logger = new Logger(TuyaService.name);
 
-  async validateCredentials(accessId: string, accessSecret: string, region: TuyaRegion): Promise<boolean> {
+  async validateCredentials(
+    accessId: string,
+    accessSecret: string,
+    region: TuyaRegion,
+  ): Promise<boolean> {
     try {
       const token = await this.getToken(accessId, accessSecret, region);
       return !!token;
@@ -25,32 +29,64 @@ export class TuyaService {
 
   async getDevices(accessId: string, accessSecret: string, region: TuyaRegion) {
     const token = await this.getToken(accessId, accessSecret, region);
-    return this.request(accessId, accessSecret, region, token, 'GET', '/v1.0/iot-01/associated-users/devices');
+    return this.request(
+      accessId,
+      accessSecret,
+      region,
+      token,
+      'GET',
+      '/v1.0/iot-01/associated-users/devices',
+    );
   }
 
   async getRooms(accessId: string, accessSecret: string, region: TuyaRegion) {
     const token = await this.getToken(accessId, accessSecret, region);
 
-    const devicesResult = await this.request(accessId, accessSecret, region, token, 'GET', '/v1.0/iot-01/associated-users/devices');
+    const devicesResult = await this.request(
+      accessId,
+      accessSecret,
+      region,
+      token,
+      'GET',
+      '/v1.0/iot-01/associated-users/devices',
+    );
     const allDevices: any[] = devicesResult?.devices ?? [];
 
-    const homeIds = [...new Set<string>(allDevices.map((d: any) => String(d.owner_id)).filter(Boolean))];
+    const homeIds = [
+      ...new Set<string>(allDevices.map((d: any) => String(d.owner_id)).filter(Boolean)),
+    ];
 
     const rooms: { id: string; name: string; devices: any[] }[] = [];
     const assignedDeviceIds = new Set<string>();
 
     for (const homeId of homeIds) {
       try {
-        const homeData: any = await this.request(accessId, accessSecret, region, token, 'GET', `/v1.0/homes/${homeId}/rooms`);
+        const homeData: any = await this.request(
+          accessId,
+          accessSecret,
+          region,
+          token,
+          'GET',
+          `/v1.0/homes/${homeId}/rooms`,
+        );
         const roomList: any[] = homeData?.rooms ?? [];
         for (const room of roomList) {
           const roomId = String(room.room_id ?? room.id);
           let roomDeviceIds: string[] = [];
           try {
-            const roomDevices: any = await this.request(accessId, accessSecret, region, token, 'GET', `/v1.0/homes/${homeId}/rooms/${roomId}/devices`);
-            const devArr: any[] = Array.isArray(roomDevices) ? roomDevices : (roomDevices?.devices ?? []);
+            const roomDevices: any = await this.request(
+              accessId,
+              accessSecret,
+              region,
+              token,
+              'GET',
+              `/v1.0/homes/${homeId}/rooms/${roomId}/devices`,
+            );
+            const devArr: any[] = Array.isArray(roomDevices)
+              ? roomDevices
+              : (roomDevices?.devices ?? []);
             roomDeviceIds = devArr.map((d: any) => d.id ?? d.device_id).filter(Boolean);
-          } catch (_) {}
+          } catch (_e) { /* device list unavailable for room — skip */ }
           const devices = allDevices.filter((d) => roomDeviceIds.includes(d.id));
           devices.forEach((d) => assignedDeviceIds.add(d.id));
           rooms.push({ id: roomId, name: room.name, devices });
@@ -73,9 +109,21 @@ export class TuyaService {
     return this.request(accessId, accessSecret, region, token, 'GET', `/v1.0/devices/${deviceId}`);
   }
 
-  async getDeviceStatus(accessId: string, accessSecret: string, region: TuyaRegion, deviceId: string) {
+  async getDeviceStatus(
+    accessId: string,
+    accessSecret: string,
+    region: TuyaRegion,
+    deviceId: string,
+  ) {
     const token = await this.getToken(accessId, accessSecret, region);
-    return this.request(accessId, accessSecret, region, token, 'GET', `/v1.0/devices/${deviceId}/status`);
+    return this.request(
+      accessId,
+      accessSecret,
+      region,
+      token,
+      'GET',
+      `/v1.0/devices/${deviceId}/status`,
+    );
   }
 
   async diagnoseRooms(accessId: string, accessSecret: string, region: TuyaRegion) {
@@ -83,15 +131,24 @@ export class TuyaService {
     const result: Record<string, any> = {};
 
     // 1. Raw device list — show all fields of first device
-    const devicesResult = await this.request(accessId, accessSecret, region, token, 'GET', '/v1.0/iot-01/associated-users/devices');
+    const devicesResult = await this.request(
+      accessId,
+      accessSecret,
+      region,
+      token,
+      'GET',
+      '/v1.0/iot-01/associated-users/devices',
+    );
     const devices: any[] = devicesResult?.devices ?? [];
     result.deviceCount = devices.length;
-    result.firstDeviceFields = devices[0] ? Object.entries(devices[0]).reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {}) : null;
+    result.firstDeviceFields = devices[0]
+      ? Object.entries(devices[0]).reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
+      : null;
 
     const ownerIds = [...new Set(devices.map((d: any) => d.owner_id).filter(Boolean))];
-    const uids     = [...new Set(devices.map((d: any) => d.uid).filter(Boolean))];
+    const uids = [...new Set(devices.map((d: any) => d.uid).filter(Boolean))];
     result.ownerIds = ownerIds;
-    result.uids     = uids;
+    result.uids = uids;
 
     // 2. Try home endpoints with each candidate ID
     const candidates = [...new Set([...ownerIds, ...uids])];
@@ -124,10 +181,22 @@ export class TuyaService {
     commands: { code: string; value: unknown }[],
   ) {
     const token = await this.getToken(accessId, accessSecret, region);
-    return this.request(accessId, accessSecret, region, token, 'POST', `/v1.0/devices/${deviceId}/commands`, { commands });
+    return this.request(
+      accessId,
+      accessSecret,
+      region,
+      token,
+      'POST',
+      `/v1.0/devices/${deviceId}/commands`,
+      { commands },
+    );
   }
 
-  private async getToken(accessId: string, accessSecret: string, region: TuyaRegion): Promise<string> {
+  private async getToken(
+    accessId: string,
+    accessSecret: string,
+    region: TuyaRegion,
+  ): Promise<string> {
     const t = Date.now().toString();
     const path = '/v1.0/token?grant_type=1';
     const sign = this.sign(accessId, accessSecret, t, '', 'GET', path, '');
@@ -141,7 +210,7 @@ export class TuyaService {
         sign_method: 'HMAC-SHA256',
       },
     });
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     this.logger.debug(`Tuya token response: ${JSON.stringify(data)}`);
     if (!data.success) throw new Error(data.msg ?? JSON.stringify(data));
     return data.result.access_token as string;
@@ -173,7 +242,7 @@ export class TuyaService {
       },
       ...(bodyStr ? { body: bodyStr } : {}),
     });
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     this.logger.debug(`Tuya ${method} ${path} → ${JSON.stringify(data)}`);
     if (!data.success) throw new Error(data.msg ?? JSON.stringify(data));
     return data.result;

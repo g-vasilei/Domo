@@ -1,20 +1,20 @@
 import {
-  Injectable,
-  ForbiddenException,
-  NotFoundException,
   BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
-import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
-import { InviteMemberDto } from './dto/invite-member.dto';
-import { AcceptInvitationDto } from './dto/accept-invitation.dto';
-import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
+import { PrismaService } from '../prisma/prisma.service';
 import { TuyaService } from '../tuya/tuya.service';
+import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
+import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
+import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
 
 @Injectable()
 export class UsersService {
@@ -30,7 +30,8 @@ export class UsersService {
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    if (!user.passwordHash) throw new BadRequestException('Cannot change password for OAuth accounts');
+    if (!user.passwordHash)
+      throw new BadRequestException('Cannot change password for OAuth accounts');
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!valid) throw new BadRequestException('Current password is incorrect');
     const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -47,16 +48,22 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    const { passwordHash, googleId, ...profile } = user;
+    const { passwordHash: _pw, googleId: _gid, ...profile } = user;
     if (profile.tuyaCredentials) {
-      (profile.tuyaCredentials as any).accessId = this.decrypt((profile.tuyaCredentials as any).accessId);
+      (profile.tuyaCredentials as any).accessId = this.decrypt(
+        (profile.tuyaCredentials as any).accessId,
+      );
     }
     return profile;
   }
 
   async setTuyaCredentials(userId: string, dto: SetTuyaCredentialsDto) {
     // Validate keys against Tuya API before saving
-    const valid = await this.tuyaService.validateCredentials(dto.accessId, dto.accessSecret, dto.region);
+    const valid = await this.tuyaService.validateCredentials(
+      dto.accessId,
+      dto.accessSecret,
+      dto.region,
+    );
     if (!valid) throw new BadRequestException('Invalid Tuya credentials');
 
     const encryptedAccessId = this.encrypt(dto.accessId);
@@ -78,9 +85,14 @@ export class UsersService {
     });
   }
 
-  async getTuyaCredentials(userId: string): Promise<{ accessId: string; accessSecret: string; region: string } | null> {
+  async getTuyaCredentials(
+    userId: string,
+  ): Promise<{ accessId: string; accessSecret: string; region: string } | null> {
     // Members don't have their own credentials — use their owner's
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, createdById: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, createdById: true },
+    });
     const credUserId = user?.role === 'MEMBER' && user.createdById ? user.createdById : userId;
 
     const creds = await this.prisma.tuyaCredentials.findUnique({ where: { userId: credUserId } });
@@ -107,15 +119,22 @@ export class UsersService {
 
   /** Returns [ownerId, ...memberIds] for any user in the group */
   async getGroupUserIds(userId: string): Promise<string[]> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, createdById: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, createdById: true },
+    });
     const ownerId = user?.role === 'MEMBER' && user.createdById ? user.createdById : userId;
-    const members = await this.prisma.user.findMany({ where: { createdById: ownerId }, select: { id: true } });
+    const members = await this.prisma.user.findMany({
+      where: { createdById: ownerId },
+      select: { id: true },
+    });
     return [ownerId, ...members.map((m) => m.id)];
   }
 
   async inviteMember(ownerId: string, dto: InviteMemberDto) {
     const owner = await this.prisma.user.findUnique({ where: { id: ownerId } });
-    if (!owner || owner.role !== 'OWNER') throw new ForbiddenException('Only owners can invite members');
+    if (!owner || owner.role !== 'OWNER')
+      throw new ForbiddenException('Only owners can invite members');
 
     const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existingUser) throw new BadRequestException('A user with this email already exists');
@@ -175,12 +194,18 @@ export class UsersService {
   }
 
   async getLogs(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, createdById: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, createdById: true },
+    });
 
     let actorIds: string[];
     if (user?.role === 'OWNER') {
       // Show logs for owner + all their members
-      const members = await this.prisma.user.findMany({ where: { createdById: userId }, select: { id: true } });
+      const members = await this.prisma.user.findMany({
+        where: { createdById: userId },
+        select: { id: true },
+      });
       actorIds = [userId, ...members.map((m) => m.id)];
     } else {
       actorIds = [userId];
@@ -209,7 +234,11 @@ export class UsersService {
     return { message: 'Invitation revoked' };
   }
 
-  async updateMemberPermissions(ownerId: string, memberId: string, dto: UpdateMemberPermissionsDto) {
+  async updateMemberPermissions(
+    ownerId: string,
+    memberId: string,
+    dto: UpdateMemberPermissionsDto,
+  ) {
     const member = await this.prisma.user.findUnique({ where: { id: memberId } });
     if (!member || member.createdById !== ownerId) throw new ForbiddenException();
 

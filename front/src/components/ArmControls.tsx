@@ -1,7 +1,8 @@
 import { Home, LogOut, ShieldOff } from 'lucide-react';
+
 import { useArmAlarm } from '../hooks/useArmAlarm';
-import PinPromptModal from './PinPromptModal';
 import ArmCountdownModal from './ArmCountdownModal';
+import PinPromptModal from './PinPromptModal';
 
 interface Props {
   currentState: string;
@@ -10,9 +11,15 @@ interface Props {
 
 export default function ArmControls({ currentState, hasPinSet }: Props) {
   const {
-    pinPrompt, setPinPrompt, pinError,
-    countdown, startArm, startDisarm,
-    handlePinConfirm, handleCountdownDone, handleCountdownCancel,
+    pinPrompt,
+    setPinPrompt,
+    pinError,
+    countdown,
+    startArm,
+    startDisarm,
+    handlePinConfirm,
+    handleCountdownDone,
+    handleCountdownCancel,
     isPending,
   } = useArmAlarm();
 
@@ -52,7 +59,13 @@ export default function ArmControls({ currentState, hasPinSet }: Props) {
 
       {pinPrompt && (
         <PinPromptModal
-          title={pinPrompt === 'disarm' ? 'Disarm Alarm' : pinPrompt === 'arm_home' ? 'Arm — Home' : 'Arm — Away'}
+          title={
+            pinPrompt === 'disarm'
+              ? 'Disarm Alarm'
+              : pinPrompt === 'arm_home'
+                ? 'Arm — Home'
+                : 'Arm — Away'
+          }
           description={hasPinSet ? 'Enter your PIN to confirm' : 'No PIN set — confirm to proceed'}
           onConfirm={hasPinSet ? handlePinConfirm : () => handlePinConfirm('')}
           onClose={() => setPinPrompt(null)}

@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, BadGatewayException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
-import { TuyaService } from '../tuya/tuya.service';
-import { DevicesGateway } from './devices.gateway';
+import { BadGatewayException,BadRequestException, Injectable } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
+import { TuyaService } from '../tuya/tuya.service';
+import { UsersService } from '../users/users.service';
+import { DevicesGateway } from './devices.gateway';
 
 /** Battery codes Tuya devices report */
 const BATTERY_PCT_CODES = ['battery_percentage', 'battery_value', 'residual_electricity'];
@@ -30,7 +31,11 @@ export class DevicesService {
   async getRooms(userId: string) {
     const creds = await this.getCreds(userId);
     try {
-      return await this.tuyaService.getRooms(creds.accessId, creds.accessSecret, creds.region as any);
+      return await this.tuyaService.getRooms(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+      );
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve rooms from Tuya');
     }
@@ -44,7 +49,11 @@ export class DevicesService {
   async getDevices(userId: string) {
     const creds = await this.getCreds(userId);
     try {
-      const result = await this.tuyaService.getDevices(creds.accessId, creds.accessSecret, creds.region as any);
+      const result = await this.tuyaService.getDevices(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+      );
       return result?.devices ?? result ?? [];
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve devices from Tuya');
@@ -54,7 +63,12 @@ export class DevicesService {
   async getDevice(userId: string, deviceId: string) {
     const creds = await this.getCreds(userId);
     try {
-      const device = await this.tuyaService.getDevice(creds.accessId, creds.accessSecret, creds.region as any, deviceId);
+      const device = await this.tuyaService.getDevice(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+        deviceId,
+      );
       this.checkBatteryAlert(userId, device).catch(() => {});
       return device;
     } catch (e: any) {
@@ -65,16 +79,31 @@ export class DevicesService {
   async getDeviceStatus(userId: string, deviceId: string) {
     const creds = await this.getCreds(userId);
     try {
-      return await this.tuyaService.getDeviceStatus(creds.accessId, creds.accessSecret, creds.region as any, deviceId);
+      return await this.tuyaService.getDeviceStatus(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+        deviceId,
+      );
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve device status from Tuya');
     }
   }
 
-  async sendCommand(userId: string, deviceId: string, commands: { code: string; value: unknown }[]) {
+  async sendCommand(
+    userId: string,
+    deviceId: string,
+    commands: { code: string; value: unknown }[],
+  ) {
     const creds = await this.getCreds(userId);
     try {
-      const result = await this.tuyaService.sendCommand(creds.accessId, creds.accessSecret, creds.region as any, deviceId, commands);
+      const result = await this.tuyaService.sendCommand(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+        deviceId,
+        commands,
+      );
       this.gateway.broadcastDeviceUpdate(userId, deviceId, commands);
       this.logCommand(userId, deviceId, commands).catch(() => {});
       this.notifyDeviceChange(userId, deviceId, commands).catch(() => {});
@@ -183,8 +212,15 @@ export class DevicesService {
     });
   }
 
-  private async logCommand(userId: string, deviceId: string, commands: { code: string; value: unknown }[]) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, createdById: true } });
+  private async logCommand(
+    userId: string,
+    deviceId: string,
+    commands: { code: string; value: unknown }[],
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, createdById: true },
+    });
     const ownerId = user?.role === 'MEMBER' ? (user.createdById ?? userId) : userId;
     await this.prisma.log.create({
       data: {

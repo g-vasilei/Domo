@@ -1,20 +1,21 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Plug,
+  ArrowRight,
+  Cpu,
+  DoorOpen,
+  Eye,
   Lightbulb,
+  Plug,
+  Power,
   Thermometer,
   Wind,
-  Eye,
-  DoorOpen,
-  Cpu,
   Zap,
-  Power,
-  ArrowRight,
 } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import { api } from '../lib/api';
-import { usePrefsStore, convertTemp } from '../store/prefs.store';
+import { convertTemp,usePrefsStore } from '../store/prefs.store';
 
 const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
   cz: { label: 'Socket', Icon: Plug },
@@ -141,7 +142,11 @@ export default function DeviceCard({ device }: { device: any }) {
       {/* Sensor readings */}
       {(temp !== undefined || humidity !== undefined) && (
         <div className="flex gap-3 text-xs text-slate-500 dark:text-slate-400">
-          {temp !== undefined && <span>🌡 {convertTemp(temp, tempUnit)}°{tempUnit}</span>}
+          {temp !== undefined && (
+            <span>
+              🌡 {convertTemp(temp, tempUnit)}°{tempUnit}
+            </span>
+          )}
           {humidity !== undefined && <span>💧 {fmt(humidity, 100)}%</span>}
         </div>
       )}

@@ -1,6 +1,15 @@
 import {
-  IsString, IsIn, IsOptional, IsBoolean, MinLength, MaxLength,
-  IsInt, Min, Max, IsNotEmpty, Allow,
+  Allow,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
 } from 'class-validator';
 
 export class ArmDto {
@@ -35,8 +44,8 @@ export class UpdateDisplayDto {
   @IsBoolean() @IsOptional() showClock?: boolean;
   @IsBoolean() @IsOptional() showTemp?: boolean;
   @IsBoolean() @IsOptional() showHumidity?: boolean;
-  @IsString()  @IsOptional() tempDeviceId?: string;
-  @IsString()  @IsOptional() humidDeviceId?: string;
+  @IsString() @IsOptional() tempDeviceId?: string;
+  @IsString() @IsOptional() humidDeviceId?: string;
   @IsInt() @Min(10) @Max(120) @IsOptional() exitDelaySecs?: number;
   @IsInt() @Min(10) @Max(120) @IsOptional() entryDelaySecs?: number;
 }

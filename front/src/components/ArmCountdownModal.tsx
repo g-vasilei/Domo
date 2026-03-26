@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { Home, LogOut, X, ShieldCheck } from 'lucide-react';
+import { Home, LogOut, ShieldCheck,X } from 'lucide-react';
+import { useEffect, useRef,useState } from 'react';
 
 interface Props {
   mode: 'home' | 'away';
@@ -9,7 +9,13 @@ interface Props {
   onCancel: () => void;
 }
 
-export default function ArmCountdownModal({ mode, seconds, isExitDelay = true, onClose, onCancel }: Props) {
+export default function ArmCountdownModal({
+  mode,
+  seconds,
+  isExitDelay = true,
+  onClose,
+  onCancel,
+}: Props) {
   const [remaining, setRemaining] = useState(seconds);
   const [done, setDone] = useState(false);
   const closedRef = useRef(false);
@@ -28,7 +34,10 @@ export default function ArmCountdownModal({ mode, seconds, isExitDelay = true, o
   useEffect(() => {
     if (!done) return;
     const t = setTimeout(() => {
-      if (!closedRef.current) { closedRef.current = true; onClose(); }
+      if (!closedRef.current) {
+        closedRef.current = true;
+        onClose();
+      }
     }, 1500);
     return () => clearTimeout(t);
   }, [done, onClose]);
@@ -46,7 +55,6 @@ export default function ArmCountdownModal({ mode, seconds, isExitDelay = true, o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="bg-white dark:bg-[#1A222C] rounded-2xl w-full max-w-xs shadow-2xl flex flex-col items-center px-8 py-8 gap-6">
-
         {/* Cancel (only while counting) */}
         <div className="w-full flex justify-end -mb-2">
           {!done && (
@@ -78,10 +86,25 @@ export default function ArmCountdownModal({ mode, seconds, isExitDelay = true, o
           <>
             {/* Circular countdown */}
             <div className="relative w-32 h-32 flex items-center justify-center">
-              <svg className="absolute inset-0 -rotate-90" width="128" height="128" viewBox="0 0 128 128">
-                <circle cx="64" cy="64" r={radius} fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-white/10" />
+              <svg
+                className="absolute inset-0 -rotate-90"
+                width="128"
+                height="128"
+                viewBox="0 0 128 128"
+              >
                 <circle
-                  cx="64" cy="64" r={radius}
+                  cx="64"
+                  cy="64"
+                  r={radius}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  className="text-slate-100 dark:text-white/10"
+                />
+                <circle
+                  cx="64"
+                  cy="64"
+                  r={radius}
                   fill="none"
                   stroke={color}
                   strokeWidth="8"
@@ -91,22 +114,32 @@ export default function ArmCountdownModal({ mode, seconds, isExitDelay = true, o
                 />
               </svg>
               <div className="flex flex-col items-center">
-                <span className="text-3xl font-bold tabular-nums" style={{ color }}>{remaining}</span>
+                <span className="text-3xl font-bold tabular-nums" style={{ color }}>
+                  {remaining}
+                </span>
                 <span className="text-[11px] text-slate-400 uppercase tracking-widest">sec</span>
               </div>
             </div>
 
             {/* Label */}
             <div className="flex flex-col items-center gap-2 text-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${color}18` }}>
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: `${color}18` }}
+              >
                 <Icon size={18} style={{ color }} />
               </div>
               <p className="text-base font-semibold text-slate-800 dark:text-slate-100">{label}</p>
               <p className="text-sm text-slate-400">
-                {isExitDelay
-                  ? <>Leave the premises.<br />Alarm arms when countdown ends.</>
-                  : <>Alarm is now active.</>
-                }
+                {isExitDelay ? (
+                  <>
+                    Leave the premises.
+                    <br />
+                    Alarm arms when countdown ends.
+                  </>
+                ) : (
+                  <>Alarm is now active.</>
+                )}
               </p>
             </div>
 

@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback,useState } from 'react';
+
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
 
@@ -10,11 +11,18 @@ export function useArmAlarm() {
   const queryClient = useQueryClient();
   const [pinPrompt, setPinPrompt] = useState<ArmAction | null>(null);
   const [pinError, setPinError] = useState('');
-  const [countdown, setCountdown] = useState<{ mode: 'home' | 'away'; seconds: number; isExitDelay: boolean } | null>(null);
+  const [countdown, setCountdown] = useState<{
+    mode: 'home' | 'away';
+    seconds: number;
+    isExitDelay: boolean;
+  } | null>(null);
 
   const arm = useMutation({
     mutationFn: ({ mode, pin }: { mode: 'home' | 'away'; pin?: string }) =>
-      api.post('/alarm/arm', { mode, pin }).then((r) => { setSettings(r.data); return r.data; }),
+      api.post('/alarm/arm', { mode, pin }).then((r) => {
+        setSettings(r.data);
+        return r.data;
+      }),
     onSuccess: (data, variables) => {
       setPinPrompt(null);
       setPinError('');
@@ -31,35 +39,51 @@ export function useArmAlarm() {
 
   const disarm = useMutation({
     mutationFn: (pin?: string) =>
-      api.post('/alarm/disarm', { pin }).then((r) => { setSettings(r.data); return r.data; }),
-    onSuccess: () => { setPinPrompt(null); setPinError(''); setCountdown(null); },
+      api.post('/alarm/disarm', { pin }).then((r) => {
+        setSettings(r.data);
+        return r.data;
+      }),
+    onSuccess: () => {
+      setPinPrompt(null);
+      setPinError('');
+      setCountdown(null);
+    },
     onError: (e: any) => setPinError(e?.response?.data?.message ?? 'Invalid PIN'),
   });
 
-  const handlePinConfirm = useCallback((pin: string) => {
-    setPinError('');
-    if (pinPrompt === 'disarm') disarm.mutate(pin);
-    else if (pinPrompt === 'arm_home') arm.mutate({ mode: 'home', pin });
-    else if (pinPrompt === 'arm_away') arm.mutate({ mode: 'away', pin });
-  }, [pinPrompt, arm.mutate, disarm.mutate]);
+  const handlePinConfirm = useCallback(
+    (pin: string) => {
+      setPinError('');
+      if (pinPrompt === 'disarm') disarm.mutate(pin);
+      else if (pinPrompt === 'arm_home') arm.mutate({ mode: 'home', pin });
+      else if (pinPrompt === 'arm_away') arm.mutate({ mode: 'away', pin });
+    },
+    [pinPrompt, arm.mutate, disarm.mutate],
+  );
 
-  const startArm = useCallback((mode: 'home' | 'away', hasPinSet: boolean) => {
-    setPinError('');
-    if (hasPinSet) {
-      setPinPrompt(mode === 'home' ? 'arm_home' : 'arm_away');
-    } else {
-      arm.mutate({ mode });
-    }
-  }, [arm.mutate]);
+  const startArm = useCallback(
+    (mode: 'home' | 'away', hasPinSet: boolean) => {
+      setPinError('');
+      if (hasPinSet) {
+        setPinPrompt(mode === 'home' ? 'arm_home' : 'arm_away');
+      } else {
+        arm.mutate({ mode });
+      }
+    },
+    [arm.mutate],
+  );
 
-  const startDisarm = useCallback((hasPinSet: boolean) => {
-    setPinError('');
-    if (hasPinSet) {
-      setPinPrompt('disarm');
-    } else {
-      disarm.mutate(undefined);
-    }
-  }, [disarm.mutate]);
+  const startDisarm = useCallback(
+    (hasPinSet: boolean) => {
+      setPinError('');
+      if (hasPinSet) {
+        setPinPrompt('disarm');
+      } else {
+        disarm.mutate(undefined);
+      }
+    },
+    [disarm.mutate],
+  );
 
   const handleCountdownDone = useCallback(() => {
     setCountdown(null);

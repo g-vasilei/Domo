@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Cpu, Wifi, WifiOff, Home, Shield, ShieldOff, ShieldAlert } from 'lucide-react';
+import { Cpu, Home, Shield, ShieldAlert,ShieldOff, Wifi, WifiOff } from 'lucide-react';
+
+import ArmControls from '../components/ArmControls';
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
-import ArmControls from '../components/ArmControls';
 
 function StatCard({
   icon: Icon,

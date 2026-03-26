@@ -46,7 +46,7 @@ export function useCountdownSound(active: boolean, secondsLeft: number) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  // Re-run when fastMode changes (crossing the 10s threshold)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Re-run when fastMode changes (crossing the 10s threshold)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, fastMode, secondsLeft <= 0]);
 }

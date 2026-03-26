@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { DevicesController } from './devices.controller';
-import { DevicesService } from './devices.service';
-import { DevicesGateway } from './devices.gateway';
+import { JwtModule } from '@nestjs/jwt';
+
+import { PrismaModule } from '../prisma/prisma.module';
 import { TuyaModule } from '../tuya/tuya.module';
 import { UsersModule } from '../users/users.module';
-import { PrismaModule } from '../prisma/prisma.module';
+import { DevicesController } from './devices.controller';
+import { DevicesGateway } from './devices.gateway';
+import { DevicesService } from './devices.service';
 
 @Module({
   imports: [

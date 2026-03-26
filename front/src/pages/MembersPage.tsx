@@ -1,6 +1,7 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, ChevronDown, ChevronUp, Clock, Mail, Trash2, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, Trash2, Mail, Check, ChevronDown, ChevronUp, Clock, X } from 'lucide-react';
+
 import { api } from '../lib/api';
 
 interface Permission {
@@ -29,12 +30,12 @@ interface Invitation {
 }
 
 const PERMISSIONS: { key: keyof Permission; label: string; description: string }[] = [
-  { key: 'canViewDevices',     label: 'View devices',    description: 'See the device list and status' },
-  { key: 'canControlDevices',  label: 'Control devices', description: 'Send commands to devices' },
-  { key: 'canArmAlarm',        label: 'Arm / Disarm',    description: 'Operate the alarm system' },
-  { key: 'canSetAlarmPin',     label: 'Set alarm PIN',   description: 'Create or change their own PIN' },
-  { key: 'canCreateSchedules', label: 'Schedules',       description: 'Create automation schedules' },
-  { key: 'canManageMembers',   label: 'Manage members',  description: 'Invite and remove members' },
+  { key: 'canViewDevices', label: 'View devices', description: 'See the device list and status' },
+  { key: 'canControlDevices', label: 'Control devices', description: 'Send commands to devices' },
+  { key: 'canArmAlarm', label: 'Arm / Disarm', description: 'Operate the alarm system' },
+  { key: 'canSetAlarmPin', label: 'Set alarm PIN', description: 'Create or change their own PIN' },
+  { key: 'canCreateSchedules', label: 'Schedules', description: 'Create automation schedules' },
+  { key: 'canManageMembers', label: 'Manage members', description: 'Invite and remove members' },
 ];
 
 function PermissionToggle({
@@ -42,7 +43,12 @@ function PermissionToggle({
   onChange,
   label,
   description,
-}: { value: boolean; onChange: (v: boolean) => void; label: string; description: string }) {
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  description: string;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 py-2">
       <div>
@@ -53,7 +59,9 @@ function PermissionToggle({
         onClick={() => onChange(!value)}
         className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-brand' : 'bg-slate-200 dark:bg-white/10'}`}
       >
-        <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
+        <span
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : ''}`}
+        />
       </button>
     </div>
   );
@@ -79,7 +87,9 @@ function MemberCard({ member, onDelete }: { member: Member; onDelete: () => void
           {member.email[0].toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{member.email}</p>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
+            {member.email}
+          </p>
           <p className="text-xs text-slate-400">
             Member · Joined {new Date(member.createdAt).toLocaleDateString()}
           </p>
@@ -167,8 +177,12 @@ export default function MembersPage() {
       {/* Invite */}
       <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">Invite Member</h2>
-          <p className="text-xs text-slate-400 mt-1">They'll receive an email to set up their account.</p>
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+            Invite Member
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            They'll receive an email to set up their account.
+          </p>
         </div>
 
         <div className="flex gap-2">
@@ -176,7 +190,10 @@ export default function MembersPage() {
             type="email"
             placeholder="Email address"
             value={email}
-            onChange={(e) => { setEmail(e.target.value); setInviteError(''); }}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setInviteError('');
+            }}
             onKeyDown={(e) => e.key === 'Enter' && email && invite.mutate(email)}
             className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
           />
@@ -185,7 +202,15 @@ export default function MembersPage() {
             disabled={!email || invite.isPending}
             className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
           >
-            {inviteSent ? <><Check size={14} /> Sent</> : <><UserPlus size={14} /> Invite</>}
+            {inviteSent ? (
+              <>
+                <Check size={14} /> Sent
+              </>
+            ) : (
+              <>
+                <UserPlus size={14} /> Invite
+              </>
+            )}
           </button>
         </div>
 
@@ -196,7 +221,10 @@ export default function MembersPage() {
           <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-white/10">
             <p className="text-xs text-slate-400 uppercase tracking-widest">Pending invitations</p>
             {invitations.map((inv) => (
-              <div key={inv.id} className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <div
+                key={inv.id}
+                className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"
+              >
                 <Mail size={13} className="flex-shrink-0" />
                 <span className="flex-1 truncate">{inv.email}</span>
                 <span className="flex items-center gap-1 text-xs text-slate-400">
@@ -223,7 +251,9 @@ export default function MembersPage() {
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
             Active Members
           </h2>
-          <span className="text-xs text-slate-400">{members.length} member{members.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-slate-400">
+            {members.length} member{members.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
         {members.length === 0 ? (
@@ -233,11 +263,7 @@ export default function MembersPage() {
           </div>
         ) : (
           members.map((m) => (
-            <MemberCard
-              key={m.id}
-              member={m}
-              onDelete={() => deleteMember.mutate(m.id)}
-            />
+            <MemberCard key={m.id} member={m} onDelete={() => deleteMember.mutate(m.id)} />
           ))
         )}
       </div>

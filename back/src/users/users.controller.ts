@@ -1,12 +1,23 @@
-import { Controller, Get, Post, Body, Delete, Param, UseGuards, Req, Put, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard, Roles } from '../auth/guards/roles.guard';
-import { UsersService } from './users.service';
-import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
-import { InviteMemberDto } from './dto/invite-member.dto';
+import { Roles,RolesGuard } from '../auth/guards/roles.guard';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { InviteMemberDto } from './dto/invite-member.dto';
+import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
+import { UsersService } from './users.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('users')

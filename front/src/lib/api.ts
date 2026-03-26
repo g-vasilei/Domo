@@ -17,7 +17,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       const { refreshToken, setTokens, clear } = useAuthStore.getState();
-      if (!refreshToken) { clear(); return Promise.reject(error); }
+      if (!refreshToken) {
+        clear();
+        return Promise.reject(error);
+      }
       try {
         const { data } = await axios.post('/api/auth/refresh', { refreshToken });
         setTokens(data.accessToken, data.refreshToken);

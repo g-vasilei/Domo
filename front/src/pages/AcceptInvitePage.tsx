@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Eye, EyeOff, Zap } from 'lucide-react';
 import axios from 'axios';
+import { Eye, EyeOff, Zap } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate,useSearchParams } from 'react-router-dom';
+
 import { useAuthStore } from '../store/auth.store';
 
 export default function AcceptInvitePage() {

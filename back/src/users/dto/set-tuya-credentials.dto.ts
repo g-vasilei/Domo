@@ -1,5 +1,5 @@
-import { IsString, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsIn,IsString } from 'class-validator';
 
 export class SetTuyaCredentialsDto {
   @ApiProperty()

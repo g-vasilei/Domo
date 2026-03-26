@@ -1,12 +1,11 @@
-import path from 'path';
-import { readFileSync } from 'fs';
-
 import react from '@vitejs/plugin-react';
-import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
+import { readFileSync } from 'fs';
+import path from 'path';
+import tailwindcss from 'tailwindcss';
 import { defineConfig } from 'vite';
 
-const { version, name } = JSON.parse(readFileSync('./package.json', 'utf-8'));
+const { version } = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
   define: {

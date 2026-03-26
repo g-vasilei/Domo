@@ -1,12 +1,12 @@
-import {
-  WebSocketGateway,
-  WebSocketServer,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-} from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import {
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  WebSocketGateway,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: { origin: process.env.FRONTEND_URL ?? 'http://localhost:5173', credentials: true },
@@ -39,7 +39,11 @@ export class DevicesGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   /** Call this after a successful command to push the new status to all sessions */
-  broadcastDeviceUpdate(userId: string, deviceId: string, commands: { code: string; value: unknown }[]) {
+  broadcastDeviceUpdate(
+    userId: string,
+    deviceId: string,
+    commands: { code: string; value: unknown }[],
+  ) {
     this.server.sockets.sockets.forEach((socket) => {
       if (socket.data.userId === userId) {
         socket.emit('device:update', { deviceId, commands });

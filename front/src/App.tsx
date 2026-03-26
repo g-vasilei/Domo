@@ -1,23 +1,23 @@
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useDeviceSocket } from './lib/useDeviceSocket';
 import { useQuery } from '@tanstack/react-query';
-
-import { useAuthStore } from './store/auth.store';
-import { api } from './lib/api';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
 import { useState } from 'react';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import { Navigate, Outlet,Route, Routes } from 'react-router-dom';
+
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import { api } from './lib/api';
+import { useDeviceSocket } from './lib/useDeviceSocket';
+import AcceptInvitePage from './pages/AcceptInvitePage';
+import AlarmPage from './pages/AlarmPage';
 import DashboardPage from './pages/DashboardPage';
 import DeviceDetailPage from './pages/DeviceDetailPage';
 import DevicesPage from './pages/DevicesPage';
-import SetupPage from './pages/SetupPage';
-import PanelPage from './pages/PanelPage';
-import AlarmPage from './pages/AlarmPage';
-import SettingsPage from './pages/SettingsPage';
+import LoginPage from './pages/LoginPage';
 import MembersPage from './pages/MembersPage';
-import AcceptInvitePage from './pages/AcceptInvitePage';
+import PanelPage from './pages/PanelPage';
+import RegisterPage from './pages/RegisterPage';
+import SettingsPage from './pages/SettingsPage';
+import SetupPage from './pages/SetupPage';
+import { useAuthStore } from './store/auth.store';
 
 function useMe() {
   const token = useAuthStore((s) => s.accessToken);
@@ -37,7 +37,10 @@ function AuthedLayout() {
   useDeviceSocket();
 
   if (!token) return <Navigate to="/login" replace />;
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
+  if (isLoading)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+    );
   if (!me?.tuyaCredentials && me?.role !== 'MEMBER') return <Navigate to="/setup" replace />;
 
   return (
@@ -65,7 +68,10 @@ function SetupGuard() {
   const { data: me, isLoading } = useMe();
 
   if (!token) return <Navigate to="/login" replace />;
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
+  if (isLoading)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+    );
   if (me?.tuyaCredentials || me?.role === 'MEMBER') return <Navigate to="/" replace />;
   return <Outlet />;
 }

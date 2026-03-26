@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
 import { Delete, X } from 'lucide-react';
+import { useCallback,useState } from 'react';
 
 interface Props {
   title: string;
@@ -10,12 +10,21 @@ interface Props {
   loading?: boolean;
 }
 
-export default function PinPromptModal({ title, description, onConfirm, onClose, error, loading }: Props) {
+export default function PinPromptModal({
+  title,
+  description,
+  onConfirm,
+  onClose,
+  error,
+  loading,
+}: Props) {
   const [pin, setPin] = useState('');
 
-  const press = useCallback((d: string) => setPin((p) => p.length < 8 ? p + d : p), []);
-  const del   = useCallback(() => setPin((p) => p.slice(0, -1)), []);
-  const submit = useCallback(() => { if (pin.length >= 4) onConfirm(pin); }, [pin, onConfirm]);
+  const press = useCallback((d: string) => setPin((p) => (p.length < 8 ? p + d : p)), []);
+  const del = useCallback(() => setPin((p) => p.slice(0, -1)), []);
+  const submit = useCallback(() => {
+    if (pin.length >= 4) onConfirm(pin);
+  }, [pin, onConfirm]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -26,7 +35,10 @@ export default function PinPromptModal({ title, description, onConfirm, onClose,
             <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
             {description && <p className="text-xs text-slate-400 mt-0.5">{description}</p>}
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
             <X size={18} />
           </button>
         </div>
@@ -35,21 +47,22 @@ export default function PinPromptModal({ title, description, onConfirm, onClose,
           {/* Dots */}
           <div className="flex gap-3">
             {Array.from({ length: Math.max(pin.length, 4) }).map((_, i) => (
-              <span key={i} className={`w-3 h-3 rounded-full border-2 transition-colors ${
-                i < pin.length
-                  ? 'bg-brand border-brand'
-                  : 'border-slate-300 dark:border-slate-600'
-              }`} />
+              <span
+                key={i}
+                className={`w-3 h-3 rounded-full border-2 transition-colors ${
+                  i < pin.length
+                    ? 'bg-brand border-brand'
+                    : 'border-slate-300 dark:border-slate-600'
+                }`}
+              />
             ))}
           </div>
 
-          {error && (
-            <p className="text-red-500 text-xs text-center -mt-2">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-xs text-center -mt-2">{error}</p>}
 
           {/* Keypad */}
           <div className="grid grid-cols-3 gap-2.5">
-            {['1','2','3','4','5','6','7','8','9'].map((d) => (
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
               <button
                 key={d}
                 onClick={() => press(d)}

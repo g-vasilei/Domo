@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Cpu, Users, Zap, X, Monitor, ShieldAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { Cpu, LayoutDashboard, Monitor, ShieldAlert,Users, X, Zap } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+
 import { api } from '../lib/api';
 
 declare const __APP_VERSION__: string;
@@ -78,7 +79,9 @@ export default function Sidebar({ open, onClose }: Props) {
         </nav>
 
         <div className="px-4 py-5 border-t border-white/10">
-          <p className="text-[11px] text-slate-500 text-center">{__APP_NAME__} v{__APP_VERSION__}</p>
+          <p className="text-[11px] text-slate-500 text-center">
+            {__APP_NAME__} v{__APP_VERSION__}
+          </p>
         </div>
       </aside>
     </>

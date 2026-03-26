@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
-import { TuyaModule } from '../tuya/tuya.module';
-import { UsersController, InvitationsController } from './users.controller';
-import { UsersService } from './users.service';
+
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { TuyaModule } from '../tuya/tuya.module';
+import { InvitationsController,UsersController } from './users.controller';
+import { UsersService } from './users.service';
 
 @Module({
   imports: [TuyaModule],

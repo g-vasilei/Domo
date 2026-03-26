@@ -1,27 +1,40 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, RefreshCw, Plug, Lightbulb, Thermometer, Wind,
-  Eye, DoorOpen, Cpu, Zap, Wifi, WifiOff, Bell, BellOff,
+  ArrowLeft,
+  Bell,
+  BellOff,
+  Cpu,
+  DoorOpen,
+  Eye,
+  Lightbulb,
+  Plug,
+  RefreshCw,
+  Thermometer,
+  Wifi,
+  WifiOff,
+  Wind,
+  Zap,
 } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate,useParams } from 'react-router-dom';
+
 import { api } from '../lib/api';
-import { usePrefsStore, convertTemp } from '../store/prefs.store';
+import { convertTemp,usePrefsStore } from '../store/prefs.store';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
-  cz:    { label: 'Socket',        Icon: Plug },
-  kg:    { label: 'Switch',        Icon: Zap },
-  dj:    { label: 'Light',         Icon: Lightbulb },
-  dd:    { label: 'LED Strip',     Icon: Lightbulb },
-  xdd:   { label: 'Ceiling Light', Icon: Lightbulb },
-  wk:    { label: 'Thermostat',    Icon: Thermometer },
-  kj:    { label: 'Air Purifier',  Icon: Wind },
-  fs:    { label: 'Fan',           Icon: Wind },
-  wsdcg: { label: 'Sensor',        Icon: Thermometer },
-  mcs:   { label: 'Door Sensor',   Icon: DoorOpen },
-  pir:   { label: 'Motion',        Icon: Eye },
+  cz: { label: 'Socket', Icon: Plug },
+  kg: { label: 'Switch', Icon: Zap },
+  dj: { label: 'Light', Icon: Lightbulb },
+  dd: { label: 'LED Strip', Icon: Lightbulb },
+  xdd: { label: 'Ceiling Light', Icon: Lightbulb },
+  wk: { label: 'Thermostat', Icon: Thermometer },
+  kj: { label: 'Air Purifier', Icon: Wind },
+  fs: { label: 'Fan', Icon: Wind },
+  wsdcg: { label: 'Sensor', Icon: Thermometer },
+  mcs: { label: 'Door Sensor', Icon: DoorOpen },
+  pir: { label: 'Motion', Icon: Eye },
 };
 
 function sv(status: any[], code: string) {
@@ -52,13 +65,25 @@ function formatIconUrl(url: string) {
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
-      <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">{title}</h3>
+      <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
+        {title}
+      </h3>
       {children}
     </div>
   );
 }
 
-function PowerToggle({ label, on, onChange, disabled }: { label: string; on: boolean; onChange: (v: boolean) => void; disabled: boolean }) {
+function PowerToggle({
+  label,
+  on,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  on: boolean;
+  onChange: (v: boolean) => void;
+  disabled: boolean;
+}) {
   return (
     <div className="flex items-center justify-between py-1">
       <div>
@@ -72,17 +97,32 @@ function PowerToggle({ label, on, onChange, disabled }: { label: string; on: boo
           on ? 'bg-brand' : 'bg-slate-200 dark:bg-slate-600'
         }`}
       >
-        <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 ${on ? 'translate-x-9' : 'translate-x-1'}`} />
+        <span
+          className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 ${on ? 'translate-x-9' : 'translate-x-1'}`}
+        />
       </button>
     </div>
   );
 }
 
 function Slider({
-  label, value, min, max, step = 1, unit = '', onChange, disabled,
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  unit = '',
+  onChange,
+  disabled,
 }: {
-  label: string; value: number; min: number; max: number;
-  step?: number; unit?: string; onChange: (v: number) => void; disabled: boolean;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+  onChange: (v: number) => void;
+  disabled: boolean;
 }) {
   const [local, setLocal] = useState(value);
 
@@ -92,13 +132,21 @@ function Slider({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
-        <span className="text-sm font-semibold text-brand">{local}{unit}</span>
+        <span className="text-sm font-semibold text-brand">
+          {local}
+          {unit}
+        </span>
       </div>
       <div className="relative h-2 rounded-full bg-slate-100 dark:bg-white/10">
-        <div className="absolute h-2 rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
+        <div
+          className="absolute h-2 rounded-full bg-brand transition-all"
+          style={{ width: `${pct}%` }}
+        />
         <input
           type="range"
-          min={min} max={max} step={step}
+          min={min}
+          max={max}
+          step={step}
           value={local}
           disabled={disabled}
           onChange={(e) => setLocal(Number(e.target.value))}
@@ -108,7 +156,14 @@ function Slider({
         />
       </div>
       <div className="flex justify-between text-[10px] text-slate-400">
-        <span>{min}{unit}</span><span>{max}{unit}</span>
+        <span>
+          {min}
+          {unit}
+        </span>
+        <span>
+          {max}
+          {unit}
+        </span>
       </div>
     </div>
   );
@@ -117,7 +172,10 @@ function Slider({
 function StatPill({ label, value, unit = '' }: { label: string; value: any; unit?: string }) {
   return (
     <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-sm p-4 text-center">
-      <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{value}<span className="text-sm font-normal ml-0.5">{unit}</span></p>
+      <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
+        {value}
+        <span className="text-sm font-normal ml-0.5">{unit}</span>
+      </p>
       <p className="text-[11px] text-slate-400 mt-1">{label}</p>
     </div>
   );
@@ -139,7 +197,9 @@ function RawStatus({ status }: { status: any[] }) {
           {status.map((s) => (
             <div key={s.code} className="bg-slate-50 dark:bg-white/5 rounded px-3 py-2">
               <p className="text-[10px] font-mono text-slate-400">{s.code}</p>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{String(s.value)}</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
+                {String(s.value)}
+              </p>
             </div>
           ))}
         </div>
@@ -150,18 +210,26 @@ function RawStatus({ status }: { status: any[] }) {
 
 // ─── controls per category ───────────────────────────────────────────────────
 
-function DeviceControls({ device, sendCommand, isPending }: { device: any; sendCommand: any; isPending: boolean }) {
+function DeviceControls({
+  device,
+  sendCommand,
+  isPending,
+}: {
+  device: any;
+  sendCommand: any;
+  isPending: boolean;
+}) {
   const status: any[] = device.status ?? [];
   const switchCodes = detectSwitchCodes(status);
 
   const brightness = sv(status, 'bright_value') ?? sv(status, 'bright_value_v2');
   const tempUnit = usePrefsStore((s) => s.tempUnit);
-  const colorTemp  = sv(status, 'temp_value')   ?? sv(status, 'colour_temp');
+  const colorTemp = sv(status, 'temp_value') ?? sv(status, 'colour_temp');
   const tempCurrent = sv(status, 'temp_current') ?? sv(status, 'va_temperature');
-  const humidity    = sv(status, 'humidity_value') ?? sv(status, 'va_humidity');
-  const curPower    = sv(status, 'cur_power');
-  const curVoltage  = sv(status, 'cur_voltage');
-  const curCurrent  = sv(status, 'cur_current');
+  const humidity = sv(status, 'humidity_value') ?? sv(status, 'va_humidity');
+  const curPower = sv(status, 'cur_power');
+  const curVoltage = sv(status, 'cur_voltage');
+  const curCurrent = sv(status, 'cur_current');
 
   const disabled = isPending || !device.online;
 
@@ -192,20 +260,39 @@ function DeviceControls({ device, sendCommand, isPending }: { device: any; sendC
               <Slider
                 label="Brightness"
                 value={brightness}
-                min={10} max={1000}
+                min={10}
+                max={1000}
                 unit=""
                 disabled={disabled}
-                onChange={(v) => sendCommand([{ code: sv(status, 'bright_value') !== undefined ? 'bright_value' : 'bright_value_v2', value: v }])}
+                onChange={(v) =>
+                  sendCommand([
+                    {
+                      code:
+                        sv(status, 'bright_value') !== undefined
+                          ? 'bright_value'
+                          : 'bright_value_v2',
+                      value: v,
+                    },
+                  ])
+                }
               />
             )}
             {colorTemp !== undefined && (
               <Slider
                 label="Color Temperature"
                 value={colorTemp}
-                min={0} max={1000}
+                min={0}
+                max={1000}
                 unit=""
                 disabled={disabled}
-                onChange={(v) => sendCommand([{ code: sv(status, 'temp_value') !== undefined ? 'temp_value' : 'colour_temp', value: v }])}
+                onChange={(v) =>
+                  sendCommand([
+                    {
+                      code: sv(status, 'temp_value') !== undefined ? 'temp_value' : 'colour_temp',
+                      value: v,
+                    },
+                  ])
+                }
               />
             )}
           </div>
@@ -219,12 +306,24 @@ function DeviceControls({ device, sendCommand, isPending }: { device: any; sendC
             {tempCurrent !== undefined && (
               <StatPill
                 label="Temperature"
-                value={typeof tempCurrent === 'number' ? `${convertTemp(tempCurrent, tempUnit)}°${tempUnit}` : tempCurrent}
+                value={
+                  typeof tempCurrent === 'number'
+                    ? `${convertTemp(tempCurrent, tempUnit)}°${tempUnit}`
+                    : tempCurrent
+                }
                 unit="°C"
               />
             )}
             {humidity !== undefined && (
-              <StatPill label="Humidity" value={typeof humidity === 'number' && humidity > 100 ? (humidity / 10).toFixed(1) : humidity} unit="%" />
+              <StatPill
+                label="Humidity"
+                value={
+                  typeof humidity === 'number' && humidity > 100
+                    ? (humidity / 10).toFixed(1)
+                    : humidity
+                }
+                unit="%"
+              />
             )}
           </div>
         </Card>
@@ -234,9 +333,13 @@ function DeviceControls({ device, sendCommand, isPending }: { device: any; sendC
       {(curPower !== undefined || curVoltage !== undefined || curCurrent !== undefined) && (
         <Card title="Energy Monitor">
           <div className="grid grid-cols-3 gap-3">
-            {curPower   !== undefined && <StatPill label="Power"   value={(curPower   / 10).toFixed(1)} unit="W" />}
-            {curVoltage !== undefined && <StatPill label="Voltage" value={(curVoltage / 10).toFixed(1)} unit="V" />}
-            {curCurrent !== undefined && <StatPill label="Current" value={curCurrent}                  unit="mA" />}
+            {curPower !== undefined && (
+              <StatPill label="Power" value={(curPower / 10).toFixed(1)} unit="W" />
+            )}
+            {curVoltage !== undefined && (
+              <StatPill label="Voltage" value={(curVoltage / 10).toFixed(1)} unit="V" />
+            )}
+            {curCurrent !== undefined && <StatPill label="Current" value={curCurrent} unit="mA" />}
           </div>
         </Card>
       )}
@@ -267,7 +370,9 @@ function NotifToggle({ deviceId, deviceName }: { deviceId: string; deviceName: s
     <button
       onClick={() => mutate(!enabled)}
       disabled={isPending}
-      title={enabled ? 'Disable notifications for this device' : 'Enable notifications for this device'}
+      title={
+        enabled ? 'Disable notifications for this device' : 'Enable notifications for this device'
+      }
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
         enabled
           ? 'bg-brand/10 text-brand hover:bg-brand/20'
@@ -288,7 +393,12 @@ export default function DeviceDetailPage() {
   const queryClient = useQueryClient();
   const [imgError, setImgError] = useState(false);
 
-  const { data: device, isLoading, error, isFetching } = useQuery({
+  const {
+    data: device,
+    isLoading,
+    error,
+    isFetching,
+  } = useQuery({
     queryKey: ['device', id],
     queryFn: () => api.get(`/devices/${id}`).then((r) => r.data),
     refetchInterval: 15_000,
@@ -319,7 +429,9 @@ export default function DeviceDetailPage() {
     },
   });
 
-  const meta = device ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu }) : { label: '', Icon: Cpu };
+  const meta = device
+    ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu })
+    : { label: '', Icon: Cpu };
   const iconUrl = device?.icon ? formatIconUrl(device.icon) : '';
 
   return (
@@ -347,25 +459,39 @@ export default function DeviceDetailPage() {
           {/* Device header */}
           <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
             <div className="flex items-center gap-4">
-              <div className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                device.online ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'
-              }`}>
+              <div
+                className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  device.online ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'
+                }`}
+              >
                 {iconUrl && !imgError ? (
-                  <img src={iconUrl} alt={meta.label} className="w-10 h-10 object-contain" onError={() => setImgError(true)} />
+                  <img
+                    src={iconUrl}
+                    alt={meta.label}
+                    className="w-10 h-10 object-contain"
+                    onError={() => setImgError(true)}
+                  />
                 ) : (
-                  <meta.Icon size={28} className={device.online ? 'text-brand' : 'text-slate-400'} />
+                  <meta.Icon
+                    size={28}
+                    className={device.online ? 'text-brand' : 'text-slate-400'}
+                  />
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">{device.name}</h1>
+                <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {device.name}
+                </h1>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-sm text-slate-400">{meta.label}</span>
-                  <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    device.online
-                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10'
-                      : 'bg-slate-100 text-slate-400 dark:bg-white/5'
-                  }`}>
+                  <span
+                    className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      device.online
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10'
+                        : 'bg-slate-100 text-slate-400 dark:bg-white/5'
+                    }`}
+                  >
                     {device.online ? <Wifi size={10} /> : <WifiOff size={10} />}
                     {device.online ? 'Online' : 'Offline'}
                   </span>
@@ -390,14 +516,21 @@ export default function DeviceDetailPage() {
           {cmdError && (
             <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-sm px-5 py-3 flex items-center justify-between">
               <p className="text-sm text-red-500">{cmdError}</p>
-              <button onClick={() => setCmdError(null)} className="text-red-400 hover:text-red-600 text-lg leading-none">×</button>
+              <button
+                onClick={() => setCmdError(null)}
+                className="text-red-400 hover:text-red-600 text-lg leading-none"
+              >
+                ×
+              </button>
             </div>
           )}
 
           {/* Controls */}
           {!device.online && (
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-sm px-5 py-3">
-              <p className="text-sm text-amber-600 dark:text-amber-400">This device is offline. Controls are disabled until it reconnects.</p>
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                This device is offline. Controls are disabled until it reconnects.
+              </p>
             </div>
           )}
 

@@ -1,42 +1,57 @@
-import { Menu, Sun, Moon, Bell, LogOut, User, Settings, Shield, ShieldOff, ShieldAlert, Home, BatteryLow, Radio } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useThemeStore } from '../store/theme.store';
-import { useAuthStore } from '../store/auth.store';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  BatteryLow,
+  Bell,
+  Home,
+  LogOut,
+  Menu,
+  Moon,
+  Radio,
+  Settings,
+  Shield,
+  ShieldAlert,
+  ShieldOff,
+  Sun,
+  User,
+} from 'lucide-react';
+import { useEffect, useRef,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import { api } from '../lib/api';
-import { useNotificationsStore, AppNotification, NotifKind } from '../store/notifications.store';
 import { AlarmState } from '../store/alarm.store';
+import { useAuthStore } from '../store/auth.store';
+import { AppNotification, NotifKind,useNotificationsStore } from '../store/notifications.store';
+import { useThemeStore } from '../store/theme.store';
 
 interface Props {
   onMenuClick: () => void;
 }
 
 const ALARM_ICON: Partial<Record<AlarmState, any>> = {
-  TRIGGERED:   ShieldAlert,
-  ARMED_HOME:  Home,
-  ARMED_AWAY:  Shield,
-  DISARMED:    ShieldOff,
+  TRIGGERED: ShieldAlert,
+  ARMED_HOME: Home,
+  ARMED_AWAY: Shield,
+  DISARMED: ShieldOff,
   ENTRY_DELAY: ShieldAlert,
 };
 
 const ALARM_COLOR: Partial<Record<AlarmState, string>> = {
-  TRIGGERED:   'text-red-500',
-  ARMED_HOME:  'text-emerald-500',
-  ARMED_AWAY:  'text-blue-500',
-  DISARMED:    'text-slate-400',
+  TRIGGERED: 'text-red-500',
+  ARMED_HOME: 'text-emerald-500',
+  ARMED_AWAY: 'text-blue-500',
+  DISARMED: 'text-slate-400',
   ENTRY_DELAY: 'text-amber-500',
 };
 
 const KIND_ICON: Record<NotifKind, any> = {
-  alarm:   Shield,
-  device:  Radio,
+  alarm: Shield,
+  device: Radio,
   battery: BatteryLow,
 };
 
 const KIND_COLOR: Record<NotifKind, string> = {
-  alarm:   'text-blue-500',
-  device:  'text-slate-500',
+  alarm: 'text-blue-500',
+  device: 'text-slate-500',
   battery: 'text-amber-500',
 };
 
@@ -51,22 +66,30 @@ function timeAgo(date: Date): string {
 }
 
 function NotificationItem({ n }: { n: AppNotification }) {
-  const Icon = n.kind === 'alarm' && n.state
-    ? (ALARM_ICON[n.state] ?? KIND_ICON[n.kind])
-    : KIND_ICON[n.kind];
-  const color = n.kind === 'alarm' && n.state
-    ? (ALARM_COLOR[n.state] ?? KIND_COLOR[n.kind])
-    : KIND_COLOR[n.kind];
+  const Icon =
+    n.kind === 'alarm' && n.state ? (ALARM_ICON[n.state] ?? KIND_ICON[n.kind]) : KIND_ICON[n.kind];
+  const color =
+    n.kind === 'alarm' && n.state
+      ? (ALARM_COLOR[n.state] ?? KIND_COLOR[n.kind])
+      : KIND_COLOR[n.kind];
   return (
-    <div className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-brand/5' : ''} hover:bg-slate-50 dark:hover:bg-white/5 transition-colors`}>
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${!n.read ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'}`}>
+    <div
+      className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-brand/5' : ''} hover:bg-slate-50 dark:hover:bg-white/5 transition-colors`}
+    >
+      <div
+        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${!n.read ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'}`}
+      >
         <Icon size={13} className={color} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-800 dark:text-slate-100 leading-snug">{n.title}</p>
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-100 leading-snug">
+          {n.title}
+        </p>
         <p className="text-xs text-slate-400 mt-0.5">{n.body}</p>
       </div>
-      <span className="text-[11px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5">{timeAgo(n.at)}</span>
+      <span className="text-[11px] text-slate-400 whitespace-nowrap flex-shrink-0 mt-0.5">
+        {timeAgo(n.at)}
+      </span>
     </div>
   );
 }
@@ -110,9 +133,14 @@ function NotificationCenter() {
         <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-[#1A222C] rounded-md border border-slate-200 dark:border-white/10 shadow-lg z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Notifications</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Notifications
+            </p>
             {items.length > 0 && (
-              <button onClick={clear} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+              <button
+                onClick={clear}
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
                 Clear all
               </button>
             )}
@@ -191,7 +219,10 @@ export default function Header({ onMenuClick }: Props) {
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-[#1A222C] rounded-md border border-slate-200 dark:border-white/10 shadow-lg py-1 z-50">
               <button
-                onClick={() => { navigate('/settings'); setDropdownOpen(false); }}
+                onClick={() => {
+                  navigate('/settings');
+                  setDropdownOpen(false);
+                }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <Settings size={15} />
@@ -199,7 +230,12 @@ export default function Header({ onMenuClick }: Props) {
               </button>
               <div className="my-1 border-t border-slate-100 dark:border-white/10" />
               <button
-                onClick={() => { queryClient.clear(); clearNotifications(); clear(); setDropdownOpen(false); }}
+                onClick={() => {
+                  queryClient.clear();
+                  clearNotifications();
+                  clear();
+                  setDropdownOpen(false);
+                }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <LogOut size={15} />

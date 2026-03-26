@@ -1,15 +1,20 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, ShieldOff, ShieldAlert, Home, LogOut, Delete } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Delete,Home, LogOut, Shield, ShieldAlert, ShieldOff } from 'lucide-react';
+import { useCallback,useEffect, useState } from 'react';
+
 import { api } from '../lib/api';
-import { useAlarmStore, secondsLeft, AlarmSettings } from '../store/alarm.store';
 import { useCountdownSound } from '../lib/useCountdownSound';
+import { AlarmSettings,secondsLeft, useAlarmStore } from '../store/alarm.store';
 
 function useAlarmSettings() {
   const { setSettings } = useAlarmStore();
   return useQuery({
     queryKey: ['alarm'],
-    queryFn: () => api.get('/alarm').then((r) => { setSettings(r.data); return r.data as AlarmSettings; }),
+    queryFn: () =>
+      api.get('/alarm').then((r) => {
+        setSettings(r.data);
+        return r.data as AlarmSettings;
+      }),
     staleTime: 60_000,
   });
 }
@@ -46,7 +51,10 @@ function PinPad({ onConfirm, label }: { onConfirm: (pin: string) => void; label:
   const del = useCallback(() => setPin((p) => p.slice(0, -1)), []);
 
   const confirm = useCallback(() => {
-    if (pin.length >= 4) { onConfirm(pin); setPin(''); }
+    if (pin.length >= 4) {
+      onConfirm(pin);
+      setPin('');
+    }
   }, [pin, onConfirm]);
 
   return (
@@ -67,7 +75,7 @@ function PinPad({ onConfirm, label }: { onConfirm: (pin: string) => void; label:
 
       {/* keypad */}
       <div className="grid grid-cols-3 gap-3 mt-2">
-        {['1','2','3','4','5','6','7','8','9'].map((d) => (
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
           <button
             key={d}
             onClick={() => press(d)}
@@ -121,12 +129,12 @@ function InfoDisplay({ settings, now }: { settings: AlarmSettings; now: Date }) 
 
   const temp = fmt(
     getSensorValue(settings.tempDeviceId, 'temp_current') ??
-    getSensorValue(settings.tempDeviceId, 'va_temperature'),
+      getSensorValue(settings.tempDeviceId, 'va_temperature'),
     500,
   );
   const humidity = fmt(
     getSensorValue(settings.humidDeviceId, 'humidity_value') ??
-    getSensorValue(settings.humidDeviceId, 'va_humidity'),
+      getSensorValue(settings.humidDeviceId, 'va_humidity'),
     100,
   );
 
@@ -173,7 +181,9 @@ function CountdownRing({ secs, total, color }: { secs: number; total: number; co
       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 120 120">
         <circle cx="60" cy="60" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
         <circle
-          cx="60" cy="60" r={r}
+          cx="60"
+          cy="60"
+          r={r}
           fill="none"
           stroke={color}
           strokeWidth="8"
@@ -191,7 +201,7 @@ function CountdownRing({ secs, total, color }: { secs: number; total: number; co
 
 // ── Main Panel ───────────────────────────────────────────────────────────────
 export default function PanelPage() {
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   const { settings: storeSettings, setSettings } = useAlarmStore();
   const { isLoading } = useAlarmSettings();
   const now = useClock();
@@ -202,7 +212,7 @@ export default function PanelPage() {
   const isTriggered = storeSettings?.state === 'TRIGGERED';
   const isArmedHome = storeSettings?.state === 'ARMED_HOME';
   const isArmedAway = storeSettings?.state === 'ARMED_AWAY';
-  const isDisarmed = !storeSettings || storeSettings?.state === 'DISARMED';
+  const _isDisarmed = !storeSettings || storeSettings?.state === 'DISARMED';
 
   useCountdownSound(isExitDelay, secs);
 
@@ -212,15 +222,26 @@ export default function PanelPage() {
 
   const arm = useMutation({
     mutationFn: ({ mode, pin }: { mode: 'home' | 'away'; pin?: string }) =>
-      api.post('/alarm/arm', { mode, pin }).then((r) => { setSettings(r.data); return r.data; }),
-    onSuccess: () => { setArmingMode(null); setArmPinError(''); },
+      api.post('/alarm/arm', { mode, pin }).then((r) => {
+        setSettings(r.data);
+        return r.data;
+      }),
+    onSuccess: () => {
+      setArmingMode(null);
+      setArmPinError('');
+    },
     onError: () => setArmPinError('Wrong PIN. Try again.'),
   });
 
   const disarm = useMutation({
     mutationFn: (pin?: string) =>
-      api.post('/alarm/disarm', { pin }).then((r) => { setSettings(r.data); return r.data; }),
-    onError: () => { /* PIN input will handle error display */ },
+      api.post('/alarm/disarm', { pin }).then((r) => {
+        setSettings(r.data);
+        return r.data;
+      }),
+    onError: () => {
+      /* PIN input will handle error display */
+    },
   });
 
   const hasPinSet = !!storeSettings?.pinHash;
@@ -254,7 +275,9 @@ export default function PanelPage() {
       <div className="min-h-screen bg-red-950 flex flex-col items-center justify-center gap-10 p-8">
         <ShieldAlert size={64} className="text-red-400 animate-pulse" />
         <div className="text-center">
-          <p className="text-red-300 text-3xl font-bold uppercase tracking-widest">Alarm Triggered</p>
+          <p className="text-red-300 text-3xl font-bold uppercase tracking-widest">
+            Alarm Triggered
+          </p>
           <p className="text-red-400/60 text-sm mt-2">Enter PIN to disarm</p>
         </div>
         <PinPad label="Enter PIN" onConfirm={handleDisarm} />
@@ -268,7 +291,9 @@ export default function PanelPage() {
     return (
       <div className="min-h-screen bg-amber-950 flex flex-col items-center justify-center gap-10 p-8">
         <div className="text-center">
-          <p className="text-amber-300 text-2xl font-bold uppercase tracking-widest">Enter PIN to Disarm</p>
+          <p className="text-amber-300 text-2xl font-bold uppercase tracking-widest">
+            Enter PIN to Disarm
+          </p>
           <p className="text-amber-500/60 text-sm mt-1">Alarm will trigger in {secs}s</p>
         </div>
         <CountdownRing secs={secs} total={storeSettings.entryDelaySecs} color="#f59e0b" />
@@ -316,7 +341,9 @@ export default function PanelPage() {
       <div className="min-h-screen bg-[#0f1117] flex flex-col items-center justify-center gap-8 p-8">
         <Home size={56} className="text-emerald-400" />
         <div className="text-center">
-          <p className="text-emerald-400 text-2xl font-bold uppercase tracking-widest">Armed — Home</p>
+          <p className="text-emerald-400 text-2xl font-bold uppercase tracking-widest">
+            Armed — Home
+          </p>
           <p className="text-slate-600 text-sm mt-2">Perimeter active</p>
         </div>
         <button
@@ -333,9 +360,13 @@ export default function PanelPage() {
   if (armingMode) {
     const isHome = armingMode === 'home';
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center gap-10 p-8 ${isHome ? 'bg-[#0a1a12]' : 'bg-[#0a0f1a]'}`}>
+      <div
+        className={`min-h-screen flex flex-col items-center justify-center gap-10 p-8 ${isHome ? 'bg-[#0a1a12]' : 'bg-[#0a0f1a]'}`}
+      >
         <div className="text-center">
-          <p className={`text-2xl font-bold uppercase tracking-widest ${isHome ? 'text-emerald-400' : 'text-blue-400'}`}>
+          <p
+            className={`text-2xl font-bold uppercase tracking-widest ${isHome ? 'text-emerald-400' : 'text-blue-400'}`}
+          >
             {isHome ? 'Arm — Home' : 'Arm — Away'}
           </p>
           <p className="text-slate-500 text-sm mt-2">
@@ -355,7 +386,10 @@ export default function PanelPage() {
         )}
         {armPinError && <p className="text-red-400 text-sm">{armPinError}</p>}
         <button
-          onClick={() => { setArmingMode(null); setArmPinError(''); }}
+          onClick={() => {
+            setArmingMode(null);
+            setArmPinError('');
+          }}
           className="px-6 py-2.5 rounded-full border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200 text-sm transition-colors"
         >
           Cancel

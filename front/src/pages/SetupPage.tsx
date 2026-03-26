@@ -27,23 +27,51 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow w-full max-w-sm space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded-lg shadow w-full max-w-sm space-y-4"
+      >
         <h1 className="text-2xl font-bold">Connect Tuya</h1>
         <p className="text-sm text-gray-500">
           Enter your Tuya IoT Platform credentials to link your devices.{' '}
-          <a href="https://iot.tuya.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          <a
+            href="https://iot.tuya.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
             Get credentials →
           </a>
         </p>
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        <input className="w-full border rounded px-3 py-2" placeholder="Access ID" value={accessId} onChange={(e) => setAccessId(e.target.value)} required />
-        <input className="w-full border rounded px-3 py-2" placeholder="Access Secret" value={accessSecret} onChange={(e) => setAccessSecret(e.target.value)} required />
-        <select className="w-full border rounded px-3 py-2" value={region} onChange={(e) => setRegion(e.target.value as any)}>
+        <input
+          className="w-full border rounded px-3 py-2"
+          placeholder="Access ID"
+          value={accessId}
+          onChange={(e) => setAccessId(e.target.value)}
+          required
+        />
+        <input
+          className="w-full border rounded px-3 py-2"
+          placeholder="Access Secret"
+          value={accessSecret}
+          onChange={(e) => setAccessSecret(e.target.value)}
+          required
+        />
+        <select
+          className="w-full border rounded px-3 py-2"
+          value={region}
+          onChange={(e) => setRegion(e.target.value as any)}
+        >
           <option value="eu">Europe</option>
           <option value="us">United States</option>
           <option value="cn">China</option>
         </select>
-        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50" type="submit" disabled={loading}>
+        <button
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          type="submit"
+          disabled={loading}
+        >
           {loading ? 'Validating...' : 'Connect'}
         </button>
       </form>
