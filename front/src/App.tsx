@@ -6,6 +6,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import { api } from './lib/api';
 import { useDeviceSocket } from './lib/useDeviceSocket';
+import { useTimerRunner } from './lib/useTimerRunner';
 import AcceptInvitePage from './pages/AcceptInvitePage';
 import AlarmPage from './pages/AlarmPage';
 import DashboardPage from './pages/DashboardPage';
@@ -35,6 +36,7 @@ function AuthedLayout() {
   const { data: me, isLoading } = useMe();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   useDeviceSocket();
+  useTimerRunner();
 
   if (!token) return <Navigate to="/login" replace />;
   if (isLoading)

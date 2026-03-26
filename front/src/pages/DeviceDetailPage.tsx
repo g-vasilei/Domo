@@ -10,16 +10,20 @@ import {
   Plug,
   RefreshCw,
   Thermometer,
+  Timer,
   Wifi,
   WifiOff,
   Wind,
+  X,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate,useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { api } from '../lib/api';
-import { convertTemp,usePrefsStore } from '../store/prefs.store';
+import { convertTemp, usePrefsStore } from '../store/prefs.store';
+import { useTimerStore } from '../store/timer.store';
+import TimerModal from '../components/TimerModal';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -385,6 +389,91 @@ function NotifToggle({ deviceId, deviceName }: { deviceId: string; deviceName: s
   );
 }
 
+// ─── timer button ─────────────────────────────────────────────────────────────
+
+function formatCountdown(ms: number): string {
+  const totalSecs = Math.ceil(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function TimerControl({
+  deviceId,
+  deviceName,
+  switchCode,
+  online,
+  onTurnOn,
+}: {
+  deviceId: string;
+  deviceName: string;
+  switchCode: string | null;
+  online: boolean;
+  onTurnOn: () => void;
+}) {
+  const [showModal, setShowModal] = useState(false);
+  const [, setTick] = useState(0);
+  const activeTimer = useTimerStore((s) => s.timers.find((t) => t.deviceId === deviceId));
+  const { start: startTimer, cancel: cancelTimer } = useTimerStore();
+
+  useEffect(() => {
+    if (!activeTimer) return;
+    const interval = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, [activeTimer]);
+
+  if (!switchCode) return null;
+
+  function handleConfirm(minutes: number) {
+    onTurnOn();
+    startTimer(deviceId, deviceName, switchCode!, minutes);
+    setShowModal(false);
+  }
+
+  const remaining = activeTimer ? activeTimer.endsAt - Date.now() : 0;
+
+  return (
+    <>
+      {activeTimer && remaining > 0 ? (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+          <Timer size={13} className="text-amber-500 flex-shrink-0" />
+          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 tabular-nums">
+            Auto-off in {formatCountdown(remaining)}
+          </span>
+          <button
+            onClick={() => cancelTimer(deviceId)}
+            className="ml-1 text-amber-400 hover:text-amber-600 transition-colors"
+            title="Cancel timer"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowModal(true)}
+          disabled={!online}
+          title="Set auto-off timer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Timer size={12} />
+          Timer
+        </button>
+      )}
+
+      {showModal && (
+        <TimerModal
+          deviceName={deviceName}
+          onConfirm={handleConfirm}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </>
+  );
+}
+
 // ─── page ────────────────────────────────────────────────────────────────────
 
 export default function DeviceDetailPage() {
@@ -433,6 +522,9 @@ export default function DeviceDetailPage() {
     ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu })
     : { label: '', Icon: Cpu };
   const iconUrl = device?.icon ? formatIconUrl(device.icon) : '';
+  const primarySwitchCode = device
+    ? (detectSwitchCodes(device.status ?? [])[0] ?? null)
+    : null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -499,7 +591,17 @@ export default function DeviceDetailPage() {
                 {device.model && <p className="text-xs text-slate-400 mt-1">{device.model}</p>}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <TimerControl
+                  deviceId={device.id}
+                  deviceName={device.name}
+                  switchCode={primarySwitchCode}
+                  online={device.online}
+                  onTurnOn={() =>
+                    primarySwitchCode &&
+                    sendCommand([{ code: primarySwitchCode, value: true }])
+                  }
+                />
                 <NotifToggle deviceId={device.id} deviceName={device.name} />
                 <button
                   onClick={() => queryClient.invalidateQueries({ queryKey: ['device', id] })}
