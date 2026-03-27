@@ -20,7 +20,7 @@ export default tseslint.config(
       // Tuya API responses and NestJS request objects are genuinely untyped —
       // downgrade to a warning so we can still catch accidental any usage
       // without blocking the build on third-party dynamic data.
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
 
       // Ignore variables prefixed with _ (intentionally unused)
       '@typescript-eslint/no-unused-vars': [

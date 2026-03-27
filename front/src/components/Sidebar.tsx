@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Cpu, LayoutDashboard, Monitor, ShieldAlert, Users, X, Zap } from 'lucide-react';
+import { Cpu, LayoutDashboard, Monitor, ShieldAlert, Users, Workflow, X, Zap } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { api } from '../lib/api';
@@ -21,10 +21,12 @@ export default function Sidebar({ open, onClose }: Props) {
 
   const isOwner = me?.role === 'OWNER';
   const canSeeAlarm = isOwner || me?.permissions?.canArmAlarm;
+  const canSeeAutomations = isOwner || me?.permissions?.canManageAutomations;
 
   const nav = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
     { to: '/devices', icon: Cpu, label: 'Devices', show: true },
+    { to: '/automations', icon: Workflow, label: 'Automations', show: canSeeAutomations },
     { to: '/alarm', icon: ShieldAlert, label: 'Alarm', show: canSeeAlarm },
     { to: '/members', icon: Users, label: 'Members', show: isOwner },
     { to: '/panel', icon: Monitor, label: 'Panel Mode', show: true },

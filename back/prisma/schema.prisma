@@ -37,6 +37,10 @@ model User {
   createdBy    User?     @relation("ManagedUsers", fields: [createdById], references: [id])
   managedUsers User[]    @relation("ManagedUsers")
 
+  timezone  String? // IANA e.g. "Europe/Athens"
+  latitude  Float?
+  longitude Float?
+
   tuyaCredentials  TuyaCredentials?
   permissions      MemberPermissions?
   refreshTokens    RefreshToken[]
@@ -45,6 +49,7 @@ model User {
   alarmRules       AlarmRule[]
   sentInvitations  Invitation[] @relation("InvitedBy")
   deviceNotifPrefs DeviceNotifPref[]
+  automationRules  AutomationRule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,9 +86,10 @@ model MemberPermissions {
   canControlDevices   Boolean  @default(false)
   canCreateSchedules  Boolean  @default(false)
   canManageMembers    Boolean  @default(false)
-  canArmAlarm         Boolean  @default(false)
-  canSetAlarmPin      Boolean  @default(false)
-  allowedDeviceIds    String[] // empty array = all devices
+  canArmAlarm          Boolean  @default(false)
+  canSetAlarmPin       Boolean  @default(false)
+  canManageAutomations Boolean  @default(false)
+  allowedDeviceIds     String[] // empty array = all devices
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -160,4 +166,59 @@ model Log {
   metadata  Json?
 
   createdAt DateTime @default(now())
+}
+
+model AutomationRule {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  enabled         Boolean  @default(true)
+  lastTriggeredAt DateTime?
+
+  conditions AutomationCondition[]
+  actions    AutomationAction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AutomationCondition {
+  id     String         @id @default(cuid())
+  ruleId String
+  rule   AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  type       String // "device_state" | "time" | "sun"
+
+  // device_state
+  deviceId   String?
+  deviceName String?
+  statusCode String?
+  operator   String? // "eq" | "neq"
+  value      Json?
+
+  // time
+  timeValue  String? // "HH:MM" 24h format
+
+  // sun
+  sunEvent     String? // "sunrise" | "sunset"
+  sunOffsetMin Int?    // minutes offset (+/-)
+
+  order        Int     @default(0)
+  nextOperator String? // "AND" | "OR" — how to combine with next condition
+}
+
+model AutomationAction {
+  id     String         @id @default(cuid())
+  ruleId String
+  rule   AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  type       String // "device_control" | "countdown"
+  deviceId   String?
+  deviceName String?
+  statusCode String?
+  value      Json?
+  minutes    Int?   // for countdown
+
+  order Int @default(0)
 }
