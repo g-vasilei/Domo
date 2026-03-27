@@ -3,12 +3,13 @@ import {
   DndContext,
   DragEndEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Cpu,
   GripVertical,
@@ -29,22 +30,6 @@ import ArmControls from '../components/ArmControls';
 import DeviceCard from '../components/DeviceCard';
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
-
-// ── Widget persistence ──────────────────────────────────────────────────────
-
-const STORAGE_KEY = 'dashboard_widgets_v2';
-
-function loadWidgetIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveWidgetIds(ids: string[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-}
 
 // ── Stat card ───────────────────────────────────────────────────────────────
 
@@ -204,7 +189,7 @@ function DevicePickerModal({
 // ── Main page ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [widgetIds, setWidgetIds] = useState<string[]>(loadWidgetIds);
+  const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
@@ -226,6 +211,19 @@ export default function DashboardPage() {
     staleTime: 30_000,
   });
 
+  const { data: widgetsData } = useQuery({
+    queryKey: ['dashboard-widgets'],
+    queryFn: () => api.get('/users/me/dashboard-widgets').then((r) => r.data),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (deviceIds: string[]) =>
+      api.put('/users/me/dashboard-widgets', { deviceIds }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard-widgets'] }),
+  });
+
+  const widgetIds: string[] = widgetsData?.deviceIds ?? [];
+
   const alarmSettings = useAlarmStore((s) => s.settings);
   const alarmState = alarmSettings?.state ?? 'DISARMED';
   const hasPinSet = !!alarmData?.pinHash;
@@ -237,13 +235,12 @@ export default function DashboardPage() {
   const roomCount = (rooms as any[]).filter((r: any) => r.id !== 'unassigned').length;
   const errorMessage = (error as any)?.response?.data?.message ?? 'An unexpected error occurred.';
 
-  // Keep only IDs that still exist in the device list
   const validIds = widgetIds.filter((id) => (devices as any[]).some((d) => d.id === id));
   const widgetDevices = validIds.map((id) => (devices as any[]).find((d) => d.id === id)).filter(Boolean);
 
   function persist(ids: string[]) {
-    setWidgetIds(ids);
-    saveWidgetIds(ids);
+    qc.setQueryData(['dashboard-widgets'], { deviceIds: ids });
+    saveMutation.mutate(ids);
   }
 
   function toggleDevice(id: string) {
@@ -257,7 +254,10 @@ export default function DashboardPage() {
     persist(widgetIds.filter((x) => x !== id));
   }
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

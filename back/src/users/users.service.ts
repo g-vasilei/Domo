@@ -255,6 +255,22 @@ export class UsersService {
     await this.prisma.user.delete({ where: { id: memberId } });
   }
 
+  async getDashboardWidgets(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { dashboardWidgets: true },
+    });
+    return { deviceIds: user?.dashboardWidgets ?? [] };
+  }
+
+  async setDashboardWidgets(userId: string, deviceIds: string[]) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { dashboardWidgets: deviceIds },
+    });
+    return { deviceIds };
+  }
+
   private encrypt(text: string): string {
     const key = Buffer.from(this.config.get<string>('ENCRYPTION_KEY')!, 'utf8').slice(0, 32);
     const iv = crypto.randomBytes(16);

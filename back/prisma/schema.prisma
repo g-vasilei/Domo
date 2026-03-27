@@ -40,6 +40,7 @@ model User {
   timezone  String? // IANA e.g. "Europe/Athens"
   latitude  Float?
   longitude Float?
+  dashboardWidgets String[] // ordered list of device IDs pinned to dashboard
 
   tuyaCredentials  TuyaCredentials?
   permissions      MemberPermissions?

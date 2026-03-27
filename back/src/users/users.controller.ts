@@ -34,6 +34,16 @@ export class UsersController {
     return this.usersService.getLogs(req.user.id);
   }
 
+  @Get('me/dashboard-widgets')
+  getDashboardWidgets(@Req() req: any) {
+    return this.usersService.getDashboardWidgets(req.user.id);
+  }
+
+  @Put('me/dashboard-widgets')
+  setDashboardWidgets(@Req() req: any, @Body() body: { deviceIds: string[] }) {
+    return this.usersService.setDashboardWidgets(req.user.id, body.deviceIds);
+  }
+
   @Patch('me/password')
   changePassword(@Req() req: any, @Body() body: { currentPassword: string; newPassword: string }) {
     return this.usersService.changePassword(req.user.id, body.currentPassword, body.newPassword);
