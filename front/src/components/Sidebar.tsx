@@ -44,8 +44,8 @@ export default function Sidebar({ open, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
-              <Zap size={16} className="text-white" />
+            <div className="flex items-center justify-center">
+              <img src="/logo/Domo.png" width={24} alt="Logo image" />
             </div>
             <span className="text-white font-semibold text-lg tracking-tight">{__APP_NAME__}</span>
           </div>
