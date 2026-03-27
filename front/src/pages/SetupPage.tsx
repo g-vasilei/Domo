@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,6 +11,7 @@ export default function SetupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,6 +19,7 @@ export default function SetupPage() {
     setLoading(true);
     try {
       await api.post('/users/tuya-credentials', { accessId, accessSecret, region });
+      await qc.invalidateQueries({ queryKey: ['me'] });
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Invalid credentials');
