@@ -12,21 +12,27 @@ import {
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
+import { AlarmCallService } from './alarm-call.service';
 import { AlarmService } from './alarm.service';
 import {
   ArmDto,
   CreateRuleDto,
+  CreateTriggerActionDto,
   DisarmDto,
   SetPinDto,
   UpdateDisplayDto,
   UpdateRuleDto,
+  UpdateTriggerActionDto,
 } from './dto/alarm.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('OWNER')
 @Controller('alarm')
 export class AlarmController {
-  constructor(private readonly alarmService: AlarmService) {}
+  constructor(
+    private readonly alarmService: AlarmService,
+    private readonly callService: AlarmCallService,
+  ) {}
 
   @Get()
   getSettings(@Request() req: any) {
@@ -58,6 +64,21 @@ export class AlarmController {
     return this.alarmService.updateDisplaySettings(req.user.id, dto);
   }
 
+  // ── Phone OTP ──────────────────────────────────────────────────────────
+
+  @Post('phone/send-otp')
+  sendOtp(@Request() req: any, @Body() body: { phoneNumber: string }) {
+    return this.callService.sendOtp(req.user.id, body.phoneNumber).then(() => ({ sent: true }));
+  }
+
+  @Post('phone/verify-otp')
+  async verifyOtp(@Request() req: any, @Body() body: { otp: string }) {
+    const phoneNumber = await this.callService.verifyOtp(req.user.id, body.otp);
+    if (!phoneNumber) return { verified: false };
+    await this.alarmService.updateDisplaySettings(req.user.id, { phoneNumber });
+    return { verified: true, phoneNumber };
+  }
+
   // ── Rules ──────────────────────────────────────────────────────────────
 
   @Get('rules')
@@ -78,5 +99,27 @@ export class AlarmController {
   @Delete('rules/:id')
   deleteRule(@Request() req: any, @Param('id') id: string) {
     return this.alarmService.deleteRule(req.user.id, id);
+  }
+
+  // ── Trigger Actions ────────────────────────────────────────────────────
+
+  @Get('trigger-actions')
+  getTriggerActions(@Request() req: any) {
+    return this.alarmService.getTriggerActions(req.user.id);
+  }
+
+  @Post('trigger-actions')
+  createTriggerAction(@Request() req: any, @Body() dto: CreateTriggerActionDto) {
+    return this.alarmService.createTriggerAction(req.user.id, dto);
+  }
+
+  @Patch('trigger-actions/:id')
+  updateTriggerAction(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateTriggerActionDto) {
+    return this.alarmService.updateTriggerAction(req.user.id, id, dto);
+  }
+
+  @Delete('trigger-actions/:id')
+  deleteTriggerAction(@Request() req: any, @Param('id') id: string) {
+    return this.alarmService.deleteTriggerAction(req.user.id, id);
   }
 }

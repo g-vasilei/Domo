@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
   Lightbulb,
+  Phone,
   Plug,
   Plus,
   Shield,
@@ -252,6 +253,138 @@ function TriggerValuePicker({
 // 3-step wizard: 1) pick device → 2) pick trigger → 3) configure conditions
 
 type Step = 'device' | 'trigger' | 'conditions';
+
+function AddTriggerActionModal({
+  devices,
+  onAdd,
+  onClose,
+}: {
+  devices: any[];
+  onAdd: (data: any) => void;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState<'device' | 'code'>('device');
+  const [device, setDevice] = useState<any | null>(null);
+  const [entry, setEntry] = useState<StatusEntry | null>(null);
+  const [value, setValue] = useState<unknown>(null);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(
+    () => devices.filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
+    [devices, search],
+  );
+
+  function selectDevice(d: any) {
+    setDevice(d);
+    setEntry(null);
+    setValue(null);
+    setStep('code');
+  }
+
+  function selectEntry(e: StatusEntry) {
+    setEntry(e);
+    setValue(typeof e.value === 'boolean' ? true : e.value);
+  }
+
+  function submit() {
+    if (!device || !entry) return;
+    onAdd({ deviceId: device.id, deviceName: device.name, statusCode: entry.code, value });
+  }
+
+  const Icon = device ? (CATEGORY_ICONS[device.category] ?? Cpu) : Cpu;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50">
+      <div className="bg-white dark:bg-[#1A222C] rounded-t-2xl sm:rounded-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+        <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
+          {step === 'code' && (
+            <button onClick={() => setStep('device')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 -ml-1">
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <h3 className="flex-1 text-base font-semibold text-slate-800 dark:text-slate-100">
+            {step === 'device' ? 'Select Device' : 'Choose Command'}
+          </h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6 py-4 flex flex-col gap-3">
+          {step === 'device' && (
+            <>
+              <input
+                type="text"
+                placeholder="Search devices…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                autoFocus
+              />
+              {filtered.map((d) => {
+                const DIcon = CATEGORY_ICONS[d.category] ?? Cpu;
+                return (
+                  <button key={d.id} onClick={() => selectDevice(d)} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-white/10 hover:border-brand/50 hover:bg-brand/5 transition-colors text-left">
+                    <DIcon size={16} className="text-brand flex-shrink-0" />
+                    <span className="text-sm text-slate-800 dark:text-slate-100">{d.name}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+
+          {step === 'code' && device && (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon size={14} className="text-brand" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{device.name}</span>
+              </div>
+              {(device.status ?? []).map((s: StatusEntry) => (
+                <button
+                  key={s.code}
+                  onClick={() => selectEntry(s)}
+                  className={`flex items-center justify-between p-3 rounded-lg border transition-colors text-left ${
+                    entry?.code === s.code
+                      ? 'border-brand bg-brand/5'
+                      : 'border-slate-200 dark:border-white/10 hover:border-brand/50'
+                  }`}
+                >
+                  <span className="text-sm text-slate-800 dark:text-slate-100 font-mono">{s.code}</span>
+                  <span className="text-xs text-slate-400">{JSON.stringify(s.value)}</span>
+                </button>
+              ))}
+
+              {entry && (
+                <div className="mt-2 flex flex-col gap-2 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10">
+                  <p className="text-xs text-slate-400">Set value to:</p>
+                  {typeof entry.value === 'boolean' ? (
+                    <div className="flex gap-2">
+                      {[true, false].map((v) => (
+                        <button key={String(v)} onClick={() => setValue(v)} className={`flex-1 py-2 rounded-md text-sm font-medium border transition-colors ${value === v ? 'bg-brand text-white border-brand' : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300'}`}>
+                          {v ? 'On / Open' : 'Off / Closed'}
+                        </button>
+                      ))}
+                    </div>
+                  ) : typeof entry.value === 'number' ? (
+                    <input type="number" value={value as number} onChange={(e) => setValue(Number(e.target.value))} className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm" />
+                  ) : (
+                    <input type="text" value={value as string} onChange={(e) => setValue(e.target.value)} className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm" />
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {step === 'code' && entry && (
+          <div className="px-6 pb-5 flex-shrink-0">
+            <button onClick={submit} className="w-full py-3 bg-brand text-white rounded-xl font-semibold">
+              Add Action
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function AddRuleModal({
   devices,
@@ -753,12 +886,218 @@ function PinSection({ hasPinHash }: { hasPinHash: boolean }) {
   );
 }
 
+// ── Phone Notifications Section ───────────────────────────────────────────
+// Unified flow: enable → credentials → verify phone → call toggle
+
+function PhoneNotificationsSection({
+  settings,
+  onRefresh,
+  onUpdate,
+}: {
+  settings: any;
+  onRefresh: () => void;
+  onUpdate: (data: any) => void;
+}) {
+  const enabled = settings?.callOnTrigger ?? false;
+  const configured = settings?.infobipConfigured ?? false;
+  const currentPhone = settings?.phoneNumber ?? null;
+
+  // Credentials form state
+  const [editingCreds, setEditingCreds] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState(settings?.infobipBaseUrl ?? '');
+  const [sender, setSender] = useState(settings?.infobipSender ?? 'Domo');
+
+  // OTP flow state
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpError, setOtpError] = useState('');
+
+  const saveCreds = useMutation({
+    mutationFn: () =>
+      api.patch('/alarm/display', { infobipApiKey: apiKey, infobipBaseUrl: baseUrl, infobipSender: sender }),
+    onSuccess: () => {
+      setEditingCreds(false);
+      setApiKey('');
+      onRefresh();
+    },
+  });
+
+  const sendOtp = useMutation({
+    mutationFn: () => api.post('/alarm/phone/send-otp', { phoneNumber: phone }),
+    onSuccess: () => { setOtpSent(true); setOtpError(''); },
+    onError: () => setOtpError('Failed to send code. Check the number and try again.'),
+  });
+
+  const verifyOtp = useMutation({
+    mutationFn: () => api.post('/alarm/phone/verify-otp', { otp }),
+    onSuccess: (res) => {
+      if (res.data.verified) {
+        setEditingPhone(false);
+        setOtpSent(false);
+        setPhone('');
+        setOtp('');
+        setOtpError('');
+        onRefresh();
+      } else {
+        setOtpError('Invalid code. Please try again.');
+      }
+    },
+    onError: () => setOtpError('Verification failed. Please try again.'),
+  });
+
+  const inputCls = 'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 w-full';
+
+  return (
+    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-5">
+      {/* Header row with enable toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
+            <Phone size={15} className="text-brand" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Phone notifications</p>
+            <p className="text-xs text-slate-400 mt-0.5">Receive a call when the alarm is triggered</p>
+          </div>
+        </div>
+        <Toggle value={enabled} onChange={() => onUpdate({ callOnTrigger: !enabled })} />
+      </div>
+
+      {/* Only show the rest when enabled */}
+      {enabled && (
+        <>
+          <hr className="border-slate-200 dark:border-white/10" />
+
+          {/* Step 1 — Infobip credentials */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                  Step 1 — Infobip credentials
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">API key, base URL and sender name from your Infobip account</p>
+              </div>
+              {configured && !editingCreds && (
+                <span className="flex items-center gap-1 text-emerald-500 text-xs shrink-0">
+                  <Check size={12} /> Configured
+                </span>
+              )}
+            </div>
+
+            {!editingCreds ? (
+              <button
+                onClick={() => {
+                  setBaseUrl(settings?.infobipBaseUrl ?? '');
+                  setSender(settings?.infobipSender ?? 'Domo');
+                  setApiKey('');
+                  setEditingCreds(true);
+                }}
+                className="self-start flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-white/10 rounded-md text-xs text-slate-600 dark:text-slate-300 hover:border-brand/50 hover:text-brand transition-colors"
+              >
+                {configured ? 'Update credentials' : 'Enter credentials'}
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-slate-400">API Key</label>
+                  <input type="password" placeholder="Your Infobip API key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} className={inputCls} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-slate-400">Base URL</label>
+                  <input type="text" placeholder="https://xxxxx.api.infobip.com" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} className={`${inputCls} font-mono`} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-slate-400">Sender name</label>
+                  <input type="text" placeholder="Domo" value={sender} onChange={(e) => setSender(e.target.value)} className={inputCls} />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => saveCreds.mutate()} disabled={!apiKey || !baseUrl || saveCreds.isPending} className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40">
+                    {saveCreds.isPending ? 'Saving…' : 'Save'}
+                  </button>
+                  <button onClick={() => setEditingCreds(false)} className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-md text-sm text-slate-400">Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 2 — Verify phone (only after credentials are set) */}
+          {configured && (
+            <>
+              <hr className="border-slate-200 dark:border-white/10" />
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                      Step 2 — Verify phone number
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">We'll send a 6-digit SMS code to confirm</p>
+                  </div>
+                  {currentPhone && !editingPhone && (
+                    <span className="flex items-center gap-1 text-emerald-500 text-xs shrink-0">
+                      <Check size={12} /> Verified
+                    </span>
+                  )}
+                </div>
+
+                {currentPhone && !editingPhone && (
+                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Phone size={13} className="text-brand" />
+                      <span className="text-sm text-slate-700 dark:text-slate-300 font-mono">{currentPhone}</span>
+                    </div>
+                    <button onClick={() => { setEditingPhone(true); setOtpSent(false); setPhone(''); setOtp(''); setOtpError(''); }} className="text-xs text-slate-400 hover:text-brand transition-colors">
+                      Change
+                    </button>
+                  </div>
+                )}
+
+                {(!currentPhone || editingPhone) && !otpSent && (
+                  <div className="flex gap-2">
+                    <input type="tel" placeholder="+30 69..." value={phone} onChange={(e) => setPhone(e.target.value)} className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100" />
+                    <button onClick={() => sendOtp.mutate()} disabled={phone.length < 7 || sendOtp.isPending} className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40 whitespace-nowrap">
+                      {sendOtp.isPending ? 'Sending…' : 'Send code'}
+                    </button>
+                    {editingPhone && (
+                      <button onClick={() => setEditingPhone(false)} className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-md text-sm text-slate-400">✕</button>
+                    )}
+                  </div>
+                )}
+
+                {otpSent && (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs text-slate-400">
+                      Code sent to <span className="font-mono text-slate-700 dark:text-slate-200">{phone}</span>.{' '}
+                      <button onClick={() => setOtpSent(false)} className="text-brand hover:underline">Change number</button>
+                    </p>
+                    <div className="flex gap-2">
+                      <input type="text" inputMode="numeric" maxLength={6} placeholder="6-digit code" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 tracking-widest font-mono" />
+                      <button onClick={() => verifyOtp.mutate()} disabled={otp.length !== 6 || verifyOtp.isPending} className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40">
+                        {verifyOtp.isPending ? 'Verifying…' : 'Verify'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {otpError && <p className="text-xs text-red-500">{otpError}</p>}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────
 
 export default function AlarmPage() {
   const queryClient = useQueryClient();
   const { settings: storeSettings, setSettings } = useAlarmStore();
   const [addingRule, setAddingRule] = useState(false);
+  const [addingTriggerAction, setAddingTriggerAction] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(true);
 
   const { data: me } = useQuery({
@@ -820,6 +1159,21 @@ export default function AlarmPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alarm'] }),
   });
 
+  const { data: triggerActions = [], refetch: refetchTriggerActions } = useQuery<any[]>({
+    queryKey: ['alarm-trigger-actions'],
+    queryFn: () => api.get('/alarm/trigger-actions').then((r) => r.data),
+  });
+
+  const createTriggerAction = useMutation({
+    mutationFn: (data: any) => api.post('/alarm/trigger-actions', data),
+    onSuccess: () => { refetchTriggerActions(); setAddingTriggerAction(false); },
+  });
+
+  const deleteTriggerAction = useMutation({
+    mutationFn: (id: string) => api.delete(`/alarm/trigger-actions/${id}`),
+    onSuccess: () => refetchTriggerActions(),
+  });
+
   const existingDeviceIds = new Set(rules.map((r) => r.deviceId));
 
   return (
@@ -847,16 +1201,16 @@ export default function AlarmPage() {
         )}
       </div>
 
-      {/* Rules — owner only */}
+      {/* Trigger Rules — owner only */}
       {isOwner && (
         <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                Rules
+                Trigger Rules
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                {rules.length} rule{rules.length !== 1 ? 's' : ''} configured
+                Device conditions that trigger the alarm
               </p>
             </div>
             <button
@@ -871,7 +1225,7 @@ export default function AlarmPage() {
             <div className="text-center py-10 text-slate-400">
               <ShieldAlert size={32} className="mx-auto mb-3 opacity-30" />
               <p className="text-sm">No rules yet.</p>
-              <p className="text-xs mt-1">Add rules to monitor sensors and trigger the alarm.</p>
+              <p className="text-xs mt-1">Add sensor rules to trigger the alarm.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -882,6 +1236,55 @@ export default function AlarmPage() {
                   onUpdate={(patch) => updateRule.mutate({ id: rule.id, patch })}
                   onDelete={() => deleteRule.mutate(rule.id)}
                 />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* On Trigger Actions — owner only */}
+      {isOwner && (
+        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                On Trigger — Actions
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Device commands to execute when the alarm fires
+              </p>
+            </div>
+            <button
+              onClick={() => setAddingTriggerAction(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-md text-xs font-medium hover:bg-brand/90 transition-colors"
+            >
+              <Plus size={13} /> Add Action
+            </button>
+          </div>
+
+          {triggerActions.length === 0 ? (
+            <div className="text-center py-10 text-slate-400">
+              <Zap size={32} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No actions yet.</p>
+              <p className="text-xs mt-1">e.g. turn on a siren or flash lights when triggered.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {triggerActions.map((action) => (
+                <div key={action.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{action.deviceName}</p>
+                    <p className="text-xs text-slate-400 font-mono">
+                      {action.statusCode} = {JSON.stringify(action.value)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => deleteTriggerAction.mutate(action.id)}
+                    className="text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -956,9 +1359,19 @@ export default function AlarmPage() {
                   className="w-full accent-brand"
                 />
               </div>
+
             </div>
           )}
         </div>
+      )}
+
+      {/* Phone notifications — owner only */}
+      {isOwner && (
+        <PhoneNotificationsSection
+          settings={alarmSettings}
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: ['alarm'] })}
+          onUpdate={(data) => updateDelay.mutate(data)}
+        />
       )}
 
       {isOwner && addingRule && (
@@ -967,6 +1380,14 @@ export default function AlarmPage() {
           existingDeviceIds={existingDeviceIds}
           onAdd={(data) => createRule.mutate(data)}
           onClose={() => setAddingRule(false)}
+        />
+      )}
+
+      {isOwner && addingTriggerAction && (
+        <AddTriggerActionModal
+          devices={devices}
+          onAdd={(data) => createTriggerAction.mutate(data)}
+          onClose={() => setAddingTriggerAction(false)}
         />
       )}
     </div>

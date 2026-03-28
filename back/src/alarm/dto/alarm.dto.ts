@@ -48,6 +48,11 @@ export class UpdateDisplayDto {
   @IsString() @IsOptional() humidDeviceId?: string;
   @IsInt() @Min(10) @Max(120) @IsOptional() exitDelaySecs?: number;
   @IsInt() @Min(10) @Max(120) @IsOptional() entryDelaySecs?: number;
+  @IsString() @IsOptional() phoneNumber?: string;
+  @IsBoolean() @IsOptional() callOnTrigger?: boolean;
+  @IsString() @IsOptional() infobipApiKey?: string;
+  @IsString() @IsOptional() infobipBaseUrl?: string;
+  @IsString() @IsOptional() infobipSender?: string;
 }
 
 export class CreateRuleDto {
@@ -65,4 +70,18 @@ export class UpdateRuleDto {
   @IsBoolean() @IsOptional() activeInAway?: boolean;
   @IsString() @IsOptional() @IsIn(['ENTRY_DELAY', 'IMMEDIATE']) action?: string;
   @IsBoolean() @IsOptional() enabled?: boolean;
+}
+
+export class CreateTriggerActionDto {
+  @IsString() @IsNotEmpty() deviceId!: string;
+  @IsString() @IsNotEmpty() deviceName!: string;
+  @IsString() @IsNotEmpty() statusCode!: string;
+  @Allow() value!: unknown;
+  @IsInt() @IsOptional() order?: number;
+}
+
+export class UpdateTriggerActionDto {
+  @IsString() @IsOptional() statusCode?: string;
+  @Allow() @IsOptional() value?: unknown;
+  @IsInt() @IsOptional() order?: number;
 }

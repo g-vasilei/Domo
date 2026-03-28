@@ -46,8 +46,9 @@ model User {
   permissions      MemberPermissions?
   refreshTokens    RefreshToken[]
   logs             Log[]
-  alarmSettings    AlarmSettings?
-  alarmRules       AlarmRule[]
+  alarmSettings        AlarmSettings?
+  alarmRules           AlarmRule[]
+  alarmTriggerActions  AlarmTriggerAction[]
   sentInvitations  Invitation[] @relation("InvitedBy")
   deviceNotifPrefs DeviceNotifPref[]
   automationRules  AutomationRule[]
@@ -116,6 +117,15 @@ model AlarmSettings {
   pinHash        String?
   exitDelaySecs  Int        @default(30)
   entryDelaySecs Int        @default(30)
+  // Phone call on trigger
+  phoneNumber    String?
+  callOnTrigger  Boolean    @default(false)
+
+  // Infobip credentials (apiKey stored encrypted)
+  infobipApiKey  String?
+  infobipBaseUrl String?
+  infobipSender  String?
+
   // Display mode
   displayMode    Boolean    @default(false)
   showClock      Boolean    @default(true)
@@ -143,6 +153,20 @@ model AlarmRule {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Actions to execute when alarm state becomes TRIGGERED
+model AlarmTriggerAction {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId   String
+  deviceName String
+  statusCode String
+  value      Json
+  order      Int    @default(0)
+
+  createdAt DateTime @default(now())
 }
 
 model Invitation {

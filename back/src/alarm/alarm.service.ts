@@ -2,10 +2,12 @@ import { BadRequestException, Injectable, Logger, UnauthorizedException } from '
 import { AlarmAction, AlarmState } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import { EncryptionService } from '../encryption/encryption.service';
 import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateRuleDto, UpdateDisplayDto, UpdateRuleDto } from './dto/alarm.dto';
+import { AlarmCallService } from './alarm-call.service';
+import { CreateRuleDto, CreateTriggerActionDto, UpdateDisplayDto, UpdateRuleDto, UpdateTriggerActionDto } from './dto/alarm.dto';
 
 @Injectable()
 export class AlarmService {
@@ -19,16 +21,23 @@ export class AlarmService {
     private prisma: PrismaService,
     private gateway: DevicesGateway,
     private devicesService: DevicesService,
+    private callService: AlarmCallService,
+    private encryption: EncryptionService,
   ) {}
 
   // ── Settings ─────────────────────────────────────────────────────────────
 
   async getSettings(userId: string) {
-    return this.prisma.alarmSettings.upsert({
+    const s = await this.prisma.alarmSettings.upsert({
       where: { userId },
       create: { userId },
       update: {},
     });
+    return {
+      ...s,
+      infobipApiKey: undefined, // never expose the encrypted key
+      infobipConfigured: !!s.infobipApiKey,
+    };
   }
 
   async setPin(userId: string, pin: string, currentPin?: string) {
@@ -47,10 +56,14 @@ export class AlarmService {
   }
 
   async updateDisplaySettings(userId: string, dto: UpdateDisplayDto) {
+    const data: any = { ...dto };
+    if (dto.infobipApiKey) {
+      data.infobipApiKey = this.encryption.encrypt(dto.infobipApiKey);
+    }
     return this.prisma.alarmSettings.upsert({
       where: { userId },
-      create: { userId, ...dto },
-      update: dto,
+      create: { userId, ...data },
+      update: data,
     });
   }
 
@@ -92,6 +105,32 @@ export class AlarmService {
     return this.prisma.alarmRule.deleteMany({
       where: { id: ruleId, userId },
     });
+  }
+
+  // ── Trigger Actions ───────────────────────────────────────────────────────
+
+  async getTriggerActions(userId: string) {
+    return this.prisma.alarmTriggerAction.findMany({
+      where: { userId },
+      orderBy: { order: 'asc' },
+    });
+  }
+
+  async createTriggerAction(userId: string, dto: CreateTriggerActionDto) {
+    return this.prisma.alarmTriggerAction.create({
+      data: { userId, ...dto, value: dto.value as any },
+    });
+  }
+
+  async updateTriggerAction(userId: string, id: string, dto: UpdateTriggerActionDto) {
+    return this.prisma.alarmTriggerAction.updateMany({
+      where: { id, userId },
+      data: { ...dto, value: dto.value as any },
+    });
+  }
+
+  async deleteTriggerAction(userId: string, id: string) {
+    return this.prisma.alarmTriggerAction.deleteMany({ where: { id, userId } });
   }
 
   // ── Arm / Disarm ─────────────────────────────────────────────────────────
@@ -260,7 +299,33 @@ export class AlarmService {
     };
 
     this.gateway.broadcastToUsers(groupIds, 'alarm:state', payload);
+
+    // On trigger: execute device actions + phone call
+    if (state === 'TRIGGERED') {
+      this.executeTriggerActions(userId).catch(() => {});
+      if (result.callOnTrigger && result.phoneNumber) {
+        this.callService.callNumber(userId, result.phoneNumber).catch(() => {});
+      }
+    }
+
     return result;
+  }
+
+  private async executeTriggerActions(userId: string) {
+    const actions = await this.prisma.alarmTriggerAction.findMany({
+      where: { userId },
+      orderBy: { order: 'asc' },
+    });
+    for (const action of actions) {
+      try {
+        await this.devicesService.sendCommand(userId, action.deviceId, [
+          { code: action.statusCode, value: action.value },
+        ]);
+        this.logger.log(`Trigger action: set ${action.statusCode} on ${action.deviceId}`);
+      } catch (e: any) {
+        this.logger.error(`Trigger action failed: ${e?.message}`);
+      }
+    }
   }
 
   private async logAction(ownerId: string, actorId: string, action: string) {

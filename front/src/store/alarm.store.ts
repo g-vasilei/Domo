@@ -20,6 +20,11 @@ export interface AlarmSettings {
   showHumidity: boolean;
   tempDeviceId: string | null;
   humidDeviceId: string | null;
+  phoneNumber?: string | null;
+  callOnTrigger?: boolean;
+  infobipConfigured?: boolean;
+  infobipBaseUrl?: string | null;
+  infobipSender?: string | null;
 }
 
 interface AlarmStore {
