@@ -115,25 +115,28 @@ export default function DeviceCard({ device }: { device: any }) {
     mutationFn: (commands: { code: string; value: unknown }[]) =>
       api.post(`/devices/${device.id}/commands`, { commands }),
     onMutate: async (commands) => {
-      await queryClient.cancelQueries({ queryKey: ['devices'] });
-      const previous = queryClient.getQueryData(['devices']);
-      queryClient.setQueryData(['devices'], (old: any[]) =>
-        old?.map((d) =>
-          d.id !== device.id
-            ? d
-            : {
-                ...d,
-                status: d.status.map((s: any) => {
-                  const cmd = commands.find((c) => c.code === s.code);
-                  return cmd ? { ...s, value: cmd.value } : s;
-                }),
-              },
-        ),
+      await queryClient.cancelQueries({ queryKey: ['rooms'] });
+      const previous = queryClient.getQueryData(['rooms']);
+      queryClient.setQueryData(['rooms'], (old: any[]) =>
+        old?.map((room) => ({
+          ...room,
+          devices: room.devices.map((d: any) =>
+            d.id !== device.id
+              ? d
+              : {
+                  ...d,
+                  status: d.status.map((s: any) => {
+                    const cmd = commands.find((c) => c.code === s.code);
+                    return cmd ? { ...s, value: cmd.value } : s;
+                  }),
+                },
+          ),
+        })),
       );
       return { previous };
     },
     onError: (_e, _vars, ctx: any) => {
-      queryClient.setQueryData(['devices'], ctx?.previous);
+      queryClient.setQueryData(['rooms'], ctx?.previous);
     },
   });
 

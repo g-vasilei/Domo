@@ -47,28 +47,23 @@ export function useDeviceSocket() {
         deviceId: string;
         commands: { code: string; value: unknown }[];
       }) => {
+        const applyCommands = (status: any[]) =>
+          status.map((s: any) => {
+            const cmd = commands.find((c) => c.code === s.code);
+            return cmd ? { ...s, value: cmd.value } : s;
+          });
+
         queryClient.setQueryData(['device', deviceId], (old: any) => {
           if (!old) return old;
-          return {
-            ...old,
-            status: old.status.map((s: any) => {
-              const cmd = commands.find((c) => c.code === s.code);
-              return cmd ? { ...s, value: cmd.value } : s;
-            }),
-          };
+          return { ...old, status: applyCommands(old.status) };
         });
-        queryClient.setQueryData(['devices'], (old: any[]) =>
-          old?.map((d) =>
-            d.id !== deviceId
-              ? d
-              : {
-                  ...d,
-                  status: d.status.map((s: any) => {
-                    const cmd = commands.find((c) => c.code === s.code);
-                    return cmd ? { ...s, value: cmd.value } : s;
-                  }),
-                },
-          ),
+        queryClient.setQueryData(['rooms'], (old: any[]) =>
+          old?.map((room) => ({
+            ...room,
+            devices: room.devices.map((d: any) =>
+              d.id !== deviceId ? d : { ...d, status: applyCommands(d.status) },
+            ),
+          })),
         );
       },
     );
