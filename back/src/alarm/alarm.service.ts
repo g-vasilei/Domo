@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { AlarmAction, AlarmState } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -10,7 +10,7 @@ import { AlarmCallService } from './alarm-call.service';
 import { CreateRuleDto, CreateTriggerActionDto, UpdateDisplayDto, UpdateRuleDto, UpdateTriggerActionDto } from './dto/alarm.dto';
 
 @Injectable()
-export class AlarmService {
+export class AlarmService implements OnModuleInit {
   private readonly logger = new Logger(AlarmService.name);
 
   private exitTimers = new Map<string, NodeJS.Timeout>();
@@ -24,6 +24,17 @@ export class AlarmService {
     private callService: AlarmCallService,
     private encryption: EncryptionService,
   ) {}
+
+  async onModuleInit() {
+    // Restore polling for users who were armed when the server last restarted
+    const armed = await this.prisma.alarmSettings.findMany({
+      where: { state: { in: ['ARMED_HOME', 'ARMED_AWAY'] } },
+    });
+    for (const s of armed) {
+      this.startPolling(s.userId, s.state as 'ARMED_HOME' | 'ARMED_AWAY');
+      this.logger.log(`Restored polling for user ${s.userId} (${s.state})`);
+    }
+  }
 
   // ── Settings ─────────────────────────────────────────────────────────────
 

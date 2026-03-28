@@ -32,7 +32,8 @@ export function useDeviceSocket() {
   useEffect(() => {
     if (!accessToken) return;
 
-    socket = io('http://localhost:3001', {
+    socket = io(window.location.origin, {
+      path: '/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
     });
