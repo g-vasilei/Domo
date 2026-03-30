@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
@@ -10,6 +10,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const setTokens = useAuthStore((s) => s.setTokens);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: Location })?.from?.pathname ?? '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +19,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', { email, password });
       setTokens(data.accessToken, data.refreshToken);
-      navigate('/');
+      navigate(from, { replace: true });
     } catch {
       setError('Invalid credentials');
     }

@@ -569,11 +569,11 @@ export default function DeviceDetailPage() {
                 )}
               </div>
 
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex-wrap">
                 <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 truncate">
                   {device.name}
                 </h1>
-                <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-3 flex-wrap mt-1">
                   <span className="text-sm text-slate-400">{meta.label}</span>
                   <span
                     className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -589,7 +589,7 @@ export default function DeviceDetailPage() {
                 {device.model && <p className="text-xs text-slate-400 mt-1">{device.model}</p>}
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex flex-col items-end gap-2 flex-wrap justify-end md:flex-row md:items-center">
                 <TimerControl
                   deviceId={device.id}
                   deviceName={device.name}
@@ -602,10 +602,13 @@ export default function DeviceDetailPage() {
                 <NotifToggle deviceId={device.id} deviceName={device.name} />
                 <button
                   onClick={() => queryClient.invalidateQueries({ queryKey: ['device', id] })}
-                  className={`p-2 rounded-md text-slate-400 hover:text-brand hover:bg-brand/5 transition-colors ${isFetching ? 'animate-spin text-brand' : ''}`}
+                  className="p-2 rounded-md text-slate-400 hover:text-brand hover:bg-brand/5"
                   title="Refresh"
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw
+                    size={16}
+                    className={`transition-colors ${isFetching ? 'animate-spin text-brand' : ''}`}
+                  />
                 </button>
               </div>
             </div>

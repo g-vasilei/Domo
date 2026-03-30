@@ -60,18 +60,58 @@ function StatCard({
 // ── Alarm meta ──────────────────────────────────────────────────────────────
 
 const ALARM_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  DISARMED: { label: 'Disarmed', icon: ShieldOff, color: 'text-slate-400', bg: 'bg-slate-100 dark:bg-white/5' },
-  ARMED_HOME: { label: 'Armed — Home', icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-  ARMED_AWAY: { label: 'Armed — Away', icon: Shield, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-  EXIT_DELAY: { label: 'Exit Delay…', icon: ShieldAlert, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
-  ENTRY_DELAY: { label: 'Entry Delay…', icon: ShieldAlert, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
-  TRIGGERED: { label: 'TRIGGERED', icon: ShieldAlert, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10' },
+  DISARMED: {
+    label: 'Disarmed',
+    icon: ShieldOff,
+    color: 'text-slate-400',
+    bg: 'bg-slate-100 dark:bg-white/5',
+  },
+  ARMED_HOME: {
+    label: 'Armed — Home',
+    icon: Shield,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+  },
+  ARMED_AWAY: {
+    label: 'Armed — Away',
+    icon: Shield,
+    color: 'text-blue-500',
+    bg: 'bg-blue-50 dark:bg-blue-500/10',
+  },
+  EXIT_DELAY: {
+    label: 'Exit Delay…',
+    icon: ShieldAlert,
+    color: 'text-amber-500',
+    bg: 'bg-amber-50 dark:bg-amber-500/10',
+  },
+  ENTRY_DELAY: {
+    label: 'Entry Delay…',
+    icon: ShieldAlert,
+    color: 'text-amber-500',
+    bg: 'bg-amber-50 dark:bg-amber-500/10',
+  },
+  TRIGGERED: {
+    label: 'TRIGGERED',
+    icon: ShieldAlert,
+    color: 'text-red-500',
+    bg: 'bg-red-50 dark:bg-red-500/10',
+  },
 };
 
 // ── Sortable widget wrapper ─────────────────────────────────────────────────
 
-function SortableWidget({ id, device, onRemove }: { id: string; device: any; onRemove: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+function SortableWidget({
+  id,
+  device,
+  onRemove,
+}: {
+  id: string;
+  device: any;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   return (
     <div
@@ -115,16 +155,17 @@ function DevicePickerModal({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState('');
-  const filtered = devices.filter((d) =>
-    d.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = devices.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-[#1A222C] rounded-xl border border-slate-200 dark:border-white/10 shadow-xl w-full max-w-sm flex flex-col max-h-[80vh]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10">
           <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Add widgets</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded transition-colors"
+          >
             <X size={16} />
           </button>
         </div>
@@ -150,20 +191,29 @@ function DevicePickerModal({
               >
                 <span
                   className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    isAdded
-                      ? 'bg-brand border-brand'
-                      : 'border-slate-300 dark:border-white/20'
+                    isAdded ? 'bg-brand border-brand' : 'border-slate-300 dark:border-white/20'
                   }`}
                 >
                   {isAdded && (
                     <svg viewBox="0 0 10 8" className="w-2.5 h-2.5 text-white fill-current">
-                      <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M1 4l3 3 5-6"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block text-sm text-slate-800 dark:text-slate-100 truncate">{d.name}</span>
-                  <span className="block text-xs text-slate-400">{d.online ? 'Online' : 'Offline'}</span>
+                <span className="flex-1 min-w-0 flex-wrap">
+                  <span className="block text-sm text-slate-800 dark:text-slate-100 truncate">
+                    {d.name}
+                  </span>
+                  <span className="block text-xs text-slate-400">
+                    {d.online ? 'Online' : 'Offline'}
+                  </span>
                 </span>
               </button>
             );
@@ -193,7 +243,11 @@ export default function DashboardPage() {
   const [editing, setEditing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
-  const { data: devices = [], isLoading, error } = useQuery({
+  const {
+    data: devices = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['devices'],
     queryFn: () => api.get('/devices').then((r) => r.data),
     refetchInterval: 30_000,
@@ -217,8 +271,7 @@ export default function DashboardPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (deviceIds: string[]) =>
-      api.put('/users/me/dashboard-widgets', { deviceIds }),
+    mutationFn: (deviceIds: string[]) => api.put('/users/me/dashboard-widgets', { deviceIds }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dashboard-widgets'] }),
   });
 
@@ -236,7 +289,9 @@ export default function DashboardPage() {
   const errorMessage = (error as any)?.response?.data?.message ?? 'An unexpected error occurred.';
 
   const validIds = widgetIds.filter((id) => (devices as any[]).some((d) => d.id === id));
-  const widgetDevices = validIds.map((id) => (devices as any[]).find((d) => d.id === id)).filter(Boolean);
+  const widgetDevices = validIds
+    .map((id) => (devices as any[]).find((d) => d.id === id))
+    .filter(Boolean);
 
   function persist(ids: string[]) {
     qc.setQueryData(['dashboard-widgets'], { deviceIds: ids });
@@ -244,9 +299,7 @@ export default function DashboardPage() {
   }
 
   function toggleDevice(id: string) {
-    const next = widgetIds.includes(id)
-      ? widgetIds.filter((x) => x !== id)
-      : [...widgetIds, id];
+    const next = widgetIds.includes(id) ? widgetIds.filter((x) => x !== id) : [...widgetIds, id];
     persist(next);
   }
 
@@ -273,7 +326,9 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Dashboard</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Overview of your smart home</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Overview of your smart home
+          </p>
         </div>
         <button
           onClick={() => setEditing((v) => !v)}
@@ -289,13 +344,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Alarm banner */}
-      <div className={`flex items-center justify-between flex-wrap gap-4 rounded-sm border px-6 py-4 ${meta.bg} border-transparent`}>
+      <div
+        className={`flex items-center justify-between flex-wrap gap-4 rounded-sm border px-6 py-4 ${meta.bg} border-transparent`}
+      >
         <div className="flex items-center gap-4">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${meta.bg}`}>
             <AlarmIcon size={22} className={meta.color} />
           </div>
           <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest">Alarm System</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+              Alarm System
+            </p>
             <p className={`text-lg font-bold ${meta.color}`}>{meta.label}</p>
           </div>
         </div>
@@ -304,10 +363,30 @@ export default function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Cpu} label="Total Devices" value={(devices as any[]).length} color="bg-brand/10 text-brand" />
-        <StatCard icon={Wifi} label="Online" value={online} color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10" />
-        <StatCard icon={WifiOff} label="Offline" value={offline} color="bg-red-50 text-red-400 dark:bg-red-500/10" />
-        <StatCard icon={Home} label="Rooms" value={roomCount} color="bg-violet-50 text-violet-500 dark:bg-violet-500/10" />
+        <StatCard
+          icon={Cpu}
+          label="Total Devices"
+          value={(devices as any[]).length}
+          color="bg-brand/10 text-brand"
+        />
+        <StatCard
+          icon={Wifi}
+          label="Online"
+          value={online}
+          color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
+        />
+        <StatCard
+          icon={WifiOff}
+          label="Offline"
+          value={offline}
+          color="bg-red-50 text-red-400 dark:bg-red-500/10"
+        />
+        <StatCard
+          icon={Home}
+          label="Rooms"
+          value={roomCount}
+          color="bg-violet-50 text-violet-500 dark:bg-violet-500/10"
+        />
       </div>
 
       {/* Error */}
@@ -325,7 +404,9 @@ export default function DashboardPage() {
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               My Widgets
               {widgetDevices.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-slate-400">{widgetDevices.length} device{widgetDevices.length !== 1 ? 's' : ''}</span>
+                <span className="ml-2 text-xs font-normal text-slate-400">
+                  {widgetDevices.length} device{widgetDevices.length !== 1 ? 's' : ''}
+                </span>
               )}
             </h2>
             {editing && (
@@ -341,7 +422,10 @@ export default function DashboardPage() {
           {isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl h-[140px] animate-pulse" />
+                <div
+                  key={i}
+                  className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl h-[140px] animate-pulse"
+                />
               ))}
             </div>
           )}
@@ -351,10 +435,17 @@ export default function DashboardPage() {
               <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3">
                 <LayoutDashboard size={20} className="text-slate-300" />
               </div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">No widgets yet</p>
-              <p className="text-xs text-slate-400 mb-4">Add your favourite devices for quick access</p>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                No widgets yet
+              </p>
+              <p className="text-xs text-slate-400 mb-4">
+                Add your favourite devices for quick access
+              </p>
               <button
-                onClick={() => { setEditing(true); setShowPicker(true); }}
+                onClick={() => {
+                  setEditing(true);
+                  setShowPicker(true);
+                }}
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-brand text-white hover:bg-brand/90 transition-colors"
               >
                 <Plus size={12} /> Add device
@@ -363,7 +454,11 @@ export default function DashboardPage() {
           )}
 
           {!isLoading && widgetDevices.length > 0 && (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
               <SortableContext items={validIds} strategy={rectSortingStrategy}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {widgetDevices.map((device) =>

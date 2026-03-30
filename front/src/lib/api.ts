@@ -10,6 +10,8 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let refreshPromise: Promise<string> | null = null;
+
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
@@ -22,9 +24,19 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
-        setTokens(data.accessToken, data.refreshToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        if (!refreshPromise) {
+          refreshPromise = axios
+            .post('/api/auth/refresh', { refreshToken })
+            .then(({ data }) => {
+              setTokens(data.accessToken, data.refreshToken);
+              return data.accessToken;
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+        const newAccessToken = await refreshPromise;
+        original.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(original);
       } catch {
         clear();

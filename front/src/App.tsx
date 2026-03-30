@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -36,10 +36,11 @@ function AuthedLayout() {
   const token = useAuthStore((s) => s.accessToken);
   const { data: me, isLoading } = useMe();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
   useDeviceSocket();
   useTimerRunner();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
   if (isLoading)
     return (
       <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
@@ -61,16 +62,18 @@ function AuthedLayout() {
 
 function PanelLayout() {
   const token = useAuthStore((s) => s.accessToken);
+  const location = useLocation();
   useDeviceSocket();
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
   return <Outlet />;
 }
 
 function SetupGuard() {
   const token = useAuthStore((s) => s.accessToken);
   const { data: me, isLoading } = useMe();
+  const location = useLocation();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
   if (isLoading)
     return (
       <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
