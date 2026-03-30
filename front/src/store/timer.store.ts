@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { api } from '../lib/api';
+
 export interface DeviceTimer {
   id: string;
   deviceId: string;
@@ -34,9 +36,13 @@ export const useTimerStore = create<TimerStore>()(
             },
           ],
         });
+        // Persist to backend so the timer fires even when the app is closed
+        api.post('/devices/timers', { deviceId, deviceName, switchCode, minutes }).catch(() => {});
       },
-      cancel: (deviceId) =>
-        set((s) => ({ timers: s.timers.filter((t) => t.deviceId !== deviceId) })),
+      cancel: (deviceId) => {
+        set((s) => ({ timers: s.timers.filter((t) => t.deviceId !== deviceId) }));
+        api.delete(`/devices/timers/${deviceId}`).catch(() => {});
+      },
       remove: (id) => set((s) => ({ timers: s.timers.filter((t) => t.id !== id) })),
     }),
     { name: 'domo-device-timers' },

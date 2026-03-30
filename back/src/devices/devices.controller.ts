@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -40,6 +40,26 @@ export class DevicesController {
   @Post(':id/commands')
   sendCommand(@Req() req: any, @Param('id') deviceId: string, @Body() dto: SendCommandDto) {
     return this.devicesService.sendCommand(req.user.id, deviceId, dto.commands);
+  }
+
+  @Post('timers')
+  createTimer(
+    @Req() req: any,
+    @Body()
+    body: { deviceId: string; deviceName: string; switchCode: string; minutes: number },
+  ) {
+    return this.devicesService.createTimer(
+      req.user.id,
+      body.deviceId,
+      body.deviceName,
+      body.switchCode,
+      body.minutes,
+    );
+  }
+
+  @Delete('timers/:deviceId')
+  cancelTimer(@Req() req: any, @Param('deviceId') deviceId: string) {
+    return this.devicesService.cancelTimer(req.user.id, deviceId);
   }
 
   @Get(':id/notif-pref')

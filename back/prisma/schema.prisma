@@ -52,6 +52,7 @@ model User {
   sentInvitations  Invitation[] @relation("InvitedBy")
   deviceNotifPrefs DeviceNotifPref[]
   automationRules  AutomationRule[]
+  deviceTimers     DeviceTimer[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -191,6 +192,20 @@ model Log {
   metadata  Json?
 
   createdAt DateTime @default(now())
+}
+
+model DeviceTimer {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId   String
+  deviceName String
+  switchCode String
+  endsAt     DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, deviceId])
 }
 
 model AutomationRule {

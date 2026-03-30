@@ -1,5 +1,6 @@
-import { BadGatewayException, BadRequestException, Injectable } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 
+import { AutomationEvaluatorService } from '../automation/automation-evaluator.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TuyaService } from '../tuya/tuya.service';
 import { UsersService } from '../users/users.service';
@@ -17,6 +18,8 @@ export class DevicesService {
     private readonly tuyaService: TuyaService,
     private readonly gateway: DevicesGateway,
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AutomationEvaluatorService))
+    private readonly automationEvaluator: AutomationEvaluatorService,
   ) {}
 
   /** deviceId → last-known battery percentage (in-memory dedup) */
@@ -107,6 +110,9 @@ export class DevicesService {
       this.gateway.broadcastDeviceUpdate(userId, deviceId, commands);
       this.logCommand(userId, deviceId, commands).catch(() => {});
       this.notifyDeviceChange(userId, deviceId, commands).catch(() => {});
+      this.resolveOwnerId(userId)
+        .then((ownerId) => this.automationEvaluator.evaluateOnCommand(ownerId, deviceId, commands))
+        .catch(() => {});
       return result;
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to send command to Tuya');
@@ -210,6 +216,35 @@ export class DevicesService {
       deviceName,
       batteryLevel: Math.round(pct),
     });
+  }
+
+  // ── Device timers ──────────────────────────────────────────────────────────
+
+  async createTimer(
+    userId: string,
+    deviceId: string,
+    deviceName: string,
+    switchCode: string,
+    minutes: number,
+  ) {
+    const endsAt = new Date(Date.now() + minutes * 60_000);
+    return this.prisma.deviceTimer.upsert({
+      where: { userId_deviceId: { userId, deviceId } },
+      create: { userId, deviceId, deviceName, switchCode, endsAt },
+      update: { deviceName, switchCode, endsAt },
+    });
+  }
+
+  async cancelTimer(userId: string, deviceId: string) {
+    await this.prisma.deviceTimer.deleteMany({ where: { userId, deviceId } });
+  }
+
+  private async resolveOwnerId(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, createdById: true },
+    });
+    return user?.role === 'MEMBER' && user.createdById ? user.createdById : userId;
   }
 
   private async logCommand(

@@ -36,6 +36,27 @@ export class AutomationEvaluatorService {
     }
   }
 
+  // ── Cron: execute expired device timers every 30s ─────────────────────────
+
+  @Cron('*/30 * * * * *')
+  async executeExpiredTimers() {
+    const expired = await this.prisma.deviceTimer.findMany({
+      where: { endsAt: { lte: new Date() } },
+    });
+
+    for (const timer of expired) {
+      // Delete first to prevent double-execution if the command is slow
+      await this.prisma.deviceTimer.delete({ where: { id: timer.id } }).catch(() => {});
+      try {
+        await this.devicesService.sendCommand(timer.userId, timer.deviceId, [
+          { code: timer.switchCode, value: false },
+        ]);
+      } catch (e: any) {
+        this.logger.error(`Timer execution failed for device ${timer.deviceId}: ${e?.message}`);
+      }
+    }
+  }
+
   // ── Cron: poll device states every 30s for device_state rules ─────────────
 
   @Cron('*/30 * * * * *')

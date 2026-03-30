@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 import { DevicesModule } from '../devices/devices.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -7,7 +7,7 @@ import { AutomationService } from './automation.service';
 import { AutomationEvaluatorService } from './automation-evaluator.service';
 
 @Module({
-  imports: [PrismaModule, DevicesModule],
+  imports: [PrismaModule, forwardRef(() => DevicesModule)],
   controllers: [AutomationController],
   providers: [AutomationService, AutomationEvaluatorService],
   exports: [AutomationEvaluatorService],
