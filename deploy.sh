@@ -31,16 +31,14 @@ echo ""
 
 REBUILT=0
 
-# ── Database migrations ──────────────────────────────────────────────────────────
-if echo "$CHANGED" | grep -qE "^back/prisma/migrations/"; then
-  echo ">>> Running database migrations..."
-  docker compose run --rm backend npx prisma migrate deploy
-fi
-
 # ── Backend ─────────────────────────────────────────────────────────────────────
 if echo "$CHANGED" | grep -qE "^back/"; then
   echo ">>> Rebuilding backend..."
   docker compose build backend
+  if echo "$CHANGED" | grep -qE "^back/prisma/migrations/"; then
+    echo ">>> Running database migrations with new image..."
+    docker compose run --rm backend npx prisma migrate deploy
+  fi
   docker compose up -d backend
   REBUILT=$((REBUILT + 1))
 fi
