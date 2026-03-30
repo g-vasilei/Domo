@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import { AlarmState } from './alarm.store';
 
-export type NotifKind = 'alarm' | 'device' | 'battery';
+export type NotifKind = 'alarm' | 'device' | 'battery' | 'automation';
 
 export interface AppNotification {
   id: string;

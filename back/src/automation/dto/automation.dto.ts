@@ -11,6 +11,9 @@ import {
 } from 'class-validator';
 
 export class ConditionDto {
+  @IsOptional() @IsString() id?: string;
+  @IsOptional() @IsString() ruleId?: string;
+
   @IsIn(['device_state', 'time', 'sun'])
   type!: string;
 
@@ -30,7 +33,10 @@ export class ConditionDto {
 }
 
 export class ActionDto {
-  @IsIn(['device_control', 'countdown'])
+  @IsOptional() @IsString() id?: string;
+  @IsOptional() @IsString() ruleId?: string;
+
+  @IsIn(['device_control', 'countdown', 'notification'])
   type!: string;
 
   @IsOptional() @IsString() deviceId?: string;

@@ -32,7 +32,11 @@ export function useDeviceSocket() {
   useEffect(() => {
     if (!accessToken) return;
 
-    socket = io(window.location.origin, {
+    const socketUrl = import.meta.env.DEV
+      ? 'http://localhost:3001'
+      : window.location.origin;
+
+    socket = io(socketUrl, {
       path: '/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
@@ -103,6 +107,17 @@ export function useDeviceSocket() {
             .push({ kind: 'device', title, body, deviceId: payload.deviceId });
           fireBrowserNotif(title, body);
         }
+      },
+    );
+
+    socket.on(
+      'automation:alert',
+      (payload: { message: string; ruleName?: string }) => {
+        const title = payload.ruleName ? `🤖 ${payload.ruleName}` : '🤖 Automation';
+        useNotificationsStore
+          .getState()
+          .push({ kind: 'automation', title, body: payload.message });
+        fireBrowserNotif(title, payload.message);
       },
     );
 

@@ -13,6 +13,7 @@ import {
   ShieldOff,
   Sun,
   User,
+  Workflow,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -47,12 +48,14 @@ const KIND_ICON: Record<NotifKind, any> = {
   alarm: Shield,
   device: Radio,
   battery: BatteryLow,
+  automation: Workflow,
 };
 
 const KIND_COLOR: Record<NotifKind, string> = {
   alarm: 'text-blue-500',
   device: 'text-slate-500',
   battery: 'text-amber-500',
+  automation: 'text-brand',
 };
 
 function timeAgo(date: Date): string {

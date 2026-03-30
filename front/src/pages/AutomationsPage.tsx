@@ -7,7 +7,7 @@ import { api } from '../lib/api';
 
 function formatCondition(c: any): string {
   if (c.type === 'device_state') {
-    const op = c.operator === 'neq' ? '≠' : '=';
+    const op = c.operator === 'neq' ? '≠' : c.operator === 'gt' ? '>' : c.operator === 'lt' ? '<' : '=';
     return `${c.deviceName ?? c.deviceId} · ${c.statusCode} ${op} ${JSON.stringify(c.value)}`;
   }
   if (c.type === 'time') {
@@ -25,6 +25,7 @@ function formatCondition(c: any): string {
 
 function formatAction(a: any): string {
   if (a.type === 'countdown') return `${a.deviceName ?? a.deviceId} — on for ${a.minutes}min`;
+  if (a.type === 'notification') return `Notify — ${a.value || 'automation triggered'}`;
   return `${a.deviceName ?? a.deviceId} · ${a.statusCode} = ${JSON.stringify(a.value)}`;
 }
 

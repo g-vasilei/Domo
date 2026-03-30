@@ -12,13 +12,17 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AutomationEvaluatorService } from './automation-evaluator.service';
 import { AutomationService } from './automation.service';
 import { CreateRuleDto, UpdateLocationDto, UpdateRuleDto } from './dto/automation.dto';
 
 @Controller('automations')
 @UseGuards(JwtAuthGuard)
 export class AutomationController {
-  constructor(private readonly service: AutomationService) {}
+  constructor(
+    private readonly service: AutomationService,
+    private readonly evaluator: AutomationEvaluatorService,
+  ) {}
 
   @Get()
   getRules(@Req() req: any) {
@@ -53,6 +57,12 @@ export class AutomationController {
   @Patch(':id/toggle')
   toggleRule(@Req() req: any, @Param('id') id: string) {
     return this.service.toggleRule(req.user.id, id);
+  }
+
+  @Post(':id/test')
+  async testRule(@Req() req: any, @Param('id') id: string) {
+    const ownerId = await this.service.resolveOwnerIdPublic(req.user.id);
+    return this.evaluator.testRule(ownerId, id);
   }
 
   @Delete(':id')

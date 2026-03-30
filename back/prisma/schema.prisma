@@ -215,6 +215,7 @@ model AutomationRule {
   name            String
   enabled         Boolean  @default(true)
   lastTriggeredAt DateTime?
+  conditionMet    Boolean  @default(false)
 
   conditions AutomationCondition[]
   actions    AutomationAction[]

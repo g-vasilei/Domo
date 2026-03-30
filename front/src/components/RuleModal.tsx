@@ -18,7 +18,7 @@ interface Condition {
 }
 
 interface Action {
-  type: 'device_control' | 'countdown';
+  type: 'device_control' | 'countdown' | 'notification';
   deviceId?: string;
   deviceName?: string;
   statusCode?: string;
@@ -80,13 +80,18 @@ function ValuePicker({
 
   if (typeof statusEntry.value === 'number') {
     return (
-      <input
-        type="number"
-        value={(value as number) ?? ''}
-        onChange={(e) => onChange(Number(e.target.value))}
-        placeholder="value"
-        className={`w-24 ${SEL}`}
-      />
+      <div className="flex items-center gap-1">
+        <input
+          type="number"
+          value={(value as number) ?? ''}
+          onChange={(e) => onChange(Number(e.target.value))}
+          placeholder="value"
+          className={`w-24 ${SEL}`}
+        />
+        <span className="text-[10px] text-slate-400" title="current raw device value">
+          now: {statusEntry.value}
+        </span>
+      </div>
     );
   }
 
@@ -172,11 +177,17 @@ function ConditionRow({
 
                 <select
                   value={cond.operator ?? 'eq'}
-                  onChange={(e) => set({ operator: e.target.value as 'eq' | 'neq' })}
+                  onChange={(e) => set({ operator: e.target.value as Condition['operator'] })}
                   className={SEL}
                 >
                   <option value="eq">=</option>
                   <option value="neq">≠</option>
+                  {typeof selectedStatus?.value === 'number' && (
+                    <>
+                      <option value="gt">&gt;</option>
+                      <option value="lt">&lt;</option>
+                    </>
+                  )}
                 </select>
               </>
             )}
@@ -329,28 +340,31 @@ function ActionRow({
           >
             <option value="device_control">Set device state</option>
             <option value="countdown">Countdown (on for N min)</option>
+            <option value="notification">Send notification</option>
           </select>
 
-          <select
-            value={action.deviceId ?? ''}
-            onChange={(e) => {
-              const dev = devices.find((d) => d.id === e.target.value);
-              set({
-                deviceId: e.target.value,
-                deviceName: dev?.name,
-                statusCode: undefined,
-                value: undefined,
-              });
-            }}
-            className={SEL}
-          >
-            <option value="">— device —</option>
-            {devices.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+          {action.type !== 'notification' && (
+            <select
+              value={action.deviceId ?? ''}
+              onChange={(e) => {
+                const dev = devices.find((d) => d.id === e.target.value);
+                set({
+                  deviceId: e.target.value,
+                  deviceName: dev?.name,
+                  statusCode: undefined,
+                  value: undefined,
+                });
+              }}
+              className={SEL}
+            >
+              <option value="">— device —</option>
+              {devices.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          )}
 
           {action.type === 'countdown' && action.deviceId && (
             <div className="flex items-center gap-1">
@@ -364,6 +378,16 @@ function ActionRow({
               />
               <span className="text-xs text-slate-400">min</span>
             </div>
+          )}
+
+          {action.type === 'notification' && (
+            <input
+              type="text"
+              value={(action.value as string) ?? ''}
+              onChange={(e) => set({ value: e.target.value })}
+              placeholder="Message (optional)"
+              className={`flex-1 min-w-0 ${SEL}`}
+            />
           )}
         </div>
 

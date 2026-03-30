@@ -18,6 +18,65 @@ export class AutomationEvaluatorService {
     private readonly gateway: DevicesGateway,
   ) {}
 
+  // ── Public: manually test a rule, returns a debug trace ───────────────────
+
+  async testRule(ownerId: string, ruleId: string) {
+    const rule = await this.prisma.automationRule.findUnique({
+      where: { id: ruleId },
+      include: {
+        conditions: { orderBy: { order: 'asc' } },
+        actions: { orderBy: { order: 'asc' } },
+        user: { select: { id: true, timezone: true, latitude: true, longitude: true } },
+      },
+    });
+    if (!rule || rule.userId !== ownerId) return { error: 'Rule not found' };
+
+    const trace: any = { ruleId, ruleName: rule.name, steps: [] };
+
+    // Fetch device statuses
+    const deviceIds = new Set<string>(
+      rule.conditions
+        .filter((c) => c.type === 'device_state' && c.deviceId)
+        .map((c) => c.deviceId!),
+    );
+    const statusMap = new Map<string, any[]>();
+    for (const did of deviceIds) {
+      try {
+        const status = await this.devicesService.getDeviceStatus(ownerId, did);
+        const arr = Array.isArray(status) ? status : [];
+        statusMap.set(did, arr);
+        trace.steps.push({ step: 'device_status', deviceId: did, status: arr, ok: true });
+      } catch (e: any) {
+        trace.steps.push({ step: 'device_status', deviceId: did, ok: false, error: e?.message });
+      }
+    }
+
+    // Evaluate conditions
+    const condMet = await this.evaluateConditions(
+      rule.conditions,
+      undefined,
+      undefined,
+      statusMap,
+      rule.user,
+    );
+    trace.steps.push({ step: 'condition_evaluation', condMet });
+
+    if (!condMet) {
+      trace.result = 'condition_not_met — no actions executed';
+      return trace;
+    }
+
+    // Execute actions (skipCooldown=true, so edge detection is bypassed)
+    await this.executeActions(rule.actions, ownerId, rule.name);
+    await this.prisma.automationRule.update({
+      where: { id: rule.id },
+      data: { lastTriggeredAt: new Date(), conditionMet: true },
+    });
+    trace.steps.push({ step: 'actions_executed', actions: rule.actions.map((a: any) => a.type) });
+    trace.result = 'fired — check notification bell';
+    return trace;
+  }
+
   // ── Public: called after a device command is sent ──────────────────────────
 
   async evaluateOnCommand(
@@ -32,7 +91,7 @@ export class AutomationEvaluatorService {
     const knownStatus = commands.map((c) => ({ code: c.code, value: c.value }));
 
     for (const rule of rules) {
-      await this.evaluateRule(rule, ownerId, knownStatus, deviceId);
+      await this.evaluateRule(rule, ownerId, knownStatus, deviceId, undefined, true);
     }
   }
 
@@ -98,8 +157,8 @@ export class AutomationEvaluatorService {
         try {
           const status = await this.devicesService.getDeviceStatus(ownerId, did);
           statusMap.set(did, Array.isArray(status) ? status : []);
-        } catch (_e) {
-          // Device unreachable — skip
+        } catch (e: any) {
+          this.logger.warn(`Could not fetch status for device ${did}: ${e?.message}`);
         }
       }
 
@@ -138,14 +197,9 @@ export class AutomationEvaluatorService {
     knownStatus?: { code: string; value: unknown }[],
     knownDeviceId?: string,
     statusMap?: Map<string, any[]>,
+    skipCooldown = false,
   ) {
     if (!rule.enabled) return;
-
-    // Cooldown check
-    if (rule.lastTriggeredAt) {
-      const elapsed = Date.now() - new Date(rule.lastTriggeredAt).getTime();
-      if (elapsed < COOLDOWN_MS) return;
-    }
 
     const user =
       rule.user ??
@@ -162,16 +216,31 @@ export class AutomationEvaluatorService {
       user,
     );
 
-    if (!condMet) return;
+    // Edge detection for cron-based evaluation: only fire on false → true transition.
+    // Command-triggered evaluation (skipCooldown=true) always fires when condition is met.
+    if (!condMet) {
+      if (!skipCooldown && rule.conditionMet) {
+        await this.prisma.automationRule.update({
+          where: { id: rule.id },
+          data: { conditionMet: false },
+        });
+      }
+      return;
+    }
+
+    if (!skipCooldown && rule.conditionMet) {
+      // Condition was already true last evaluation — don't re-fire
+      return;
+    }
 
     this.logger.log(`Rule "${rule.name}" (${rule.id}) triggered for user ${ownerId}`);
 
     await this.prisma.automationRule.update({
       where: { id: rule.id },
-      data: { lastTriggeredAt: new Date() },
+      data: { lastTriggeredAt: new Date(), conditionMet: true },
     });
 
-    await this.executeActions(rule.actions, ownerId);
+    await this.executeActions(rule.actions, ownerId, rule.name);
   }
 
   private async evaluateConditions(
@@ -244,10 +313,18 @@ export class AutomationEvaluatorService {
     const entry = status.find((s: any) => s.code === cond.statusCode);
     if (!entry) return false;
 
+    const op = cond.operator ?? 'eq';
+
+    if (op === 'gt' || op === 'lt') {
+      const actualNum = Number(entry.value);
+      const expectedNum = Number(cond.value);
+      if (isNaN(actualNum) || isNaN(expectedNum)) return false;
+      return op === 'gt' ? actualNum > expectedNum : actualNum < expectedNum;
+    }
+
     const actual = JSON.stringify(entry.value);
     const expected = JSON.stringify(cond.value);
-
-    return cond.operator === 'neq' ? actual !== expected : actual === expected;
+    return op === 'neq' ? actual !== expected : actual === expected;
   }
 
   private evaluateTimeCondition(cond: any, timezone?: string | null): boolean {
@@ -300,12 +377,27 @@ export class AutomationEvaluatorService {
 
   // ── Action execution ───────────────────────────────────────────────────────
 
-  private async executeActions(actions: any[], ownerId: string) {
+  private async executeActions(actions: any[], ownerId: string, ruleName?: string) {
     const sorted = [...actions].sort((a, b) => a.order - b.order);
 
     for (const action of sorted) {
       try {
-        if (action.type === 'device_control' && action.deviceId && action.statusCode) {
+        if (action.type === 'notification') {
+          const message =
+            typeof action.value === 'string' && action.value.trim()
+              ? action.value.trim()
+              : `Automation "${ruleName ?? 'rule'}" triggered`;
+          const groupUsers = await this.prisma.user.findMany({
+            where: { OR: [{ id: ownerId }, { createdById: ownerId }] },
+            select: { id: true },
+          });
+          this.gateway.broadcastToUsers(
+            groupUsers.map((u) => u.id),
+            'automation:alert',
+            { message, ruleName },
+          );
+          this.logger.log(`Action: notification sent — "${message}"`);
+        } else if (action.type === 'device_control' && action.deviceId && action.statusCode) {
           await this.devicesService.sendCommand(ownerId, action.deviceId, [
             { code: action.statusCode, value: action.value },
           ]);

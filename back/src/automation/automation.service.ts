@@ -12,6 +12,10 @@ const RULE_INCLUDE = {
 export class AutomationService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async resolveOwnerIdPublic(userId: string): Promise<string> {
+    return this.resolveOwnerId(userId);
+  }
+
   private async resolveOwnerId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -107,6 +111,7 @@ export class AutomationService {
         data: {
           ...(dto.name !== undefined && { name: dto.name }),
           ...(dto.enabled !== undefined && { enabled: dto.enabled }),
+          conditionMet: false,
           ...(dto.conditions !== undefined && {
             conditions: {
               create: dto.conditions.map((c) => ({
@@ -150,7 +155,7 @@ export class AutomationService {
     if (!rule || rule.userId !== ownerId) throw new NotFoundException('Rule not found');
     return this.prisma.automationRule.update({
       where: { id },
-      data: { enabled: !rule.enabled },
+      data: { enabled: !rule.enabled, conditionMet: false },
       include: RULE_INCLUDE,
     });
   }
