@@ -53,6 +53,7 @@ model User {
   deviceNotifPrefs DeviceNotifPref[]
   automationRules  AutomationRule[]
   deviceTimers     DeviceTimer[]
+  calendarEvents CalendarEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -206,6 +207,21 @@ model DeviceTimer {
   createdAt DateTime @default(now())
 
   @@unique([userId, deviceId])
+}
+
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime?
+  allDay      Boolean   @default(true)
+  color       String    @default("blue")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model AutomationRule {

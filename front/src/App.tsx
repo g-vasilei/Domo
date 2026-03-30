@@ -10,6 +10,7 @@ import { useTimerRunner } from './lib/useTimerRunner';
 import AcceptInvitePage from './pages/AcceptInvitePage';
 import AlarmPage from './pages/AlarmPage';
 import AutomationsPage from './pages/AutomationsPage';
+import CalendarPage from './pages/CalendarPage';
 import DashboardPage from './pages/DashboardPage';
 import DeviceDetailPage from './pages/DeviceDetailPage';
 import DevicesPage from './pages/DevicesPage';
@@ -108,6 +109,7 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/automations" element={<AutomationsPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
 
         <Route element={<AlarmGuard />}>
           <Route path="/alarm" element={<AlarmPage />} />

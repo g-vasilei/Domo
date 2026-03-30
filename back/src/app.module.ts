@@ -7,6 +7,7 @@ import { AlarmModule } from './alarm/alarm.module';
 import { AuthModule } from './auth/auth.module';
 import { EncryptionModule } from './encryption/encryption.module';
 import { AutomationModule } from './automation/automation.module';
+import { CalendarModule } from './calendar/calendar.module';
 import { DevicesModule } from './devices/devices.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -37,6 +38,7 @@ import { UsersModule } from './users/users.module';
     TuyaModule,
     AlarmModule,
     AutomationModule,
+    CalendarModule,
     MailModule,
   ],
 })
