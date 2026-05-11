@@ -116,9 +116,9 @@ export class AutomationEvaluatorService {
     }
   }
 
-  // ── Cron: poll device states every 30s for device_state rules ─────────────
+  // ── Cron: poll device states every 5min for device_state rules ───────────
 
-  @Cron('*/30 * * * * *')
+  @Cron('*/5 * * * *')
   async evaluateDeviceStateRules() {
     const rules = await this.prisma.automationRule.findMany({
       where: {

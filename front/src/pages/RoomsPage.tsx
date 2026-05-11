@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Home, WifiOff } from 'lucide-react';
+import { Home, RefreshCw, WifiOff } from 'lucide-react';
 
 import DeviceCard from '../components/DeviceCard';
 import { api } from '../lib/api';
@@ -43,20 +43,33 @@ export default function RoomsPage() {
   const {
     data: rooms = [],
     isLoading,
+    isFetching,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['rooms'],
     queryFn: () => api.get('/devices/rooms').then((r) => r.data),
-    refetchInterval: 30_000,
   });
 
   const errorMessage = (error as any)?.response?.data?.message ?? 'Failed to load rooms.';
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Rooms</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Devices grouped by room</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Rooms</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Devices grouped by room
+          </p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
       {isLoading && (

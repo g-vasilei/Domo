@@ -9,9 +9,23 @@ const REGION_HOSTS: Record<TuyaRegion, string> = {
   cn: 'openapi.tuyacn.com',
 };
 
+interface TokenCache {
+  token: string;
+  expiresAt: number;
+}
+
+interface RoomsCache {
+  rooms: any[];
+  expiresAt: number;
+}
+
+const ROOMS_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
 @Injectable()
 export class TuyaService {
   private readonly logger = new Logger(TuyaService.name);
+  private readonly tokenCache = new Map<string, TokenCache>();
+  private readonly roomsCache = new Map<string, RoomsCache>();
 
   async validateCredentials(
     accessId: string,
@@ -40,6 +54,12 @@ export class TuyaService {
   }
 
   async getRooms(accessId: string, accessSecret: string, region: TuyaRegion) {
+    const cacheKey = `${accessId}:${region}`;
+    const cached = this.roomsCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.rooms;
+    }
+
     const token = await this.getToken(accessId, accessSecret, region);
 
     const devicesResult = await this.request(
@@ -103,6 +123,7 @@ export class TuyaService {
       rooms.push({ id: 'unassigned', name: 'Unassigned', devices: unassigned });
     }
 
+    this.roomsCache.set(cacheKey, { rooms, expiresAt: Date.now() + ROOMS_CACHE_TTL_MS });
     return rooms;
   }
 
@@ -199,6 +220,12 @@ export class TuyaService {
     accessSecret: string,
     region: TuyaRegion,
   ): Promise<string> {
+    const cacheKey = `${accessId}:${region}`;
+    const cached = this.tokenCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.token;
+    }
+
     const t = Date.now().toString();
     const path = '/v1.0/token?grant_type=1';
     const sign = this.sign(accessId, accessSecret, t, '', 'GET', path, '');
@@ -215,7 +242,11 @@ export class TuyaService {
     const data = (await res.json()) as any;
     this.logger.debug(`Tuya token response: ${JSON.stringify(data)}`);
     if (!data.success) throw new Error(data.msg ?? JSON.stringify(data));
-    return data.result.access_token as string;
+
+    const token = data.result.access_token as string;
+    const ttlMs = (data.result.expire_time ?? 7200) * 1000;
+    this.tokenCache.set(cacheKey, { token, expiresAt: Date.now() + ttlMs - 5 * 60 * 1000 });
+    return token;
   }
 
   private async request(

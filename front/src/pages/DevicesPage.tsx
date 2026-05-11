@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeftRight, Cpu, GripVertical, Home, WifiOff } from 'lucide-react';
+import { ArrowLeftRight, Cpu, GripVertical, Home, RefreshCw, WifiOff } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import DeviceCard from '../components/DeviceCard';
@@ -169,11 +169,12 @@ export default function DevicesPage() {
   const {
     data: rawRooms = [],
     isLoading,
+    isFetching,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['rooms'],
     queryFn: () => api.get('/devices/rooms').then((r) => r.data),
-    refetchInterval: 30_000,
   });
 
   const [rearranging, setRearranging] = useState(false);
@@ -254,19 +255,29 @@ export default function DevicesPage() {
             All devices grouped by room
           </p>
         </div>
-        {!isLoading && !error && rooms.length > 0 && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setRearranging((v) => !v)}
-            className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border transition-colors ${
-              rearranging
-                ? 'bg-brand text-white border-brand'
-                : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'
-            }`}
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
           >
-            <ArrowLeftRight size={14} />
-            {rearranging ? 'Done' : 'Rearrange'}
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            Refresh
           </button>
-        )}
+          {!isLoading && !error && rooms.length > 0 && (
+            <button
+              onClick={() => setRearranging((v) => !v)}
+              className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border transition-colors ${
+                rearranging
+                  ? 'bg-brand text-white border-brand'
+                  : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <ArrowLeftRight size={14} />
+              {rearranging ? 'Done' : 'Rearrange'}
+            </button>
+          )}
+        </div>
       </div>
 
       {isLoading && (
