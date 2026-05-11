@@ -1,4 +1,10 @@
-import { BadGatewayException, BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 
 import { AutomationEvaluatorService } from '../automation/automation-evaluator.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,11 +48,6 @@ export class DevicesService {
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve rooms from Tuya');
     }
-  }
-
-  async diagnoseRooms(userId: string) {
-    const creds = await this.getCreds(userId);
-    return this.tuyaService.diagnoseRooms(creds.accessId, creds.accessSecret, creds.region as any);
   }
 
   async getDevices(userId: string) {

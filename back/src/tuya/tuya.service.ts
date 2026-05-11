@@ -149,53 +149,6 @@ export class TuyaService {
     );
   }
 
-  async diagnoseRooms(accessId: string, accessSecret: string, region: TuyaRegion) {
-    const token = await this.getToken(accessId, accessSecret, region);
-    const result: Record<string, any> = {};
-
-    // 1. Raw device list — show all fields of first device
-    const devicesResult = await this.request(
-      accessId,
-      accessSecret,
-      region,
-      token,
-      'GET',
-      '/v1.0/iot-01/associated-users/devices',
-    );
-    const devices: any[] = devicesResult?.devices ?? [];
-    result.deviceCount = devices.length;
-    result.firstDeviceFields = devices[0]
-      ? Object.entries(devices[0]).reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {})
-      : null;
-
-    const ownerIds = [...new Set(devices.map((d: any) => d.owner_id).filter(Boolean))];
-    const uids = [...new Set(devices.map((d: any) => d.uid).filter(Boolean))];
-    result.ownerIds = ownerIds;
-    result.uids = uids;
-
-    // 2. Try home endpoints with each candidate ID
-    const candidates = [...new Set([...ownerIds, ...uids])];
-    result.homeAttempts = {};
-    for (const id of candidates.slice(0, 3)) {
-      const attempts: Record<string, any> = {};
-      for (const path of [
-        `/v1.0/homes/${id}/rooms`,
-        `/v1.0/home/${id}/rooms`,
-        `/v1.0/users/${id}/homes`,
-        `/v2.0/homes/${id}/rooms`,
-      ]) {
-        try {
-          attempts[path] = await this.request(accessId, accessSecret, region, token, 'GET', path);
-        } catch (e: any) {
-          attempts[path] = { error: e.message };
-        }
-      }
-      result.homeAttempts[id] = attempts;
-    }
-
-    return result;
-  }
-
   async sendCommand(
     accessId: string,
     accessSecret: string,

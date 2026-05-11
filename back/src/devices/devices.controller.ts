@@ -22,11 +22,6 @@ export class DevicesController {
     return this.devicesService.getRooms(req.user.id);
   }
 
-  @Get('diagnose-rooms')
-  diagnoseRooms(@Req() req: any) {
-    return this.devicesService.diagnoseRooms(req.user.id);
-  }
-
   @Get(':id')
   getDevice(@Req() req: any, @Param('id') deviceId: string) {
     return this.devicesService.getDevice(req.user.id, deviceId);

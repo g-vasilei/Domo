@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AlarmAction, AlarmState } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -7,7 +13,13 @@ import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AlarmCallService } from './alarm-call.service';
-import { CreateRuleDto, CreateTriggerActionDto, UpdateDisplayDto, UpdateRuleDto, UpdateTriggerActionDto } from './dto/alarm.dto';
+import {
+  CreateRuleDto,
+  CreateTriggerActionDto,
+  UpdateDisplayDto,
+  UpdateRuleDto,
+  UpdateTriggerActionDto,
+} from './dto/alarm.dto';
 
 @Injectable()
 export class AlarmService implements OnModuleInit {
@@ -222,7 +234,7 @@ export class AlarmService implements OnModuleInit {
 
   private startPolling(userId: string, armedState: 'ARMED_HOME' | 'ARMED_AWAY') {
     this.stopPolling(userId);
-    const timer = setInterval(() => this.checkRules(userId, armedState), 15_000);
+    const timer = setInterval(() => this.checkRules(userId, armedState), 30_000);
     this.pollTimers.set(userId, timer);
     this.logger.log(`Polling started for user ${userId} (${armedState})`);
   }
