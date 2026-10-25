@@ -20,6 +20,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import AirConditionerControls from '../components/AirConditionerControls';
 import TimerModal from '../components/TimerModal';
 import { api } from '../lib/api';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
@@ -33,6 +34,7 @@ const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
   dj: { label: 'Light', Icon: Lightbulb },
   dd: { label: 'LED Strip', Icon: Lightbulb },
   xdd: { label: 'Ceiling Light', Icon: Lightbulb },
+  kt: { label: 'Air Conditioner', Icon: Wind },
   wk: { label: 'Thermostat', Icon: Thermometer },
   kj: { label: 'Air Purifier', Icon: Wind },
   fs: { label: 'Fan', Icon: Wind },
@@ -95,6 +97,9 @@ function PowerToggle({
         <p className="text-xs text-slate-400 mt-0.5">{on ? 'On' : 'Off'}</p>
       </div>
       <button
+        role="switch"
+        aria-label={label}
+        aria-checked={on}
         onClick={() => onChange(!on)}
         disabled={disabled}
         className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -129,6 +134,8 @@ function Slider({
   disabled: boolean;
 }) {
   const [local, setLocal] = useState(value);
+
+  useEffect(() => setLocal(value), [value]);
 
   const pct = ((local - min) / (max - min)) * 100;
 
@@ -224,6 +231,7 @@ function DeviceControls({
   isPending: boolean;
 }) {
   const status: any[] = device.status ?? [];
+  const isAc = device.category === 'kt';
   const switchCodes = detectSwitchCodes(status);
 
   const brightness = sv(status, 'bright_value') ?? sv(status, 'bright_value_v2');
@@ -239,8 +247,9 @@ function DeviceControls({
 
   return (
     <div className="space-y-4">
+      {isAc && <AirConditionerControls device={device} disabled={disabled} send={sendCommand} />}
       {/* Power — one toggle per switch code */}
-      {switchCodes.length > 0 && (
+      {!isAc && switchCodes.length > 0 && (
         <Card title="Power Control">
           <div className="divide-y divide-stroke dark:divide-white/10">
             {switchCodes.map((code) => (
@@ -315,7 +324,6 @@ function DeviceControls({
                     ? `${convertTemp(tempCurrent, tempUnit)}°${tempUnit}`
                     : tempCurrent
                 }
-                unit="°C"
               />
             )}
             {humidity !== undefined && (
@@ -504,10 +512,10 @@ export default function DeviceDetailPage() {
       const previous = queryClient.getQueryData(['device', id]);
       queryClient.setQueryData(['device', id], (old: any) => ({
         ...old,
-        status: old.status.map((s: any) => {
-          const cmd = commands.find((c) => c.code === s.code);
-          return cmd ? { ...s, value: cmd.value } : s;
-        }),
+        status: [
+          ...(old.status ?? []).filter((s: any) => !commands.some((c) => c.code === s.code)),
+          ...commands,
+        ],
       }));
       return { previous };
     },
@@ -522,7 +530,13 @@ export default function DeviceDetailPage() {
     ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu })
     : { label: '', Icon: Cpu };
   const iconUrl = device?.icon ? formatIconUrl(device.icon) : '';
-  const primarySwitchCode = device ? (detectSwitchCodes(device.status ?? [])[0] ?? null) : null;
+  const primarySwitchCode = device
+    ? device.category === 'kt'
+      ? (device.status ?? []).some((s: any) => s.code === 'switch' && typeof s.value === 'boolean')
+        ? 'switch'
+        : null
+      : (detectSwitchCodes(device.status ?? [])[0] ?? null)
+    : null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">

@@ -80,6 +80,20 @@ export class DevicesService {
     }
   }
 
+  async getDeviceSpecifications(userId: string, deviceId: string) {
+    const creds = await this.getCreds(userId);
+    try {
+      return await this.tuyaService.getDeviceSpecifications(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+        deviceId,
+      );
+    } catch (e: any) {
+      throw new BadGatewayException(e?.message ?? 'Failed to retrieve device capabilities');
+    }
+  }
+
   async getDeviceStatus(userId: string, deviceId: string) {
     const creds = await this.getCreds(userId);
     try {

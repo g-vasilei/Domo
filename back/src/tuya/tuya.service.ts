@@ -132,6 +132,23 @@ export class TuyaService {
     return this.request(accessId, accessSecret, region, token, 'GET', `/v1.0/devices/${deviceId}`);
   }
 
+  async getDeviceSpecifications(
+    accessId: string,
+    accessSecret: string,
+    region: TuyaRegion,
+    deviceId: string,
+  ) {
+    const token = await this.getToken(accessId, accessSecret, region);
+    return this.request(
+      accessId,
+      accessSecret,
+      region,
+      token,
+      'GET',
+      `/v1.0/devices/${deviceId}/specifications`,
+    );
+  }
+
   async getDeviceStatus(
     accessId: string,
     accessSecret: string,

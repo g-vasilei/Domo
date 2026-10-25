@@ -27,6 +27,7 @@ const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
   dd: { label: 'LED Strip', Icon: Lightbulb },
   xdd: { label: 'Ceiling Light', Icon: Lightbulb },
   dlq: { label: 'Dimmer', Icon: Lightbulb },
+  kt: { label: 'Air Conditioner', Icon: Wind },
   wk: { label: 'Thermostat', Icon: Thermometer },
   kj: { label: 'Air Purifier', Icon: Wind },
   fs: { label: 'Fan', Icon: Wind },
@@ -101,7 +102,12 @@ export default function DeviceCard({ device }: { device: any }) {
 
   const tempUnit = usePrefsStore((s) => s.tempUnit);
   const status: any[] = device.status ?? [];
-  const switchCode = detectSwitchCode(status);
+  const switchCode =
+    device.category === 'kt'
+      ? typeof sv(status, 'switch') === 'boolean'
+        ? 'switch'
+        : null
+      : detectSwitchCode(status);
   const isOn = switchCode ? sv(status, switchCode) === true : null;
 
   const temp = sv(status, 'temp_current') ?? sv(status, 'va_temperature');

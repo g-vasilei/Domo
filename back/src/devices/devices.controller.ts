@@ -27,6 +27,11 @@ export class DevicesController {
     return this.devicesService.getDevice(req.user.id, deviceId);
   }
 
+  @Get(':id/specifications')
+  getDeviceSpecifications(@Req() req: any, @Param('id') deviceId: string) {
+    return this.devicesService.getDeviceSpecifications(req.user.id, deviceId);
+  }
+
   @Get(':id/status')
   getDeviceStatus(@Req() req: any, @Param('id') deviceId: string) {
     return this.devicesService.getDeviceStatus(req.user.id, deviceId);
