@@ -21,19 +21,19 @@ import { useTimerStore } from '../store/timer.store';
 import TimerModal from './TimerModal';
 
 const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
-  cz: { label: 'Socket', Icon: Plug },
-  kg: { label: 'Switch', Icon: Zap },
-  dj: { label: 'Light', Icon: Lightbulb },
-  dd: { label: 'LED Strip', Icon: Lightbulb },
-  xdd: { label: 'Ceiling Light', Icon: Lightbulb },
-  dlq: { label: 'Dimmer', Icon: Lightbulb },
-  kt: { label: 'Air Conditioner', Icon: Wind },
-  wk: { label: 'Thermostat', Icon: Thermometer },
-  kj: { label: 'Air Purifier', Icon: Wind },
-  fs: { label: 'Fan', Icon: Wind },
-  wsdcg: { label: 'Sensor', Icon: Thermometer },
-  mcs: { label: 'Door Sensor', Icon: DoorOpen },
-  pir: { label: 'Motion', Icon: Eye },
+  cz: { label: 'Πρίζα', Icon: Plug },
+  kg: { label: 'Διακόπτης', Icon: Zap },
+  dj: { label: 'Φωτισμός', Icon: Lightbulb },
+  dd: { label: 'Ταινία LED', Icon: Lightbulb },
+  xdd: { label: 'Φωτιστικό οροφής', Icon: Lightbulb },
+  dlq: { label: 'Ροοστάτης', Icon: Lightbulb },
+  kt: { label: 'Κλιματιστικό', Icon: Wind },
+  wk: { label: 'Θερμοστάτης', Icon: Thermometer },
+  kj: { label: 'Καθαριστής αέρα', Icon: Wind },
+  fs: { label: 'Ανεμιστήρας', Icon: Wind },
+  wsdcg: { label: 'Αισθητήρας', Icon: Thermometer },
+  mcs: { label: 'Αισθητήρας πόρτας', Icon: DoorOpen },
+  pir: { label: 'Κίνηση', Icon: Eye },
 };
 
 function sv(status: any[], code: string) {
@@ -64,9 +64,9 @@ function formatCountdown(ms: number): string {
   const h = Math.floor(totalSecs / 3600);
   const m = Math.floor((totalSecs % 3600) / 60);
   const s = totalSecs % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
+  if (h > 0) return `${h}ώρ. ${m}λ.`;
+  if (m > 0) return `${m}λ. ${s}δ.`;
+  return `${s}δ.`;
 }
 
 function TimerBadge({ deviceId }: { deviceId: string }) {
@@ -96,8 +96,9 @@ export default function DeviceCard({ device }: { device: any }) {
   const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
   const [showTimerModal, setShowTimerModal] = useState(false);
+  const [timerError, setTimerError] = useState<string | null>(null);
 
-  const meta = CATEGORY_META[device.category] ?? { label: device.category ?? 'Device', Icon: Cpu };
+  const meta = CATEGORY_META[device.category] ?? { label: device.category ?? 'Συσκευή', Icon: Cpu };
   const { Icon, label } = meta;
 
   const tempUnit = usePrefsStore((s) => s.tempUnit);
@@ -146,16 +147,16 @@ export default function DeviceCard({ device }: { device: any }) {
     },
   });
 
-  function handleTimerConfirm(minutes: number) {
+  async function handleTimerConfirm(minutes: number) {
     if (!switchCode) return;
-    sendCommand([{ code: switchCode, value: true }]);
-    startTimer(device.id, device.name, switchCode, minutes);
+    await startTimer(device.id, device.name, switchCode, minutes);
+    await queryClient.invalidateQueries({ queryKey: ['rooms'] });
     setShowTimerModal(false);
   }
 
   return (
     <>
-      <div className="bg-white dark:bg-[#1A222C] border border-gray-200 dark:border-white/10 rounded-xl p-5 flex flex-col gap-3 hover:border-brand/30 transition-colors duration-200 group">
+      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-5 flex flex-col gap-3 hover:border-brand/30 transition-colors duration-200 group">
         {/* Top row: icon + name + online dot */}
         <div className="flex items-center gap-3">
           <div
@@ -192,7 +193,7 @@ export default function DeviceCard({ device }: { device: any }) {
             className={`w-2.5 h-2.5 rounded-full flex-shrink-0 self-start mt-1 ${
               device.online ? 'bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600'
             }`}
-            title={device.online ? 'Online' : 'Offline'}
+            title={device.online ? 'Σε σύνδεση' : 'Εκτός σύνδεσης'}
           />
         </div>
 
@@ -208,6 +209,11 @@ export default function DeviceCard({ device }: { device: any }) {
           </div>
         )}
 
+        {timerError && (
+          <p role="alert" className="text-xs text-red-500">
+            {timerError}
+          </p>
+        )}
         {/* Bottom row */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-white/10 mt-auto">
           {switchCode !== null ? (
@@ -216,7 +222,7 @@ export default function DeviceCard({ device }: { device: any }) {
               <button
                 onClick={() => sendCommand([{ code: switchCode, value: !isOn }])}
                 disabled={isPending || !device.online}
-                title={isOn ? 'Turn off' : 'Turn on'}
+                title={isOn ? 'Σβήσιμο' : 'Άναμμα'}
                 className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
                   isOn
                     ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
@@ -228,9 +234,16 @@ export default function DeviceCard({ device }: { device: any }) {
 
               {/* Timer button */}
               <button
-                onClick={() => (activeTimer ? cancelTimer(device.id) : setShowTimerModal(true))}
+                onClick={() => {
+                  setTimerError(null);
+                  if (activeTimer)
+                    cancelTimer(device.id).catch(() =>
+                      setTimerError('Δεν ακυρώθηκε ο χρονοδιακόπτης'),
+                    );
+                  else setShowTimerModal(true);
+                }}
                 disabled={!device.online}
-                title={activeTimer ? 'Cancel timer' : 'Set auto-off timer'}
+                title={activeTimer ? 'Ακύρωση χρονοδιακόπτη' : 'Ορισμός αυτόματου σβησίματος'}
                 className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTimer
                     ? 'border-amber-400 bg-amber-400/10 text-amber-500 hover:bg-amber-400 hover:text-white'
@@ -241,14 +254,14 @@ export default function DeviceCard({ device }: { device: any }) {
               </button>
             </div>
           ) : (
-            <span className="text-[11px] text-slate-400">Read only</span>
+            <span className="text-[11px] text-slate-400">Μόνο προβολή</span>
           )}
 
           <button
             onClick={() => navigate(`/devices/${device.id}`)}
             className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-brand transition-colors"
           >
-            Details <ArrowRight size={12} />
+            Λεπτομέρειες <ArrowRight size={12} />
           </button>
         </div>
       </div>

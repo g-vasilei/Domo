@@ -21,20 +21,20 @@ export default function LoginPage() {
       setTokens(data.accessToken, data.refreshToken);
       navigate(from, { replace: true });
     } catch {
-      setError('Invalid credentials');
+      setError('Μη έγκυρα στοιχεία σύνδεσης');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#111827] p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow w-full max-w-sm space-y-4"
+        className="bg-white dark:bg-[#1A222C] p-8 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm w-full max-w-sm space-y-4"
       >
-        <h1 className="text-2xl font-bold">Sign in</h1>
+        <h1 className="text-2xl font-bold">Σύνδεση</h1>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <input
-          className="w-full border rounded px-3 py-2"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
           type="email"
           placeholder="Email"
           value={email}
@@ -42,23 +42,23 @@ export default function LoginPage() {
           required
         />
         <input
-          className="w-full border rounded px-3 py-2"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
           type="password"
-          placeholder="Password"
+          placeholder="Κωδικός πρόσβασης"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
         <button
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          className="w-full bg-brand text-white py-2 rounded-xl hover:bg-brand/90"
           type="submit"
         >
-          Login
+          Σύνδεση
         </button>
         <p className="text-sm text-center">
-          No account?{' '}
-          <Link className="text-blue-600" to="/register">
-            Register
+          Δεν έχετε λογαριασμό;{' '}
+          <Link className="text-brand" to="/register">
+            Εγγραφή
           </Link>
         </p>
       </form>

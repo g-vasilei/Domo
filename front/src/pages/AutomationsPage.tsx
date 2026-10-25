@@ -7,25 +7,27 @@ import { api } from '../lib/api';
 
 function formatCondition(c: any): string {
   if (c.type === 'device_state') {
-    const op = c.operator === 'neq' ? '≠' : c.operator === 'gt' ? '>' : c.operator === 'lt' ? '<' : '=';
+    const op =
+      c.operator === 'neq' ? '≠' : c.operator === 'gt' ? '>' : c.operator === 'lt' ? '<' : '=';
     return `${c.deviceName ?? c.deviceId} · ${c.statusCode} ${op} ${JSON.stringify(c.value)}`;
   }
   if (c.type === 'time') {
-    const opLabel = c.operator === 'gt' ? 'after' : c.operator === 'lt' ? 'before' : 'at';
-    return `Time ${opLabel} ${c.timeValue}`;
+    const opLabel = c.operator === 'gt' ? 'μετά τις' : c.operator === 'lt' ? 'πριν τις' : 'στις';
+    return `Ώρα ${opLabel} ${c.timeValue}`;
   }
   if (c.type === 'sun') {
-    const opLabel = c.operator === 'gt' ? 'after' : c.operator === 'lt' ? 'before' : 'at';
+    const opLabel = c.operator === 'gt' ? 'μετά τις' : c.operator === 'lt' ? 'πριν τις' : 'στις';
     const sign = (c.sunOffsetMin ?? 0) >= 0 ? '+' : '';
-    const off = c.sunOffsetMin ? ` ${sign}${c.sunOffsetMin}min` : '';
-    return `${opLabel} ${c.sunEvent === 'sunrise' ? 'Sunrise' : 'Sunset'}${off}`;
+    const off = c.sunOffsetMin ? ` ${sign}${c.sunOffsetMin} λεπτά` : '';
+    return `${opLabel} ${c.sunEvent === 'sunrise' ? 'Ανατολή' : 'Δύση'}${off}`;
   }
   return c.type;
 }
 
 function formatAction(a: any): string {
-  if (a.type === 'countdown') return `${a.deviceName ?? a.deviceId} — on for ${a.minutes}min`;
-  if (a.type === 'notification') return `Notify — ${a.value || 'automation triggered'}`;
+  if (a.type === 'countdown')
+    return `${a.deviceName ?? a.deviceId} — λειτουργία για ${a.minutes} λεπτά`;
+  if (a.type === 'notification') return `Ειδοποίηση — ${a.value || 'ενεργοποιήθηκε αυτοματισμός'}`;
   return `${a.deviceName ?? a.deviceId} · ${a.statusCode} = ${JSON.stringify(a.value)}`;
 }
 
@@ -61,30 +63,30 @@ export default function AutomationsPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Automations</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Αυτοματισμοί</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Rules that run automatically based on device state, time, or sun events
+            Αυτόματοι κανόνες βάσει κατάστασης συσκευών, ώρας, ανατολής ή δύσης
           </p>
         </div>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md bg-brand text-white hover:bg-brand/90 transition-colors"
+          className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-xl bg-brand text-white hover:bg-brand/90 transition-colors"
         >
           <Plus size={14} />
-          Add Rule
+          Προσθήκη κανόνα
         </button>
       </div>
 
       {/* Location hint */}
       {!hasLocation && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
           <MapPin size={16} className="text-amber-500 flex-shrink-0" />
           <p className="text-sm text-amber-700 dark:text-amber-400">
-            Set your location in{' '}
+            Ορίστε την τοποθεσία σας στις{' '}
             <button onClick={() => setEditing('location')} className="underline font-medium">
-              Location Settings
+              Ρυθμίσεις τοποθεσίας
             </button>{' '}
-            to use sunrise/sunset conditions.
+            για χρήση συνθηκών ανατολής και δύσης.
           </p>
         </div>
       )}
@@ -95,7 +97,7 @@ export default function AutomationsPage() {
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="h-24 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-lg animate-pulse"
+              className="h-24 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl animate-pulse"
             />
           ))}
         </div>
@@ -108,10 +110,10 @@ export default function AutomationsPage() {
             <Workflow size={24} className="text-slate-300" />
           </div>
           <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            No automations yet
+            Δεν υπάρχουν αυτοματισμοί ακόμη
           </h3>
           <p className="text-sm text-slate-400 max-w-xs">
-            Create rules to automatically control your devices based on conditions.
+            Δημιουργήστε κανόνες για αυτόματο έλεγχο των συσκευών σας.
           </p>
         </div>
       )}
@@ -122,7 +124,7 @@ export default function AutomationsPage() {
           {rules.map((rule: any) => (
             <div
               key={rule.id}
-              className={`bg-white dark:bg-[#1A222C] border rounded-lg p-4 transition-opacity ${
+              className={`bg-white dark:bg-[#1A222C] border rounded-xl p-4 transition-opacity ${
                 rule.enabled
                   ? 'border-slate-200 dark:border-white/10'
                   : 'border-slate-100 dark:border-white/5 opacity-60'
@@ -143,12 +145,12 @@ export default function AutomationsPage() {
                   {rule.conditions.length > 0 && (
                     <div className="mb-1.5">
                       <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">
-                        When
+                        Όταν
                       </span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {rule.conditions.map((c: any, i: number) => (
                           <span key={c.id} className="flex items-center gap-1">
-                            <span className="text-xs bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-xl">
                               {formatCondition(c)}
                             </span>
                             {i < rule.conditions.length - 1 && (
@@ -166,13 +168,13 @@ export default function AutomationsPage() {
                   {rule.actions.length > 0 && (
                     <div>
                       <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">
-                        Then
+                        Τότε
                       </span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {rule.actions.map((a: any) => (
                           <span
                             key={a.id}
-                            className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded"
+                            className="text-xs bg-brand/10 text-brand px-2 py-0.5 rounded-xl"
                           >
                             {formatAction(a)}
                           </span>
@@ -186,24 +188,24 @@ export default function AutomationsPage() {
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     onClick={() => toggleMutation.mutate(rule.id)}
-                    className={`p-1.5 rounded-md transition-colors ${
+                    className={`p-1.5 rounded-xl transition-colors ${
                       rule.enabled
                         ? 'text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10'
                         : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
                     }`}
-                    title={rule.enabled ? 'Disable' : 'Enable'}
+                    title={rule.enabled ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}
                   >
                     <Power size={14} />
                   </button>
                   <button
                     onClick={() => setEditing(rule)}
-                    className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-xs font-medium"
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-xs font-medium"
                   >
-                    Edit
+                    Επεξεργασία
                   </button>
                   <button
                     onClick={() => deleteMutation.mutate(rule.id)}
-                    className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -258,36 +260,36 @@ function LocationModal({ onClose, current }: { onClose: () => void; current: any
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white dark:bg-[#1A222C] rounded-xl border border-slate-200 dark:border-white/10 shadow-xl w-full max-w-sm mx-4 p-6">
         <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">
-          Location Settings
+          Ρυθμίσεις τοποθεσίας
         </h2>
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">Timezone (IANA)</label>
+            <label className="text-xs text-slate-500 mb-1 block">Ζώνη ώρας (IANA)</label>
             <input
               value={tz}
               onChange={(e) => setTz(e.target.value)}
               placeholder="Europe/Athens"
-              className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+              className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">Latitude</label>
+              <label className="text-xs text-slate-500 mb-1 block">Γεωγραφικό πλάτος</label>
               <input
                 value={lat}
                 onChange={(e) => setLat(e.target.value)}
                 placeholder="37.9838"
-                className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">Longitude</label>
+              <label className="text-xs text-slate-500 mb-1 block">Γεωγραφικό μήκος</label>
               <input
                 value={lng}
                 onChange={(e) => setLng(e.target.value)}
                 placeholder="23.7275"
-                className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+                className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
               />
             </div>
           </div>
@@ -295,16 +297,16 @@ function LocationModal({ onClose, current }: { onClose: () => void; current: any
             onClick={handleGeo}
             className="flex items-center gap-2 text-xs text-brand hover:underline"
           >
-            <MapPin size={12} /> Use my current location
+            <MapPin size={12} /> Χρήση τρέχουσας τοποθεσίας
           </button>
         </div>
 
         <div className="flex gap-2 mt-5">
           <button
             onClick={onClose}
-            className="flex-1 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex-1 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
-            Cancel
+            Ακύρωση
           </button>
           <button
             onClick={() =>
@@ -314,9 +316,9 @@ function LocationModal({ onClose, current }: { onClose: () => void; current: any
                 longitude: lng ? parseFloat(lng) : undefined,
               })
             }
-            className="flex-1 py-2 text-sm bg-brand text-white rounded-lg hover:bg-brand/90 transition-colors"
+            className="flex-1 py-2 text-sm bg-brand text-white rounded-xl hover:bg-brand/90 transition-colors"
           >
-            Save
+            Αποθήκευση
           </button>
         </div>
       </div>

@@ -13,7 +13,6 @@ COPY back/ ./back/
 COPY tsconfig.base.json ./
 
 WORKDIR /app/back
-RUN npx prisma generate
 RUN npm run build
 
 ## Stage 2 — production image

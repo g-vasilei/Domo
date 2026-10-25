@@ -6,6 +6,7 @@ import { AutomationModule } from '../automation/automation.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TuyaModule } from '../tuya/tuya.module';
 import { UsersModule } from '../users/users.module';
+import { DeviceSchedulesService } from './device-schedules.service';
 import { DevicesController } from './devices.controller';
 import { DevicesGateway } from './devices.gateway';
 import { DevicesService } from './devices.service';
@@ -25,7 +26,7 @@ import { DevicesService } from './devices.service';
     }),
   ],
   controllers: [DevicesController],
-  providers: [DevicesService, DevicesGateway],
+  providers: [DevicesService, DevicesGateway, DeviceSchedulesService],
   exports: [DevicesGateway, DevicesService],
 })
 export class DevicesModule {}

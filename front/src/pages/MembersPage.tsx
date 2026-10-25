@@ -30,12 +30,28 @@ interface Invitation {
 }
 
 const PERMISSIONS: { key: keyof Permission; label: string; description: string }[] = [
-  { key: 'canViewDevices', label: 'View devices', description: 'See the device list and status' },
-  { key: 'canControlDevices', label: 'Control devices', description: 'Send commands to devices' },
-  { key: 'canArmAlarm', label: 'Arm / Disarm', description: 'Operate the alarm system' },
-  { key: 'canSetAlarmPin', label: 'Set alarm PIN', description: 'Create or change their own PIN' },
-  { key: 'canCreateSchedules', label: 'Schedules', description: 'Create automation schedules' },
-  { key: 'canManageMembers', label: 'Manage members', description: 'Invite and remove members' },
+  {
+    key: 'canViewDevices',
+    label: 'Προβολή συσκευών',
+    description: 'Προβολή συσκευών και κατάστασης',
+  },
+  {
+    key: 'canControlDevices',
+    label: 'Έλεγχος συσκευών',
+    description: 'Αποστολή εντολών σε συσκευές',
+  },
+  { key: 'canArmAlarm', label: 'Όπλιση / Αφόπλιση', description: 'Χειρισμός συναγερμού' },
+  {
+    key: 'canSetAlarmPin',
+    label: 'Ορισμός PIN συναγερμού',
+    description: 'Δημιουργία ή αλλαγή προσωπικού PIN',
+  },
+  { key: 'canCreateSchedules', label: 'Προγράμματα', description: 'Δημιουργία προγραμμάτων' },
+  {
+    key: 'canManageMembers',
+    label: 'Διαχείριση μελών',
+    description: 'Πρόσκληση και αφαίρεση μελών',
+  },
 ];
 
 function PermissionToggle({
@@ -80,7 +96,7 @@ function MemberCard({ member, onDelete }: { member: Member; onDelete: () => void
   const perms = member.permissions;
 
   return (
-    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm">
+    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl">
       {/* Header row */}
       <div className="flex items-center gap-3 p-4">
         <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0 text-brand font-semibold text-sm">
@@ -91,7 +107,7 @@ function MemberCard({ member, onDelete }: { member: Member; onDelete: () => void
             {member.email}
           </p>
           <p className="text-xs text-slate-400">
-            Member · Joined {new Date(member.createdAt).toLocaleDateString()}
+            Μέλος · Εγγραφή {new Date(member.createdAt).toLocaleDateString()}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -113,7 +129,7 @@ function MemberCard({ member, onDelete }: { member: Member; onDelete: () => void
       {/* Permissions */}
       {expanded && perms && (
         <div className="px-4 pb-4 border-t border-slate-200 dark:border-white/10 pt-3">
-          <p className="text-xs text-slate-400 uppercase tracking-widest mb-2">Permissions</p>
+          <p className="text-xs text-slate-400 uppercase tracking-widest mb-2">Δικαιώματα</p>
           <div className="divide-y divide-slate-100 dark:divide-white/5">
             {PERMISSIONS.map(({ key, label, description }) => (
               <PermissionToggle
@@ -157,7 +173,8 @@ export default function MembersPage() {
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
       setTimeout(() => setInviteSent(false), 3000);
     },
-    onError: (e: any) => setInviteError(e?.response?.data?.message ?? 'Failed to send invitation'),
+    onError: (e: any) =>
+      setInviteError(e?.response?.data?.message ?? 'Η αποστολή πρόσκλησης απέτυχε'),
   });
 
   const deleteMember = useMutation({
@@ -172,43 +189,43 @@ export default function MembersPage() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Members</h1>
+      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Μέλη</h1>
 
       {/* Invite */}
-      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-4">
+      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6 flex flex-col gap-4">
         <div>
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-            Invite Member
+            Πρόσκληση μέλους
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            They'll receive an email to set up their account.
+            Θα λάβουν email για να ρυθμίσουν τον λογαριασμό τους.
           </p>
         </div>
 
         <div className="flex gap-2">
           <input
             type="email"
-            placeholder="Email address"
+            placeholder="Διεύθυνση email"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
               setInviteError('');
             }}
             onKeyDown={(e) => e.key === 'Enter' && email && invite.mutate(email)}
-            className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
+            className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
           />
           <button
             onClick={() => email && invite.mutate(email)}
             disabled={!email || invite.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium disabled:opacity-40 hover:bg-brand/90 transition-colors"
           >
             {inviteSent ? (
               <>
-                <Check size={14} /> Sent
+                <Check size={14} /> Στάλθηκε
               </>
             ) : (
               <>
-                <UserPlus size={14} /> Invite
+                <UserPlus size={14} /> Πρόσκληση
               </>
             )}
           </button>
@@ -219,7 +236,9 @@ export default function MembersPage() {
         {/* Pending invitations */}
         {invitations.length > 0 && (
           <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-white/10">
-            <p className="text-xs text-slate-400 uppercase tracking-widest">Pending invitations</p>
+            <p className="text-xs text-slate-400 uppercase tracking-widest">
+              Προσκλήσεις σε αναμονή
+            </p>
             {invitations.map((inv) => (
               <div
                 key={inv.id}
@@ -229,13 +248,13 @@ export default function MembersPage() {
                 <span className="flex-1 truncate">{inv.email}</span>
                 <span className="flex items-center gap-1 text-xs text-slate-400">
                   <Clock size={11} />
-                  expires {new Date(inv.expiresAt).toLocaleDateString()}
+                  λήγει {new Date(inv.expiresAt).toLocaleDateString()}
                 </span>
                 <button
                   onClick={() => revokeInvitation.mutate(inv.id)}
                   disabled={revokeInvitation.isPending}
                   className="p-0.5 text-slate-300 hover:text-red-400 dark:text-slate-600 dark:hover:text-red-400 transition-colors"
-                  title="Revoke invitation"
+                  title="Ανάκληση πρόσκλησης"
                 >
                   <X size={13} />
                 </button>
@@ -249,17 +268,17 @@ export default function MembersPage() {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-            Active Members
+            Ενεργά μέλη
           </h2>
           <span className="text-xs text-slate-400">
-            {members.length} member{members.length !== 1 ? 's' : ''}
+            {members.length} {members.length === 1 ? 'μέλος' : 'μέλη'}
           </span>
         </div>
 
         {members.length === 0 ? (
-          <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-8 text-center text-slate-400">
+          <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-8 text-center text-slate-400">
             <UserPlus size={28} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">No members yet. Invite someone above.</p>
+            <p className="text-sm">Δεν υπάρχουν μέλη ακόμη. Στείλτε μια πρόσκληση παραπάνω.</p>
           </div>
         ) : (
           members.map((m) => (

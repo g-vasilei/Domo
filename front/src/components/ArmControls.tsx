@@ -33,25 +33,25 @@ export default function ArmControls({ currentState, hasPinSet }: Props) {
           <button
             onClick={() => startDisarm(hasPinSet)}
             disabled={isPending}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-white/10 text-sm text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500 transition-colors disabled:opacity-40"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500 transition-colors disabled:opacity-40"
           >
-            <ShieldOff size={15} /> Disarm
+            <ShieldOff size={15} /> Αφόπλιση
           </button>
         ) : (
           <>
             <button
               onClick={() => startArm('home', hasPinSet)}
               disabled={isPending}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-medium disabled:opacity-40 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-medium disabled:opacity-40 transition-colors"
             >
-              <Home size={15} /> Arm Home
+              <Home size={15} /> Όπλιση εντός σπιτιού
             </button>
             <button
               onClick={() => startArm('away', hasPinSet)}
               disabled={isPending}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium disabled:opacity-40 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium disabled:opacity-40 transition-colors"
             >
-              <LogOut size={15} /> Arm Away
+              <LogOut size={15} /> Όπλιση εκτός σπιτιού
             </button>
           </>
         )}
@@ -61,12 +61,16 @@ export default function ArmControls({ currentState, hasPinSet }: Props) {
         <PinPromptModal
           title={
             pinPrompt === 'disarm'
-              ? 'Disarm Alarm'
+              ? 'Αφόπλιση συναγερμού'
               : pinPrompt === 'arm_home'
-                ? 'Arm — Home'
-                : 'Arm — Away'
+                ? 'Όπλιση — Εντός'
+                : 'Όπλιση — Εκτός'
           }
-          description={hasPinSet ? 'Enter your PIN to confirm' : 'No PIN set — confirm to proceed'}
+          description={
+            hasPinSet
+              ? 'Εισαγάγετε το PIN για επιβεβαίωση'
+              : 'Δεν έχει οριστεί PIN — επιβεβαιώστε για συνέχεια'
+          }
           onConfirm={hasPinSet ? handlePinConfirm : () => handlePinConfirm('')}
           onClose={() => setPinPrompt(null)}
           error={pinError}

@@ -57,7 +57,13 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
 
   const save = useMutation({
     mutationFn: () => {
-      const body = { title, description: description || undefined, startAt: buildStartAt(), allDay, color };
+      const body = {
+        title,
+        description: description || undefined,
+        startAt: buildStartAt(),
+        allDay,
+        color,
+      };
       return isEdit
         ? api.put(`/calendar/${event.id}`, body).then((r) => r.data)
         : api.post('/calendar', body).then((r) => r.data);
@@ -70,8 +76,10 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
     onSuccess: onSaved,
   });
 
-  const labelCls = 'block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5';
-  const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-white/20 bg-white dark:bg-white/5 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand';
+  const labelCls =
+    'block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5';
+  const inputCls =
+    'w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -79,9 +87,12 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10">
           <h2 className="text-base font-semibold text-slate-800 dark:text-white">
-            {isEdit ? 'Edit Event' : 'New Event'}
+            {isEdit ? 'Επεξεργασία συμβάντος' : 'Νέο συμβάν'}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
             <X size={20} />
           </button>
         </div>
@@ -89,11 +100,11 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
         <div className="px-6 py-5 space-y-5">
           {/* Title */}
           <div>
-            <label className={labelCls}>Title</label>
+            <label className={labelCls}>Τίτλος</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="What's happening?"
+              placeholder="Τι προγραμματίζετε;"
               autoFocus
               className={inputCls}
             />
@@ -101,11 +112,11 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
 
           {/* Description */}
           <div>
-            <label className={labelCls}>Description</label>
+            <label className={labelCls}>Περιγραφή</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add details (optional)"
+              placeholder="Προσθέστε λεπτομέρειες (προαιρετικό)"
               rows={2}
               className={`${inputCls} resize-none`}
             />
@@ -114,31 +125,33 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
           {/* Date & all-day toggle */}
           <div className="flex items-end gap-4">
             <div className="flex-1">
-              <label className={labelCls}>Date</label>
+              <label className={labelCls}>Ημερομηνία</label>
               <DatePicker value={date} onChange={setDate} />
             </div>
             <label className="flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap">
               <div
-                onClick={() => setAllDay(a => !a)}
+                onClick={() => setAllDay((a) => !a)}
                 className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${allDay ? 'bg-brand' : 'bg-slate-300 dark:bg-white/20'}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${allDay ? 'left-4' : 'left-0.5'}`} />
+                <span
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${allDay ? 'left-4' : 'left-0.5'}`}
+                />
               </div>
-              <span className="text-sm text-slate-700 dark:text-slate-300">All day</span>
+              <span className="text-sm text-slate-700 dark:text-slate-300">Όλη μέρα</span>
             </label>
           </div>
 
           {/* Time picker — only when not all-day */}
           {!allDay && (
             <div>
-              <label className={labelCls}>Time</label>
+              <label className={labelCls}>Ώρα</label>
               <TimePicker value={time} onChange={setTime} />
             </div>
           )}
 
           {/* Color */}
           <div>
-            <label className={labelCls}>Color</label>
+            <label className={labelCls}>Χρώμα</label>
             <div className="flex gap-2.5">
               {COLORS.map((c) => (
                 <button
@@ -146,9 +159,16 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
                   type="button"
                   onClick={() => setColor(c.value)}
                   className={`w-7 h-7 rounded-full transition-transform ${
-                    color === c.value ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#1e293b] scale-110' : 'opacity-70 hover:opacity-100'
+                    color === c.value
+                      ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#1e293b] scale-110'
+                      : 'opacity-70 hover:opacity-100'
                   }`}
-                  style={{ backgroundColor: c.hex, ...(color === c.value ? { boxShadow: `0 0 0 2px white, 0 0 0 4px ${c.hex}` } : {}) }}
+                  style={{
+                    backgroundColor: c.hex,
+                    ...(color === c.value
+                      ? { boxShadow: `0 0 0 2px white, 0 0 0 4px ${c.hex}` }
+                      : {}),
+                  }}
                 />
               ))}
             </div>
@@ -163,19 +183,28 @@ export default function EventModal({ event, defaultDate, defaultTime, onClose, o
               disabled={remove.isPending}
               className="text-sm text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
             >
-              Delete
+              Διαγραφή
             </button>
-          ) : <div />}
+          ) : (
+            <div />
+          )}
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
-              Cancel
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            >
+              Ακύρωση
             </button>
             <button
               onClick={() => save.mutate()}
-              disabled={!title.trim() || save.isPending}
-              className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand/90 disabled:opacity-50"
+              disabled={
+                !title.trim() ||
+                save.isPending ||
+                (!allDay && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time))
+              }
+              className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand/90 disabled:opacity-50"
             >
-              {save.isPending ? 'Saving…' : isEdit ? 'Save' : 'Create'}
+              {save.isPending ? 'Αποθήκευση…' : isEdit ? 'Αποθήκευση' : 'Δημιουργία'}
             </button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { api } from '../lib/api';
+import TimePicker from './TimePicker';
 
 interface Condition {
   type: 'device_state' | 'time' | 'sun';
@@ -32,7 +33,7 @@ interface Props {
 }
 
 const SEL =
-  'text-xs bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-2 py-1.5 text-slate-700 dark:text-slate-300 outline-none focus:border-brand';
+  'text-xs bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-slate-700 dark:text-slate-300 outline-none focus:border-brand';
 
 function emptyCondition(): Condition {
   return { type: 'device_state', operator: 'eq', nextOperator: 'AND' };
@@ -71,9 +72,9 @@ function ValuePicker({
         onChange={(e) => onChange(e.target.value === 'true')}
         className={SEL}
       >
-        <option value="">— value —</option>
-        <option value="true">true (on / open)</option>
-        <option value="false">false (off / closed)</option>
+        <option value="">— τιμή —</option>
+        <option value="true">true (ενεργό / ανοιχτό)</option>
+        <option value="false">false (ανενεργό / κλειστό)</option>
       </select>
     );
   }
@@ -85,11 +86,11 @@ function ValuePicker({
           type="number"
           value={(value as number) ?? ''}
           onChange={(e) => onChange(Number(e.target.value))}
-          placeholder="value"
+          placeholder="τιμή"
           className={`w-24 ${SEL}`}
         />
-        <span className="text-[10px] text-slate-400" title="current raw device value">
-          now: {statusEntry.value}
+        <span className="text-[10px] text-slate-400" title="τρέχουσα τιμή συσκευής">
+          τώρα: {statusEntry.value}
         </span>
       </div>
     );
@@ -101,7 +102,7 @@ function ValuePicker({
       type="text"
       value={(value as string) ?? ''}
       onChange={(e) => onChange(e.target.value)}
-      placeholder="value"
+      placeholder="τιμή"
       className={`w-32 ${SEL}`}
     />
   );
@@ -147,9 +148,9 @@ function ConditionRow({
               }
               className={SEL}
             >
-              <option value="device_state">Device state</option>
-              <option value="time">Time</option>
-              <option value="sun">Sun event</option>
+              <option value="device_state">Κατάσταση συσκευής</option>
+              <option value="time">Ώρα</option>
+              <option value="sun">Ανατολή / Δύση</option>
             </select>
 
             {cond.type === 'device_state' && (
@@ -167,7 +168,7 @@ function ConditionRow({
                   }}
                   className={SEL}
                 >
-                  <option value="">— device —</option>
+                  <option value="">— συσκευή —</option>
                   {devices.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -199,15 +200,15 @@ function ConditionRow({
                   onChange={(e) => set({ operator: e.target.value as Condition['operator'] })}
                   className={SEL}
                 >
-                  <option value="eq">at (=)</option>
-                  <option value="gt">after (&gt;)</option>
-                  <option value="lt">before (&lt;)</option>
+                  <option value="eq">στις (=)</option>
+                  <option value="gt">μετά από (&gt;)</option>
+                  <option value="lt">πριν από (&lt;)</option>
                 </select>
-                <input
-                  type="time"
+                <TimePicker
+                  label="Ώρα συνθήκης"
                   value={cond.timeValue ?? ''}
-                  onChange={(e) => set({ timeValue: e.target.value })}
-                  className={SEL}
+                  onChange={(timeValue) => set({ timeValue })}
+                  className="w-full sm:w-52"
                 />
               </>
             )}
@@ -219,17 +220,17 @@ function ConditionRow({
                   onChange={(e) => set({ operator: e.target.value as Condition['operator'] })}
                   className={SEL}
                 >
-                  <option value="eq">at (=)</option>
-                  <option value="gt">after (&gt;)</option>
-                  <option value="lt">before (&lt;)</option>
+                  <option value="eq">στις (=)</option>
+                  <option value="gt">μετά από (&gt;)</option>
+                  <option value="lt">πριν από (&lt;)</option>
                 </select>
                 <select
                   value={cond.sunEvent ?? 'sunrise'}
                   onChange={(e) => set({ sunEvent: e.target.value as 'sunrise' | 'sunset' })}
                   className={SEL}
                 >
-                  <option value="sunrise">Sunrise</option>
-                  <option value="sunset">Sunset</option>
+                  <option value="sunrise">Ανατολή</option>
+                  <option value="sunset">Δύση</option>
                 </select>
                 <input
                   type="number"
@@ -237,10 +238,10 @@ function ConditionRow({
                   onChange={(e) =>
                     set({ sunOffsetMin: e.target.value ? Number(e.target.value) : undefined })
                   }
-                  placeholder="offset min"
+                  placeholder="διαφορά λεπτών"
                   className={`w-24 ${SEL}`}
                 />
-                <span className="text-xs text-slate-400">min</span>
+                <span className="text-xs text-slate-400">λεπτά</span>
               </>
             )}
           </div>
@@ -249,7 +250,7 @@ function ConditionRow({
           {cond.type === 'device_state' && cond.deviceId && (
             <div className="flex gap-2 flex-wrap items-center pl-2 border-l-2 border-slate-100 dark:border-white/10">
               {isLoading ? (
-                <span className="text-xs text-slate-400">Loading status codes…</span>
+                <span className="text-xs text-slate-400">Φόρτωση καταστάσεων…</span>
               ) : (
                 <>
                   <select
@@ -257,7 +258,7 @@ function ConditionRow({
                     onChange={(e) => set({ statusCode: e.target.value, value: undefined })}
                     className={SEL}
                   >
-                    <option value="">— status code —</option>
+                    <option value="">— κωδικός κατάστασης —</option>
                     {status.map((s) => (
                       <option key={s.code} value={s.code}>
                         {s.code}
@@ -280,7 +281,7 @@ function ConditionRow({
 
         <button
           onClick={onRemove}
-          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors flex-shrink-0 mt-0.5"
+          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex-shrink-0 mt-0.5"
         >
           <Trash2 size={13} />
         </button>
@@ -292,9 +293,9 @@ function ConditionRow({
           <div className="w-4 h-px bg-slate-200 dark:bg-white/10" />
           <button
             onClick={() => set({ nextOperator: cond.nextOperator === 'AND' ? 'OR' : 'AND' })}
-            className="text-[10px] font-bold text-brand border border-brand/30 rounded px-1.5 py-0.5 hover:bg-brand/10 transition-colors"
+            className="text-[10px] font-bold text-brand border border-brand/30 rounded-xl px-1.5 py-0.5 hover:bg-brand/10 transition-colors"
           >
-            {cond.nextOperator ?? 'AND'}
+            {cond.nextOperator === 'OR' ? 'Ή' : 'ΚΑΙ'}
           </button>
           <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
         </div>
@@ -338,9 +339,9 @@ function ActionRow({
             }
             className={SEL}
           >
-            <option value="device_control">Set device state</option>
-            <option value="countdown">Countdown (on for N min)</option>
-            <option value="notification">Send notification</option>
+            <option value="device_control">Αλλαγή κατάστασης συσκευής</option>
+            <option value="countdown">Αντίστροφη μέτρηση (λειτουργία για Ν λεπτά)</option>
+            <option value="notification">Αποστολή ειδοποίησης</option>
           </select>
 
           {action.type !== 'notification' && (
@@ -357,7 +358,7 @@ function ActionRow({
               }}
               className={SEL}
             >
-              <option value="">— device —</option>
+              <option value="">— συσκευή —</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -373,10 +374,10 @@ function ActionRow({
                 min={1}
                 value={action.minutes ?? ''}
                 onChange={(e) => set({ minutes: Number(e.target.value) })}
-                placeholder="minutes"
+                placeholder="λεπτά"
                 className={`w-20 ${SEL}`}
               />
-              <span className="text-xs text-slate-400">min</span>
+              <span className="text-xs text-slate-400">λεπτά</span>
             </div>
           )}
 
@@ -385,7 +386,7 @@ function ActionRow({
               type="text"
               value={(action.value as string) ?? ''}
               onChange={(e) => set({ value: e.target.value })}
-              placeholder="Message (optional)"
+              placeholder="Μήνυμα (προαιρετικό)"
               className={`flex-1 min-w-0 ${SEL}`}
             />
           )}
@@ -395,7 +396,7 @@ function ActionRow({
         {action.type === 'device_control' && action.deviceId && (
           <div className="flex gap-2 flex-wrap items-center pl-2 border-l-2 border-slate-100 dark:border-white/10">
             {isLoading ? (
-              <span className="text-xs text-slate-400">Loading status codes…</span>
+              <span className="text-xs text-slate-400">Φόρτωση καταστάσεων…</span>
             ) : (
               <>
                 <select
@@ -403,7 +404,7 @@ function ActionRow({
                   onChange={(e) => set({ statusCode: e.target.value, value: undefined })}
                   className={SEL}
                 >
-                  <option value="">— status code —</option>
+                  <option value="">— κωδικός κατάστασης —</option>
                   {status.map((s) => (
                     <option key={s.code} value={s.code}>
                       {s.code}
@@ -426,7 +427,7 @@ function ActionRow({
 
       <button
         onClick={onRemove}
-        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors flex-shrink-0 mt-0.5"
+        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors flex-shrink-0 mt-0.5"
       >
         <Trash2 size={13} />
       </button>
@@ -480,11 +481,11 @@ export default function RuleModal({ rule, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10">
           <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            {isEdit ? 'Edit Rule' : 'New Rule'}
+            {isEdit ? 'Επεξεργασία κανόνα' : 'Νέος κανόνας'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md transition-colors"
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl transition-colors"
           >
             <X size={16} />
           </button>
@@ -494,12 +495,12 @@ export default function RuleModal({ rule, onClose }: Props) {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
           {/* Name */}
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">Rule name</label>
+            <label className="text-xs text-slate-500 mb-1 block">Όνομα κανόνα</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Turn off lights at sunset"
-              className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+              placeholder="π.χ. Σβήσιμο φώτων στη δύση"
+              className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
             />
           </div>
 
@@ -507,13 +508,13 @@ export default function RuleModal({ rule, onClose }: Props) {
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                When
+                Όταν
               </span>
               <button
                 onClick={() => setConditions((prev) => [...prev, emptyCondition()])}
                 className="flex items-center gap-1 text-xs text-brand hover:underline"
               >
-                <Plus size={12} /> Add condition
+                <Plus size={12} /> Προσθήκη συνθήκης
               </button>
             </div>
             <div className="space-y-4">
@@ -536,13 +537,13 @@ export default function RuleModal({ rule, onClose }: Props) {
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Then
+                Τότε
               </span>
               <button
                 onClick={() => setActions((prev) => [...prev, emptyAction()])}
                 className="flex items-center gap-1 text-xs text-brand hover:underline"
               >
-                <Plus size={12} /> Add action
+                <Plus size={12} /> Προσθήκη ενέργειας
               </button>
             </div>
             <div className="space-y-3">
@@ -565,16 +566,24 @@ export default function RuleModal({ rule, onClose }: Props) {
         <div className="flex gap-2 px-5 py-4 border-t border-slate-100 dark:border-white/10">
           <button
             onClick={onClose}
-            className="flex-1 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex-1 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
-            Cancel
+            Ακύρωση
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim() || mutation.isPending}
-            className="flex-1 py-2 text-sm bg-brand text-white rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={
+              !name.trim() ||
+              mutation.isPending ||
+              conditions.some(
+                (condition) =>
+                  condition.type === 'time' &&
+                  !/^([01]\d|2[0-3]):[0-5]\d$/.test(condition.timeValue ?? ''),
+              )
+            }
+            className="flex-1 py-2 text-sm bg-brand text-white rounded-xl hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {mutation.isPending ? 'Saving…' : 'Save Rule'}
+            {mutation.isPending ? 'Αποθήκευση…' : 'Αποθήκευση κανόνα'}
           </button>
         </div>
       </div>

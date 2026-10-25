@@ -82,7 +82,7 @@ function SortableDevice({ device, rearranging }: { device: any; rearranging: boo
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 right-2 z-10 p-1 rounded cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          className="absolute top-2 right-2 z-10 p-1 rounded-xl cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
         >
           <GripVertical size={14} />
         </div>
@@ -114,13 +114,15 @@ function RoomSection({
             <GripVertical size={16} />
           </div>
         )}
-        <div className="w-7 h-7 rounded-md bg-brand/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-7 h-7 rounded-xl bg-brand/10 flex items-center justify-center flex-shrink-0">
           <Home size={14} className="text-brand" />
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{room.name}</h2>
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          {room.id === 'unassigned' ? 'Χωρίς δωμάτιο' : room.name}
+        </h2>
         <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
         <span className="text-xs text-slate-400">
-          {online}/{room.devices.length} online
+          {online}/{room.devices.length} σε σύνδεση
         </span>
       </div>
 
@@ -128,7 +130,7 @@ function RoomSection({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {room.devices.length === 0 ? (
             <div className="col-span-full py-8 text-center">
-              <p className="text-sm text-slate-400">No devices in this room.</p>
+              <p className="text-sm text-slate-400">Δεν υπάρχουν συσκευές σε αυτό το δωμάτιο.</p>
             </div>
           ) : (
             room.devices.map((device: any) => (
@@ -238,7 +240,7 @@ export default function DevicesPage() {
     [order],
   );
 
-  const errorMessage = (error as any)?.response?.data?.message ?? 'Failed to load devices.';
+  const errorMessage = (error as any)?.response?.data?.message ?? 'Δεν φορτώθηκαν οι συσκευές.';
 
   // Active dragged device (for overlay)
   const activeDraggingDevice =
@@ -250,31 +252,31 @@ export default function DevicesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Devices</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Συσκευές</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            All devices grouped by room
+            Όλες οι συσκευές ανά δωμάτιο
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
           >
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            Refresh
+            Ανανέωση
           </button>
           {!isLoading && !error && rooms.length > 0 && (
             <button
               onClick={() => setRearranging((v) => !v)}
-              className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border transition-colors ${
+              className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-xl border transition-colors ${
                 rearranging
                   ? 'bg-brand text-white border-brand'
                   : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5'
               }`}
             >
               <ArrowLeftRight size={14} />
-              {rearranging ? 'Done' : 'Rearrange'}
+              {rearranging ? 'Έτοιμο' : 'Αναδιάταξη'}
             </button>
           )}
         </div>
@@ -284,12 +286,12 @@ export default function DevicesPage() {
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
             <div key={i}>
-              <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-3" />
+              <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded-xl animate-pulse mb-3" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(3)].map((_, j) => (
                   <div
                     key={j}
-                    className="h-40 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm animate-pulse"
+                    className="h-40 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl animate-pulse"
                   />
                 ))}
               </div>
@@ -304,7 +306,7 @@ export default function DevicesPage() {
             <WifiOff size={24} className="text-red-400" />
           </div>
           <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Could not load devices
+            Δεν φορτώθηκαν οι συσκευές
           </h3>
           <p className="text-sm text-red-400 max-w-sm">{errorMessage}</p>
         </div>
@@ -316,10 +318,10 @@ export default function DevicesPage() {
             <Cpu size={24} className="text-slate-300" />
           </div>
           <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            No devices found
+            Δεν βρέθηκαν συσκευές
           </h3>
           <p className="text-sm text-slate-400 max-w-xs">
-            Add devices via the Smart Life app and assign them to rooms.
+            Προσθέστε συσκευές μέσω του Smart Life και αντιστοιχίστε τις σε δωμάτια.
           </p>
         </div>
       )}

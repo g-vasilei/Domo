@@ -22,57 +22,64 @@ interface Capability {
 type Command = { code: string; value: unknown };
 
 const LABELS: Record<string, string> = {
-  switch: 'Power',
-  temp_set: 'Target temperature',
-  temp_set_f: 'Target temperature (°F)',
-  mode: 'Operating mode',
-  work_mode: 'Operating mode',
-  fan_speed_enum: 'Fan speed',
-  fan_speed: 'Fan speed',
-  windspeed: 'Fan speed',
-  fan_speed_percent: 'Fan speed',
-  anion: 'Ionizer',
-  display: 'Display light',
-  gear_vertical: 'Vertical louver position',
-  switch_horizontal: 'Horizontal swing',
-  switch_vertical: 'Vertical swing',
-  swing: 'Swing',
-  sleep: 'Sleep mode',
-  switch_sleep: 'Sleep mode',
-  eco: 'Eco mode',
-  switch_eco: 'Eco mode',
+  switch: 'Τροφοδοσία',
+  temp_set: 'Επιθυμητή θερμοκρασία',
+  temp_set_f: 'Επιθυμητή θερμοκρασία (°F)',
+  mode: 'Λειτουργία',
+  work_mode: 'Λειτουργία',
+  fan_speed_enum: 'Ταχύτητα ανεμιστήρα',
+  fan_speed: 'Ταχύτητα ανεμιστήρα',
+  windspeed: 'Ταχύτητα ανεμιστήρα',
+  fan_speed_percent: 'Ταχύτητα ανεμιστήρα',
+  heat: 'Θέρμανση',
+  anion: 'Ιονισμός',
+  display: 'Φωτισμός οθόνης',
+  gear_vertical: 'Θέση κάθετης περσίδας',
+  switch_horizontal: 'Οριζόντια κίνηση περσίδων',
+  switch_vertical: 'Κάθετη κίνηση περσίδων',
+  swing: 'Κίνηση περσίδων',
+  sleep: 'Λειτουργία ύπνου',
+  switch_sleep: 'Λειτουργία ύπνου',
+  eco: 'Εξοικονόμηση ενέργειας',
+  switch_eco: 'Εξοικονόμηση ενέργειας',
   turbo: 'Turbo',
   switch_turbo: 'Turbo',
-  switch_led: 'Display light',
-  light: 'Display light',
-  temp_unit_convert: 'Temperature unit',
-  child_lock: 'Child lock',
-  clean: 'Self cleaning',
-  switch_clean: 'Self cleaning',
-  wet: 'Dehumidification',
-  health: 'Health mode',
+  switch_led: 'Φωτισμός οθόνης',
+  light: 'Φωτισμός οθόνης',
+  temp_unit_convert: 'Μονάδα θερμοκρασίας',
+  child_lock: 'Κλείδωμα ασφαλείας',
+  clean: 'Αυτοκαθαρισμός',
+  switch_clean: 'Αυτοκαθαρισμός',
+  wet: 'Αφύγρανση',
+  health: 'Λειτουργία υγείας',
 };
 const OPTIONS: Record<string, string> = {
-  cold: 'Cooling',
-  cool: 'Cooling',
-  hot: 'Heating',
-  heat: 'Heating',
-  wet: 'Dry',
-  dry: 'Dry',
-  wind: 'Fan only',
-  fan: 'Fan only',
-  auto: 'Automatic',
-  low: 'Low',
-  mid: 'Medium',
-  middle: 'Medium',
-  medium: 'Medium',
-  high: 'High',
+  same: 'Ίδια θέση',
+  vane_1: 'Θέση 1',
+  vane_2: 'Θέση 2',
+  vane_3: 'Θέση 3',
+  vane_4: 'Θέση 4',
+  vane_5: 'Θέση 5',
+  cold: 'Ψύξη',
+  cool: 'Ψύξη',
+  hot: 'Θέρμανση',
+  heat: 'Θέρμανση',
+  wet: 'Αφύγρανση',
+  dry: 'Αφύγρανση',
+  wind: 'Μόνο ανεμιστήρας',
+  fan: 'Μόνο ανεμιστήρας',
+  auto: 'Αυτόματο',
+  low: 'Χαμηλή',
+  mid: 'Μεσαία',
+  middle: 'Μεσαία',
+  medium: 'Μεσαία',
+  high: 'Υψηλή',
   strong: 'Turbo',
-  quiet: 'Quiet',
-  mute: 'Silent',
-  sleep: 'Sleep',
-  off: 'Off',
-  on: 'On',
+  quiet: 'Ήσυχη',
+  mute: 'Αθόρυβη',
+  sleep: 'Ύπνος',
+  off: 'Ανενεργό',
+  on: 'Ενεργό',
 };
 function label(code: string) {
   return LABELS[code] ?? code.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
@@ -152,7 +159,7 @@ function Control({
           onChange={(e) => send([{ code, value: e.target.value }])}
         >
           <option value="" disabled>
-            Select…
+            Επιλέξτε…
           </option>
           {spec.range.map((option: string) => (
             <option
@@ -200,10 +207,10 @@ function Control({
         <div className="flex h-12 flex-1 sm:flex-none items-center rounded-xl border border-slate-200/80 bg-slate-50/80 p-1 shadow-sm transition-all focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10 dark:border-white/10 dark:bg-white/5">
           <button
             type="button"
-            aria-label={`Decrease ${label(code).toLowerCase()}`}
+            aria-label={`Μείωση: ${label(code).toLowerCase()}`}
             disabled={disabled || (draft !== '' && Number(draft) <= min)}
             onClick={() => changeByStep(-1)}
-            className={`${common} flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 shadow-sm hover:bg-brand/10 hover:text-brand dark:bg-white/5 dark:text-slate-300`}
+            className={`${common} flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm hover:bg-brand/10 hover:text-brand dark:bg-white/5 dark:text-slate-300`}
           >
             <Minus size={15} aria-hidden="true" />
           </button>
@@ -227,10 +234,10 @@ function Control({
           </div>
           <button
             type="button"
-            aria-label={`Increase ${label(code).toLowerCase()}`}
+            aria-label={`Αύξηση: ${label(code).toLowerCase()}`}
             disabled={disabled || (draft !== '' && Number(draft) >= max)}
             onClick={() => changeByStep(1)}
-            className={`${common} flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 shadow-sm hover:bg-brand/10 hover:text-brand dark:bg-white/5 dark:text-slate-300`}
+            className={`${common} flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm hover:bg-brand/10 hover:text-brand dark:bg-white/5 dark:text-slate-300`}
           >
             <Plus size={15} aria-hidden="true" />
           </button>
@@ -240,14 +247,14 @@ function Control({
           disabled={disabled || !changed}
           className={`${common} flex h-12 items-center justify-center gap-1.5 rounded-xl px-3.5 text-xs font-semibold ${changed ? 'bg-brand text-white shadow-sm shadow-brand/20 hover:bg-brand/90' : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500'}`}
         >
-          <Check size={14} aria-hidden="true" /> Apply
+          <Check size={14} aria-hidden="true" /> Εφαρμογή
         </button>
       </form>
     );
   } else {
     return (
       <div className="py-3 text-xs text-slate-400">
-        {label(code)}: {String(value ?? 'Unknown')} · No standard control available (
+        {label(code)}: {String(value ?? 'Άγνωστο')} · Δεν διατίθεται τυπικό χειριστήριο (
         {capability.type})
       </div>
     );
@@ -261,10 +268,10 @@ function Control({
         <p className="text-xs text-slate-400 mt-1">
           {typeof value === 'boolean'
             ? value
-              ? 'On'
-              : 'Off'
+              ? 'Ενεργό'
+              : 'Ανενεργό'
             : value === undefined
-              ? 'Awaiting device status'
+              ? 'Αναμονή κατάστασης συσκευής'
               : type === 'integer'
                 ? `${Number(value) / 10 ** (spec.scale ?? 0)} ${spec.unit ?? ''}`
                 : (OPTIONS[String(value)] ?? String(value))}
@@ -315,22 +322,26 @@ export default function AirConditionerControls({
     return rank(a.code) - rank(b.code);
   });
   return (
-    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
+    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6">
       <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
-        Air conditioner
+        Κλιματιστικό
       </h3>
-      {isLoading && <p className="text-sm text-slate-400">Loading supported controls…</p>}
+      {isLoading && <p className="text-sm text-slate-400">Φόρτωση διαθέσιμων λειτουργιών…</p>}
       {isError && (
         <div role="alert" className="space-y-2 text-sm text-amber-600 dark:text-amber-400">
-          <p>Advanced controls could not be loaded. Available switches are shown below.</p>
+          <p>
+            Δεν φορτώθηκαν οι πρόσθετες λειτουργίες. Οι διαθέσιμοι διακόπτες εμφανίζονται παρακάτω.
+          </p>
           {errorMessage && <p className="text-xs break-words">{errorMessage}</p>}
           <button onClick={() => refetch()} className="underline">
-            Retry
+            Δοκιμάστε ξανά
           </button>
         </div>
       )}
       {!isLoading && !isError && !functions.length && (
-        <p className="text-sm text-slate-400">Tuya has not exposed any controls for this device.</p>
+        <p className="text-sm text-slate-400">
+          Η Tuya δεν παρέχει χειριστήρια για αυτή τη συσκευή.
+        </p>
       )}
       <div className="divide-y divide-slate-200 dark:divide-white/10">
         {sorted.map((capability) => (

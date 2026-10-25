@@ -22,60 +22,60 @@ export default function SetupPage() {
       await qc.invalidateQueries({ queryKey: ['me'] });
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Invalid credentials');
+      setError(err.response?.data?.message ?? 'Μη έγκυρα στοιχεία σύνδεσης');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#111827] p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow w-full max-w-sm space-y-4"
+        className="bg-white dark:bg-[#1A222C] p-8 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm w-full max-w-sm space-y-4"
       >
-        <h1 className="text-2xl font-bold">Connect Tuya</h1>
-        <p className="text-sm text-gray-500">
-          Enter your Tuya IoT Platform credentials to link your devices.{' '}
+        <h1 className="text-2xl font-bold">Σύνδεση Tuya</h1>
+        <p className="text-sm text-slate-500">
+          Εισαγάγετε τα στοιχεία της πλατφόρμας Tuya IoT για να συνδέσετε τις συσκευές σας.{' '}
           <a
             href="https://iot.tuya.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
+            className="text-brand hover:underline"
           >
-            Get credentials →
+            Απόκτηση στοιχείων →
           </a>
         </p>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <input
-          className="w-full border rounded px-3 py-2"
-          placeholder="Access ID"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
+          placeholder="Αναγνωριστικό πρόσβασης"
           value={accessId}
           onChange={(e) => setAccessId(e.target.value)}
           required
         />
         <input
-          className="w-full border rounded px-3 py-2"
-          placeholder="Access Secret"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
+          placeholder="Μυστικό πρόσβασης"
           value={accessSecret}
           onChange={(e) => setAccessSecret(e.target.value)}
           required
         />
         <select
-          className="w-full border rounded px-3 py-2"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
           value={region}
           onChange={(e) => setRegion(e.target.value as any)}
         >
-          <option value="eu">Europe</option>
-          <option value="us">United States</option>
-          <option value="cn">China</option>
+          <option value="eu">Ευρώπη</option>
+          <option value="us">Ηνωμένες Πολιτείες</option>
+          <option value="cn">Κίνα</option>
         </select>
         <button
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+          className="w-full bg-brand text-white py-2 rounded-xl hover:bg-brand/90 disabled:opacity-50"
           type="submit"
           disabled={loading}
         >
-          {loading ? 'Validating...' : 'Connect'}
+          {loading ? 'Έλεγχος…' : 'Σύνδεση'}
         </button>
       </form>
     </div>

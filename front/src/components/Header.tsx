@@ -60,12 +60,12 @@ const KIND_COLOR: Record<NotifKind, string> = {
 
 function timeAgo(date: Date): string {
   const secs = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (secs < 60) return 'just now';
+  if (secs < 60) return 'μόλις τώρα';
   const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return `πριν από ${mins} λεπτά`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return date.toLocaleDateString();
+  if (hrs < 24) return `πριν από ${hrs} ώρες`;
+  return date.toLocaleDateString('el-GR');
 }
 
 function NotificationItem({ n }: { n: AppNotification }) {
@@ -121,8 +121,8 @@ function NotificationCenter() {
     <div ref={ref} className="relative">
       <button
         onClick={toggle}
-        className="relative p-2 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10 transition-colors"
-        title="Notifications"
+        className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10 transition-colors"
+        title="Ειδοποιήσεις"
       >
         <Bell size={18} />
         {unread > 0 && (
@@ -133,18 +133,16 @@ function NotificationCenter() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-[#1A222C] rounded-md border border-slate-200 dark:border-white/10 shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-[#1A222C] rounded-xl border border-slate-200 dark:border-white/10 shadow-lg z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              Notifications
-            </p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Ειδοποιήσεις</p>
             {items.length > 0 && (
               <button
                 onClick={clear}
                 className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
               >
-                Clear all
+                Καθαρισμός όλων
               </button>
             )}
           </div>
@@ -154,8 +152,10 @@ function NotificationCenter() {
             {items.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell size={20} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                <p className="text-sm text-slate-400">No notifications yet</p>
-                <p className="text-xs text-slate-400 mt-0.5">Alarm events will appear here</p>
+                <p className="text-sm text-slate-400">Δεν υπάρχουν ειδοποιήσεις ακόμη</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Τα συμβάντα συναγερμού εμφανίζονται εδώ
+                </p>
               </div>
             ) : (
               items.map((n) => <NotificationItem key={n.id} n={n} />)
@@ -185,7 +185,7 @@ export default function Header({ onMenuClick }: Props) {
     <header className="sticky top-0 z-10 bg-white dark:bg-[#1A222C] border-b border-slate-200 dark:border-white/10 h-[70px] flex items-center px-4 md:px-6 gap-4">
       <button
         onClick={onMenuClick}
-        className="md:hidden p-2 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+        className="md:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
       >
         <Menu size={20} />
       </button>
@@ -195,8 +195,8 @@ export default function Header({ onMenuClick }: Props) {
       <div className="flex items-center gap-2">
         <button
           onClick={toggle}
-          className="p-2 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10 transition-colors"
-          title="Toggle dark mode"
+          className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10 transition-colors"
+          title="Εναλλαγή σκοτεινής εμφάνισης"
         >
           {dark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -206,7 +206,7 @@ export default function Header({ onMenuClick }: Props) {
         <div className="relative">
           <button
             onClick={() => setDropdownOpen((o) => !o)}
-            className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-white text-xs font-semibold">
               {me?.email?.[0]?.toUpperCase() ?? <User size={14} />}
@@ -215,12 +215,14 @@ export default function Header({ onMenuClick }: Props) {
               <p className="text-sm font-medium text-slate-800 dark:text-slate-100 leading-none">
                 {me?.email?.split('@')[0] ?? '...'}
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{me?.role ?? ''}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {me?.role === 'OWNER' ? 'Ιδιοκτήτης' : me?.role === 'MEMBER' ? 'Μέλος' : ''}
+              </p>
             </div>
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-[#1A222C] rounded-md border border-slate-200 dark:border-white/10 shadow-lg py-1 z-50">
+            <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-[#1A222C] rounded-xl border border-slate-200 dark:border-white/10 shadow-lg py-1 z-50">
               <button
                 onClick={() => {
                   navigate('/settings');
@@ -229,7 +231,7 @@ export default function Header({ onMenuClick }: Props) {
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <Settings size={15} />
-                Settings
+                Ρυθμίσεις
               </button>
               <div className="my-1 border-t border-slate-100 dark:border-white/10" />
               <button
@@ -242,7 +244,7 @@ export default function Header({ onMenuClick }: Props) {
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
               >
                 <LogOut size={15} />
-                Sign out
+                Αποσύνδεση
               </button>
             </div>
           )}

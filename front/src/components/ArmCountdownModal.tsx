@@ -50,7 +50,7 @@ export default function ArmCountdownModal({
   const isHome = mode === 'home';
   const Icon = isHome ? Home : LogOut;
   const color = isHome ? '#10b981' : '#3b82f6';
-  const label = isHome ? 'Armed — Home' : 'Armed — Away';
+  const label = isHome ? 'Οπλισμένος — Εντός' : 'Οπλισμένος — Εκτός';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -61,7 +61,7 @@ export default function ArmCountdownModal({
             <button
               onClick={onCancel}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-              title="Cancel arming"
+              title="Ακύρωση όπλισης"
             >
               <X size={18} />
             </button>
@@ -79,7 +79,7 @@ export default function ArmCountdownModal({
             </div>
             <div className="text-center">
               <p className="text-base font-semibold text-slate-800 dark:text-slate-100">{label}</p>
-              <p className="text-sm text-slate-400 mt-1">Armed successfully</p>
+              <p className="text-sm text-slate-400 mt-1">Η όπλιση ολοκληρώθηκε</p>
             </div>
           </div>
         ) : (
@@ -117,7 +117,7 @@ export default function ArmCountdownModal({
                 <span className="text-3xl font-bold tabular-nums" style={{ color }}>
                   {remaining}
                 </span>
-                <span className="text-[11px] text-slate-400 uppercase tracking-widest">sec</span>
+                <span className="text-[11px] text-slate-400 uppercase tracking-widest">δευτ.</span>
               </div>
             </div>
 
@@ -133,12 +133,11 @@ export default function ArmCountdownModal({
               <p className="text-sm text-slate-400">
                 {isExitDelay ? (
                   <>
-                    Leave the premises.
-                    <br />
-                    Alarm arms when countdown ends.
+                    Αποχωρήστε από τον χώρο.
+                    <br />Ο συναγερμός οπλίζεται όταν τελειώσει η αντίστροφη μέτρηση.
                   </>
                 ) : (
-                  <>Alarm is now active.</>
+                  <>Ο συναγερμός είναι πλέον ενεργός.</>
                 )}
               </p>
             </div>
@@ -148,7 +147,7 @@ export default function ArmCountdownModal({
               onClick={onCancel}
               className="w-full py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-sm text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500 transition-colors"
             >
-              Cancel
+              Ακύρωση
             </button>
           </>
         )}

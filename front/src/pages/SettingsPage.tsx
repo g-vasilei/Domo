@@ -43,7 +43,7 @@ function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 pr-10 focus:outline-none focus:border-brand"
+        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 pr-10 focus:outline-none focus:border-brand"
       />
       <button
         type="button"
@@ -61,7 +61,7 @@ function SaveFeedback({ error, success }: { error: string; success: boolean }) {
   if (success)
     return (
       <p className="text-sm text-emerald-500 flex items-center gap-1">
-        <Check size={13} /> Saved
+        <Check size={13} /> Αποθηκεύτηκε
       </p>
     );
   return null;
@@ -89,16 +89,19 @@ function UserTab() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    if ('Notification' in window) setPermission(Notification.permission);
+    if ('Ειδοποίηση' in window) setPermission(Notification.permission);
   }, []);
 
   async function requestNotifications() {
-    if (!('Notification' in window)) return;
+    if (!('Ειδοποίηση' in window)) return;
     const result = await Notification.requestPermission();
     setPermission(result);
     if (result === 'granted') {
       setNotificationsEnabled(true);
-      new Notification('Smart Home', { body: 'Notifications enabled!', icon: '/favicon.ico' });
+      new Notification('Έξυπνο σπίτι', {
+        body: 'Οι ειδοποιήσεις ενεργοποιήθηκαν!',
+        icon: '/favicon.ico',
+      });
     }
   }
 
@@ -107,16 +110,16 @@ function UserTab() {
 
   return (
     <div className="flex flex-col gap-6 max-w-sm">
-      <SectionHeader title="Preferences" description="Customize your experience." />
+      <SectionHeader title="Προτιμήσεις" description="Προσαρμόστε την εμπειρία σας." />
 
       {/* Temperature unit */}
-      <Field label="Temperature Unit">
+      <Field label="Μονάδα θερμοκρασίας">
         <div className="flex gap-2">
           {(['C', 'F'] as const).map((u) => (
             <button
               key={u}
               onClick={() => setTempUnit(u)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-md border text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
                 tempUnit === u
                   ? 'bg-brand text-white border-brand'
                   : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-brand/50'
@@ -133,12 +136,12 @@ function UserTab() {
       {/* Notifications */}
       <div className="flex flex-col gap-3">
         <SectionHeader
-          title="Notifications"
-          description="Get browser alerts for alarm events — triggered, armed, disarmed."
+          title="Ειδοποιήσεις"
+          description="Λάβετε ειδοποιήσεις για ενεργοποίηση, όπλιση και αφόπλιση του συναγερμού."
         />
 
         <div
-          className={`flex items-center gap-3 px-4 py-3 rounded-md border ${
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
             isGranted && notificationsEnabled
               ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'
               : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'
@@ -151,35 +154,35 @@ function UserTab() {
           )}
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {isDenied
-              ? 'Blocked by browser — enable in browser settings'
+              ? 'Αποκλείστηκε από τον browser — ενεργοποιήστε το στις ρυθμίσεις του'
               : isGranted && notificationsEnabled
-                ? 'Notifications are enabled'
-                : 'Notifications are disabled'}
+                ? 'Οι ειδοποιήσεις είναι ενεργές'
+                : 'Οι ειδοποιήσεις είναι απενεργοποιημένες'}
           </p>
         </div>
 
         {isDenied ? (
           <p className="text-xs text-slate-400">
-            Your browser has blocked notifications for this site. To enable them, click the lock
-            icon in your browser's address bar and allow notifications.
+            Ο browser έχει αποκλείσει τις ειδοποιήσεις. Ανοίξτε τις ρυθμίσεις ιστοτόπου δίπλα στη
+            διεύθυνση και επιτρέψτε τις ειδοποιήσεις.
           </p>
         ) : isGranted ? (
           <button
             onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            className={`self-start px-5 py-2.5 rounded-md text-sm font-semibold transition-colors ${
+            className={`self-start px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
               notificationsEnabled
                 ? 'border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500'
                 : 'bg-brand text-white hover:bg-brand/90'
             }`}
           >
-            {notificationsEnabled ? 'Disable' : 'Enable'} notifications
+            {notificationsEnabled ? 'Απενεργοποίηση' : 'Ενεργοποίηση'} ειδοποιήσεις
           </button>
         ) : (
           <button
             onClick={requestNotifications}
-            className="self-start px-5 py-2.5 bg-brand text-white rounded-md text-sm font-semibold hover:bg-brand/90 transition-colors"
+            className="self-start px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand/90 transition-colors"
           >
-            Enable notifications
+            Ενεργοποίηση ειδοποιήσεων
           </button>
         )}
       </div>
@@ -206,16 +209,16 @@ function PasswordTab() {
       setConfirm('');
       setTimeout(() => setSuccess(false), 3000);
     },
-    onError: (e: any) => setError(e?.response?.data?.message ?? 'Failed to update password'),
+    onError: (e: any) => setError(e?.response?.data?.message ?? 'Η ενημέρωση κωδικού απέτυχε'),
   });
 
   const valid = current && next.length >= 8 && next === confirm;
 
   return (
     <div className="flex flex-col gap-5 max-w-sm">
-      <SectionHeader title="Change Password" description="Update your login password." />
+      <SectionHeader title="Αλλαγή κωδικού" description="Αλλάξτε τον κωδικό σύνδεσής σας." />
 
-      <Field label="Current Password">
+      <Field label="Τρέχων κωδικός">
         <PasswordInput
           value={current}
           onChange={(v) => {
@@ -225,7 +228,7 @@ function PasswordTab() {
         />
       </Field>
 
-      <Field label="New Password" hint="Minimum 8 characters">
+      <Field label="Νέος κωδικός" hint="Τουλάχιστον 8 χαρακτήρες">
         <PasswordInput
           value={next}
           onChange={(v) => {
@@ -235,7 +238,7 @@ function PasswordTab() {
         />
       </Field>
 
-      <Field label="Confirm New Password">
+      <Field label="Επιβεβαίωση νέου κωδικού">
         <PasswordInput
           value={confirm}
           onChange={(v) => {
@@ -244,7 +247,7 @@ function PasswordTab() {
           }}
         />
         {confirm && next !== confirm && (
-          <p className="text-xs text-red-500">Passwords don't match</p>
+          <p className="text-xs text-red-500">Οι κωδικοί δεν ταιριάζουν</p>
         )}
       </Field>
 
@@ -256,9 +259,9 @@ function PasswordTab() {
           mutation.mutate();
         }}
         disabled={!valid || mutation.isPending || success}
-        className="self-start px-5 py-2.5 bg-brand text-white rounded-md text-sm font-semibold disabled:opacity-40 hover:bg-brand/90 transition-colors"
+        className="self-start px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-brand/90 transition-colors"
       >
-        {mutation.isPending ? 'Saving…' : 'Update Password'}
+        {mutation.isPending ? 'Αποθήκευση…' : 'Ενημέρωση κωδικού'}
       </button>
     </div>
   );
@@ -296,7 +299,7 @@ function TuyaTab() {
       queryClient.invalidateQueries({ queryKey: ['me'] });
       setTimeout(() => setSuccess(false), 3000);
     },
-    onError: (e: any) => setError(e?.response?.data?.message ?? 'Invalid credentials'),
+    onError: (e: any) => setError(e?.response?.data?.message ?? 'Μη έγκυρα στοιχεία σύνδεσης'),
   });
 
   const valid = accessId && accessSecret;
@@ -304,46 +307,46 @@ function TuyaTab() {
   return (
     <div className="flex flex-col gap-5 max-w-sm">
       <SectionHeader
-        title="Tuya Credentials"
+        title="Στοιχεία Tuya"
         description={
           saved
-            ? 'Connected. Re-enter the Access Secret to update.'
-            : 'Enter your Tuya IoT Platform credentials to link your devices.'
+            ? 'Συνδέθηκε. Εισαγάγετε ξανά το μυστικό πρόσβασης για ενημέρωση.'
+            : 'Εισαγάγετε τα στοιχεία της πλατφόρμας Tuya IoT για να συνδέσετε τις συσκευές σας.'
         }
       />
 
-      <Field label="Access ID">
+      <Field label="Αναγνωριστικό πρόσβασης">
         <input
           value={accessId}
           onChange={(e) => {
             setAccessId(e.target.value);
             setError('');
           }}
-          placeholder="Your Tuya Access ID"
-          className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
+          placeholder="Το αναγνωριστικό πρόσβασης Tuya"
+          className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
         />
       </Field>
 
-      <Field label="Access Secret">
+      <Field label="Μυστικό πρόσβασης">
         <PasswordInput
           value={accessSecret}
           onChange={(v) => {
             setAccessSecret(v);
             setError('');
           }}
-          placeholder={saved ? '••••••••••••••••' : 'Your Tuya Access Secret'}
+          placeholder={saved ? '••••••••••••••••' : 'Το μυστικό πρόσβασης Tuya'}
         />
       </Field>
 
-      <Field label="Region">
+      <Field label="Περιοχή">
         <select
           value={region}
           onChange={(e) => setRegion(e.target.value as any)}
-          className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
+          className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
         >
-          <option value="eu">Europe</option>
-          <option value="us">United States</option>
-          <option value="cn">China</option>
+          <option value="eu">Ευρώπη</option>
+          <option value="us">Ηνωμένες Πολιτείες</option>
+          <option value="cn">Κίνα</option>
         </select>
       </Field>
 
@@ -355,9 +358,9 @@ function TuyaTab() {
           mutation.mutate();
         }}
         disabled={!valid || mutation.isPending || success}
-        className="self-start px-5 py-2.5 bg-brand text-white rounded-md text-sm font-semibold disabled:opacity-40 hover:bg-brand/90 transition-colors"
+        className="self-start px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-brand/90 transition-colors"
       >
-        {mutation.isPending ? 'Validating…' : saved ? 'Update Credentials' : 'Connect'}
+        {mutation.isPending ? 'Έλεγχος…' : saved ? 'Ενημέρωση στοιχείων' : 'Σύνδεση'}
       </button>
     </div>
   );
@@ -394,7 +397,7 @@ function AlarmTab() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     },
-    onError: (e: any) => setError(e?.response?.data?.message ?? 'Failed to set PIN'),
+    onError: (e: any) => setError(e?.response?.data?.message ?? 'Η αποθήκευση PIN απέτυχε'),
   });
 
   function handleNew(pin: string) {
@@ -404,7 +407,7 @@ function AlarmTab() {
   }
   function handleConfirm(pin: string) {
     if (pin !== newPin) {
-      setError('PINs do not match');
+      setError('Τα PIN δεν ταιριάζουν');
       setStep('new');
       return;
     }
@@ -414,24 +417,26 @@ function AlarmTab() {
   return (
     <div className="flex flex-col gap-5 max-w-sm">
       <SectionHeader
-        title="Alarm PIN"
+        title="PIN συναγερμού"
         description={
           hasPinSet
-            ? 'Required to arm and disarm the alarm.'
-            : 'Create a PIN to protect arm and disarm actions.'
+            ? 'Απαιτείται για όπλιση και αφόπλιση του συναγερμού.'
+            : 'Δημιουργήστε PIN για την προστασία όπλισης και αφόπλισης.'
         }
       />
 
-      <div className="flex items-center gap-3 px-4 py-3 rounded-md bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
         <Shield size={16} className={hasPinSet ? 'text-emerald-500' : 'text-slate-400'} />
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          {hasPinSet ? 'PIN is currently set' : 'No PIN set — alarm runs without a PIN'}
+          {hasPinSet
+            ? 'Έχει οριστεί PIN'
+            : 'Δεν έχει οριστεί PIN — ο συναγερμός λειτουργεί χωρίς PIN'}
         </p>
       </div>
 
       {success && (
         <p className="text-sm text-emerald-500 flex items-center gap-1">
-          <Check size={13} /> PIN saved
+          <Check size={13} /> Το PIN αποθηκεύτηκε
         </p>
       )}
 
@@ -440,15 +445,15 @@ function AlarmTab() {
           setError('');
           setStep(hasPinSet ? 'current' : 'new');
         }}
-        className="self-start px-5 py-2.5 bg-brand text-white rounded-md text-sm font-semibold hover:bg-brand/90 transition-colors"
+        className="self-start px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand/90 transition-colors"
       >
-        {hasPinSet ? 'Update' : 'Create'}
+        {hasPinSet ? 'Ενημέρωση' : 'Δημιουργία'}
       </button>
 
       {step === 'current' && (
         <PinPromptModal
-          title="Current PIN"
-          description="Enter your current PIN to continue"
+          title="Τρέχον PIN"
+          description="Εισαγάγετε το τρέχον PIN για συνέχεια"
           onConfirm={(pin) => {
             setCurrentPin(pin);
             setError('');
@@ -460,8 +465,8 @@ function AlarmTab() {
       )}
       {step === 'new' && (
         <PinPromptModal
-          title={hasPinSet ? 'New PIN' : 'Create PIN'}
-          description="Enter your new PIN"
+          title={hasPinSet ? 'Νέο PIN' : 'Δημιουργία PIN'}
+          description="Εισαγάγετε το νέο PIN"
           onConfirm={handleNew}
           onClose={close}
           error={error}
@@ -469,8 +474,8 @@ function AlarmTab() {
       )}
       {step === 'confirm' && (
         <PinPromptModal
-          title="Confirm PIN"
-          description="Re-enter your new PIN to confirm"
+          title="Επιβεβαίωση PIN"
+          description="Εισαγάγετε ξανά το νέο PIN για επιβεβαίωση"
           onConfirm={handleConfirm}
           onClose={close}
           error={error}
@@ -489,22 +494,28 @@ function logBadge(log: any): { label: string; color: string } {
   if (ctx === 'alarm') {
     const map: Record<string, { label: string; color: string }> = {
       arm_home: {
-        label: 'Armed — Home',
+        label: 'Οπλισμένος — Εντός',
         color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10',
       },
-      arm_away: { label: 'Armed — Away', color: 'text-blue-600 bg-blue-50 dark:bg-blue-500/10' },
-      disarm: { label: 'Disarmed', color: 'text-slate-500 bg-slate-100 dark:bg-white/5' },
-      triggered: { label: 'Triggered', color: 'text-red-600 bg-red-50 dark:bg-red-500/10' },
+      arm_away: {
+        label: 'Οπλισμένος — Εκτός',
+        color: 'text-blue-600 bg-blue-50 dark:bg-blue-500/10',
+      },
+      disarm: { label: 'Αφοπλισμένος', color: 'text-slate-500 bg-slate-100 dark:bg-white/5' },
+      triggered: { label: 'Ενεργοποιημένος', color: 'text-red-600 bg-red-50 dark:bg-red-500/10' },
     };
     return (
-      map[action ?? ''] ?? { label: 'Alarm', color: 'text-slate-500 bg-slate-100 dark:bg-white/5' }
+      map[action ?? ''] ?? {
+        label: 'Συναγερμός',
+        color: 'text-slate-500 bg-slate-100 dark:bg-white/5',
+      }
     );
   }
   if (ctx === 'device') {
     const cmds: { code: string; value: unknown }[] = log.metadata?.commands ?? [];
     const summary = cmds.map((c) => `${c.code}: ${c.value}`).join(', ');
     return {
-      label: summary || 'Device command',
+      label: summary || 'Εντολή συσκευής',
       color: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10',
     };
   }
@@ -522,7 +533,7 @@ function LogsTab() {
     return (
       <div className="flex flex-col gap-2">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-14 rounded-md bg-slate-100 dark:bg-white/5 animate-pulse" />
+          <div key={i} className="h-14 rounded-xl bg-slate-100 dark:bg-white/5 animate-pulse" />
         ))}
       </div>
     );
@@ -531,7 +542,7 @@ function LogsTab() {
   if (!logs.length) {
     return (
       <div className="py-16 text-center text-slate-400">
-        <p className="text-sm">No activity logged yet.</p>
+        <p className="text-sm">Δεν υπάρχουν καταγεγραμμένα συμβάντα.</p>
       </div>
     );
   }
@@ -543,7 +554,7 @@ function LogsTab() {
         return (
           <div
             key={log.id}
-            className="flex items-center gap-3 px-3 py-3 rounded-md hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
           >
             <span
               className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${color}`}
@@ -551,7 +562,7 @@ function LogsTab() {
               {label}
             </span>
             <span className="text-sm text-slate-500 dark:text-slate-400 truncate flex-1">
-              {log.user?.email ?? 'Unknown'}
+              {log.user?.email ?? 'Άγνωστο'}
             </span>
             <span className="text-xs text-slate-400 flex-shrink-0 whitespace-nowrap">
               {new Date(log.createdAt).toLocaleString()}
@@ -565,11 +576,11 @@ function LogsTab() {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
-const TABS = ['Preferences', 'Password', 'Tuya', 'Alarm', 'Logs'] as const;
+const TABS = ['Προτιμήσεις', 'Κωδικός πρόσβασης', 'Tuya', 'Συναγερμός', 'Ιστορικό'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function SettingsPage() {
-  const [active, setActive] = useState<Tab>('Preferences');
+  const [active, setActive] = useState<Tab>('Προτιμήσεις');
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -581,22 +592,22 @@ export default function SettingsPage() {
   const canSeeAlarm = isOwner || me?.permissions?.canArmAlarm;
   const visibleTabs = TABS.filter((t) => {
     if (t === 'Tuya') return isOwner;
-    if (t === 'Alarm') return canSeeAlarm;
-    if (t === 'Logs') return canSeeAlarm;
+    if (t === 'Συναγερμός') return canSeeAlarm;
+    if (t === 'Ιστορικό') return canSeeAlarm;
     return true;
   });
-  const activeTab = visibleTabs.includes(active) ? active : (visibleTabs[0] ?? 'Preferences');
+  const activeTab = visibleTabs.includes(active) ? active : (visibleTabs[0] ?? 'Προτιμήσεις');
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Settings</h1>
+      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Ρυθμίσεις</h1>
 
-      <div className="flex gap-1 bg-slate-100 dark:bg-white/5 rounded-md p-1 self-start flex-wrap">
+      <div className="flex gap-1 bg-slate-100 dark:bg-white/5 rounded-xl p-1 self-start flex-wrap">
         {visibleTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
               activeTab === tab
                 ? 'bg-white dark:bg-[#1A222C] text-slate-800 dark:text-slate-100 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -607,12 +618,12 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
-        {activeTab === 'Preferences' && <UserTab />}
-        {activeTab === 'Password' && <PasswordTab />}
+      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6">
+        {activeTab === 'Προτιμήσεις' && <UserTab />}
+        {activeTab === 'Κωδικός πρόσβασης' && <PasswordTab />}
         {activeTab === 'Tuya' && isOwner && <TuyaTab />}
-        {activeTab === 'Alarm' && <AlarmTab />}
-        {activeTab === 'Logs' && <LogsTab />}
+        {activeTab === 'Συναγερμός' && <AlarmTab />}
+        {activeTab === 'Ιστορικό' && <LogsTab />}
       </div>
     </div>
   );

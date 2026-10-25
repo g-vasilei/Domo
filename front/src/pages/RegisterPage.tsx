@@ -19,20 +19,20 @@ export default function RegisterPage() {
       setTokens(data.accessToken, data.refreshToken);
       navigate('/setup');
     } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Registration failed');
+      setError(err.response?.data?.message ?? 'Η εγγραφή απέτυχε');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#111827] p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow w-full max-w-sm space-y-4"
+        className="bg-white dark:bg-[#1A222C] p-8 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm w-full max-w-sm space-y-4"
       >
-        <h1 className="text-2xl font-bold">Create account</h1>
+        <h1 className="text-2xl font-bold">Δημιουργία λογαριασμού</h1>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <input
-          className="w-full border rounded px-3 py-2"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
           type="email"
           placeholder="Email"
           value={email}
@@ -40,28 +40,28 @@ export default function RegisterPage() {
           required
         />
         <input
-          className="w-full border rounded px-3 py-2"
+          className="w-full h-12 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 px-3 py-2 text-sm"
           type="password"
-          placeholder="Password (min 8 chars)"
+          placeholder="Κωδικός (τουλάχιστον 8 χαρακτήρες)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
         />
         <button
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          className="w-full bg-brand text-white py-2 rounded-xl hover:bg-brand/90"
           type="submit"
         >
-          Register
+          Εγγραφή
         </button>
         <div className="relative flex items-center py-1">
-          <div className="flex-grow border-t border-gray-200" />
-          <span className="mx-3 text-xs text-gray-400">or</span>
-          <div className="flex-grow border-t border-gray-200" />
+          <div className="flex-grow border-t border-slate-200" />
+          <span className="mx-3 text-xs text-slate-400">ή</span>
+          <div className="flex-grow border-t border-slate-200" />
         </div>
         <a
           href="http://localhost:3001/auth/google"
-          className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded py-2 text-sm hover:bg-gray-50"
+          className="w-full flex items-center justify-center gap-2 border border-slate-200 rounded-xl py-2 text-sm hover:bg-gray-50"
         >
           <svg className="w-4 h-4" viewBox="0 0 48 48">
             <path
@@ -81,12 +81,12 @@ export default function RegisterPage() {
               d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
             />
           </svg>
-          Continue with Google
+          Συνέχεια με Google
         </a>
         <p className="text-sm text-center">
-          Have an account?{' '}
-          <Link className="text-blue-600" to="/login">
-            Login
+          Έχετε λογαριασμό;{' '}
+          <Link className="text-brand" to="/login">
+            Σύνδεση
           </Link>
         </p>
       </form>

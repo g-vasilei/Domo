@@ -1,8 +1,25 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { DeviceSchedulesService } from './device-schedules.service';
 import { DevicesService } from './devices.service';
+import {
+  SaveDeviceScheduleDto,
+  StartDeviceTimerDto,
+  ToggleDeviceScheduleDto,
+} from './dto/device-schedule.dto';
 import { SendCommandDto } from './dto/send-command.dto';
 
 @ApiTags('devices')
@@ -10,7 +27,10 @@ import { SendCommandDto } from './dto/send-command.dto';
 @UseGuards(JwtAuthGuard)
 @Controller('devices')
 export class DevicesController {
-  constructor(private readonly devicesService: DevicesService) {}
+  constructor(
+    private readonly devicesService: DevicesService,
+    private readonly schedules: DeviceSchedulesService,
+  ) {}
 
   @Get()
   getDevices(@Req() req: any) {
@@ -42,12 +62,13 @@ export class DevicesController {
     return this.devicesService.sendCommand(req.user.id, deviceId, dto.commands);
   }
 
+  @Get('timers/active')
+  getTimers(@Req() req: any) {
+    return this.devicesService.getTimers(req.user.id);
+  }
+
   @Post('timers')
-  createTimer(
-    @Req() req: any,
-    @Body()
-    body: { deviceId: string; deviceName: string; switchCode: string; minutes: number },
-  ) {
+  createTimer(@Req() req: any, @Body() body: StartDeviceTimerDto) {
     return this.devicesService.createTimer(
       req.user.id,
       body.deviceId,
@@ -55,6 +76,45 @@ export class DevicesController {
       body.switchCode,
       body.minutes,
     );
+  }
+
+  @Get(':id/schedules')
+  getSchedules(@Req() req: any, @Param('id') id: string) {
+    return this.schedules.list(req.user.id, id);
+  }
+
+  @Post(':id/schedules')
+  createSchedule(@Req() req: any, @Param('id') id: string, @Body() dto: SaveDeviceScheduleDto) {
+    return this.schedules.save(req.user.id, id, dto);
+  }
+
+  @Put(':id/schedules/:scheduleId')
+  updateSchedule(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: SaveDeviceScheduleDto,
+  ) {
+    return this.schedules.save(req.user.id, id, dto, scheduleId);
+  }
+
+  @Patch(':id/schedules/:scheduleId')
+  toggleSchedule(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: ToggleDeviceScheduleDto,
+  ) {
+    return this.schedules.toggle(req.user.id, id, scheduleId, dto.enabled);
+  }
+
+  @Delete(':id/schedules/:scheduleId')
+  removeSchedule(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Param('scheduleId') scheduleId: string,
+  ) {
+    return this.schedules.remove(req.user.id, id, scheduleId);
   }
 
   @Delete('timers/:deviceId')

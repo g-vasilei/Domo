@@ -65,43 +65,43 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  mcs: 'Door Sensor',
-  pir: 'Motion',
-  wsdcg: 'Sensor',
-  ywbj: 'Smoke',
+  mcs: 'Αισθητήρας πόρτας',
+  pir: 'Κίνηση',
+  wsdcg: 'Αισθητήρας',
+  ywbj: 'Καπνός',
   cobj: 'CO',
-  cz: 'Socket',
-  kg: 'Switch',
-  dj: 'Light',
-  dd: 'LED Strip',
-  xdd: 'Ceiling Light',
-  kj: 'Air Purifier',
-  fs: 'Fan',
+  cz: 'Πρίζα',
+  kg: 'Διακόπτης',
+  dj: 'Φωτισμός',
+  dd: 'Ταινία LED',
+  xdd: 'Φωτιστικό οροφής',
+  kj: 'Καθαριστής αέρα',
+  fs: 'Ανεμιστήρας',
 };
 
 const STATE_META: Record<AlarmState, { label: string; color: string; bg: string }> = {
-  DISARMED: { label: 'Disarmed', color: 'text-slate-400', bg: 'bg-slate-100 dark:bg-white/5' },
+  DISARMED: { label: 'Αφοπλισμένος', color: 'text-slate-400', bg: 'bg-slate-100 dark:bg-white/5' },
   ARMED_HOME: {
-    label: 'Armed — Home',
+    label: 'Οπλισμένος — Εντός',
     color: 'text-emerald-500',
     bg: 'bg-emerald-50 dark:bg-emerald-500/10',
   },
   ARMED_AWAY: {
-    label: 'Armed — Away',
+    label: 'Οπλισμένος — Εκτός',
     color: 'text-blue-500',
     bg: 'bg-blue-50 dark:bg-blue-500/10',
   },
   EXIT_DELAY: {
-    label: 'Exit Delay…',
+    label: 'Καθυστέρηση εξόδου…',
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-500/10',
   },
   ENTRY_DELAY: {
-    label: 'Entry Delay…',
+    label: 'Καθυστέρηση εισόδου…',
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-500/10',
   },
-  TRIGGERED: { label: 'TRIGGERED', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10' },
+  TRIGGERED: { label: 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΕ', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10' },
 };
 
 // Human-readable label for a trigger value
@@ -112,16 +112,16 @@ function _triggerLabel(code: string, value: unknown): string {
 
 // Friendly name for common codes
 const CODE_NAMES: Record<string, string> = {
-  doorcontact_state: 'Door contact',
-  pir: 'Motion detected',
-  smoke_sensor_state: 'Smoke sensor',
-  co_state: 'CO sensor',
-  switch: 'Switch',
-  switch_1: 'Switch 1',
-  switch_2: 'Switch 2',
-  switch_led: 'LED switch',
-  occupancy: 'Occupancy',
-  alarm_state: 'Alarm state',
+  doorcontact_state: 'Επαφή πόρτας',
+  pir: 'Ανιχνεύτηκε κίνηση',
+  smoke_sensor_state: 'Αισθητήρας καπνού',
+  co_state: 'Αισθητήρας μονοξειδίου',
+  switch: 'Διακόπτης',
+  switch_1: 'Διακόπτης 1',
+  switch_2: 'Διακόπτης 2',
+  switch_led: 'Διακόπτης LED',
+  occupancy: 'Παρουσία',
+  alarm_state: 'Κατάσταση συναγερμού',
 };
 
 function codeName(code: string) {
@@ -198,11 +198,11 @@ function TriggerValuePicker({
       <div className="flex gap-2">
         <Chip active={value === true} onClick={() => onChange(true)}>
           {' '}
-          ON{' '}
+          ΕΝΕΡΓΟ{' '}
         </Chip>
         <Chip active={value === false} onClick={() => onChange(false)}>
           {' '}
-          OFF{' '}
+          ΑΝΕΝΕΡΓΟ{' '}
         </Chip>
       </div>
     );
@@ -214,15 +214,15 @@ function TriggerValuePicker({
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Chip active={value === current} onClick={() => onChange(current)}>
-            Current: &quot;{String(current)}&quot;
+            Τρέχον: &quot;{String(current)}&quot;
           </Chip>
         </div>
         <input
           type="text"
           value={String(value ?? '')}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Or type a specific value…"
-          className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100"
+          placeholder="Ή εισαγάγετε συγκεκριμένη τιμή…"
+          className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100"
         />
       </div>
     );
@@ -234,7 +234,7 @@ function TriggerValuePicker({
         type="number"
         value={Number(value ?? current)}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100 w-32"
+        className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100 w-32"
       />
     );
   }
@@ -244,7 +244,7 @@ function TriggerValuePicker({
       type="text"
       value={String(value ?? '')}
       onChange={(e) => onChange(e.target.value)}
-      className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-1.5 text-sm w-full"
+      className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-sm w-full"
     />
   );
 }
@@ -306,7 +306,7 @@ function AddTriggerActionModal({
             </button>
           )}
           <h3 className="flex-1 text-base font-semibold text-slate-800 dark:text-slate-100">
-            {step === 'device' ? 'Select Device' : 'Choose Command'}
+            {step === 'device' ? 'Επιλογή συσκευής' : 'Επιλογή εντολής'}
           </h3>
           <button
             onClick={onClose}
@@ -321,10 +321,10 @@ function AddTriggerActionModal({
             <>
               <input
                 type="text"
-                placeholder="Search devices…"
+                placeholder="Αναζήτηση συσκευών…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                 autoFocus
               />
               {filtered.map((d) => {
@@ -333,7 +333,7 @@ function AddTriggerActionModal({
                   <button
                     key={d.id}
                     onClick={() => selectDevice(d)}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-white/10 hover:border-brand/50 hover:bg-brand/5 transition-colors text-left"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 hover:border-brand/50 hover:bg-brand/5 transition-colors text-left"
                   >
                     <DIcon size={16} className="text-brand flex-shrink-0" />
                     <span className="text-sm text-slate-800 dark:text-slate-100">{d.name}</span>
@@ -355,7 +355,7 @@ function AddTriggerActionModal({
                 <button
                   key={s.code}
                   onClick={() => selectEntry(s)}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-colors text-left ${
+                  className={`flex items-center justify-between p-3 rounded-xl border transition-colors text-left ${
                     entry?.code === s.code
                       ? 'border-brand bg-brand/5'
                       : 'border-slate-200 dark:border-white/10 hover:border-brand/50'
@@ -369,17 +369,17 @@ function AddTriggerActionModal({
               ))}
 
               {entry && (
-                <div className="mt-2 flex flex-col gap-2 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10">
-                  <p className="text-xs text-slate-400">Set value to:</p>
+                <div className="mt-2 flex flex-col gap-2 p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+                  <p className="text-xs text-slate-400">Ορισμός τιμής:</p>
                   {typeof entry.value === 'boolean' ? (
                     <div className="flex gap-2">
                       {[true, false].map((v) => (
                         <button
                           key={String(v)}
                           onClick={() => setValue(v)}
-                          className={`flex-1 py-2 rounded-md text-sm font-medium border transition-colors ${value === v ? 'bg-brand text-white border-brand' : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300'}`}
+                          className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-colors ${value === v ? 'bg-brand text-white border-brand' : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300'}`}
                         >
-                          {v ? 'On / Open' : 'Off / Closed'}
+                          {v ? 'Ενεργό / Ανοιχτό' : 'Ανενεργό / Κλειστό'}
                         </button>
                       ))}
                     </div>
@@ -388,14 +388,14 @@ function AddTriggerActionModal({
                       type="number"
                       value={value as number}
                       onChange={(e) => setValue(Number(e.target.value))}
-                      className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm"
+                      className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm"
                     />
                   ) : (
                     <input
                       type="text"
                       value={value as string}
                       onChange={(e) => setValue(e.target.value)}
-                      className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm"
+                      className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm"
                     />
                   )}
                 </div>
@@ -410,7 +410,7 @@ function AddTriggerActionModal({
               onClick={submit}
               className="w-full py-3 bg-brand text-white rounded-xl font-semibold"
             >
-              Add Action
+              Προσθήκη ενέργειας
             </button>
           </div>
         )}
@@ -500,9 +500,9 @@ function AddRuleModal({
   }
 
   const stepTitles: Record<Step, string> = {
-    device: 'Select Device',
-    trigger: 'Choose Trigger',
-    conditions: 'Set Conditions',
+    device: 'Επιλογή συσκευής',
+    trigger: 'Επιλογή συνθήκης',
+    conditions: 'Ορισμός συνθηκών',
   };
 
   function back() {
@@ -560,13 +560,13 @@ function AddRuleModal({
             <div className="flex flex-col gap-3">
               <input
                 type="text"
-                placeholder="Search devices…"
+                placeholder="Αναζήτηση συσκευών…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 w-full"
+                className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 w-full"
               />
               {filteredDevices.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">No devices found.</p>
+                <p className="text-sm text-slate-400 text-center py-6">Δεν βρέθηκαν συσκευές.</p>
               ) : (
                 filteredDevices.map((d) => {
                   const DIcon = CATEGORY_ICONS[d.category] ?? Cpu;
@@ -574,10 +574,10 @@ function AddRuleModal({
                     <button
                       key={d.id}
                       onClick={() => selectDevice(d)}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-white/10 hover:border-brand/40 hover:bg-brand/5 transition-colors text-left"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 hover:border-brand/40 hover:bg-brand/5 transition-colors text-left"
                     >
                       <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
                           d.online ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'
                         }`}
                       >
@@ -605,7 +605,7 @@ function AddRuleModal({
           {step === 'trigger' && device && (
             <div className="flex flex-col gap-3">
               {/* Selected device recap */}
-              <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-white/5 rounded-lg mb-1">
+              <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-white/5 rounded-xl mb-1">
                 <Icon size={15} className="text-brand" />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {device.name}
@@ -613,26 +613,26 @@ function AddRuleModal({
               </div>
 
               <p className="text-xs text-slate-400 uppercase tracking-widest">
-                Choose what triggers the alarm
+                Επιλέξτε τι ενεργοποιεί τον συναγερμό
               </p>
 
               {triggerCandidates.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-6">
-                  No trigger-able status codes found on this device.
+                  Δεν βρέθηκαν διαθέσιμες συνθήκες για αυτή τη συσκευή.
                 </p>
               ) : (
                 triggerCandidates.map((entry) => (
                   <button
                     key={entry.code}
                     onClick={() => selectTrigger(entry)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-white/10 hover:border-brand/40 hover:bg-brand/5 transition-colors text-left"
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-white/10 hover:border-brand/40 hover:bg-brand/5 transition-colors text-left"
                   >
                     <div>
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                         {codeName(entry.code)}
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Current: <span className="font-mono">{JSON.stringify(entry.value)}</span>
+                        Τρέχον: <span className="font-mono">{JSON.stringify(entry.value)}</span>
                       </p>
                     </div>
                     <span className="text-xs text-slate-300 dark:text-slate-600 font-mono">
@@ -648,7 +648,7 @@ function AddRuleModal({
           {step === 'conditions' && device && triggerEntry && (
             <div className="flex flex-col gap-6">
               {/* Recap */}
-              <div className="flex flex-col gap-1 p-3 bg-slate-50 dark:bg-white/5 rounded-lg text-sm">
+              <div className="flex flex-col gap-1 p-3 bg-slate-50 dark:bg-white/5 rounded-xl text-sm">
                 <div className="flex items-center gap-2">
                   <Icon size={14} className="text-brand" />
                   <span className="font-medium text-slate-700 dark:text-slate-300">
@@ -661,7 +661,7 @@ function AddRuleModal({
               {/* Trigger value */}
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-slate-400 uppercase tracking-widest">
-                  Triggers when value is
+                  Ενεργοποίηση όταν η τιμή είναι
                 </p>
                 <TriggerValuePicker
                   entry={triggerEntry}
@@ -673,53 +673,53 @@ function AddRuleModal({
               {/* Active states */}
               <div className="flex flex-col gap-3">
                 <p className="text-xs text-slate-400 uppercase tracking-widest">
-                  Active when armed
+                  Ενεργό όταν οπλίζεται
                 </p>
                 <div className="flex flex-col gap-2">
-                  <label className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-white/10 cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer">
                     <div>
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                        Armed Home
+                        Οπλισμένος — Εντός
                       </p>
-                      <p className="text-xs text-slate-400">Active even when you're inside</p>
+                      <p className="text-xs text-slate-400">Ενεργό ακόμη κι όταν βρίσκεστε μέσα</p>
                     </div>
                     <Toggle value={activeInHome} onChange={setActiveInHome} />
                   </label>
-                  <label className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-white/10 cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-white/10 cursor-pointer">
                     <div>
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                        Armed Away
+                        Οπλισμένος — Εκτός
                       </p>
-                      <p className="text-xs text-slate-400">Active when you leave</p>
+                      <p className="text-xs text-slate-400">Ενεργό όταν φεύγετε</p>
                     </div>
                     <Toggle value={activeInAway} onChange={setActiveInAway} />
                   </label>
                 </div>
                 {!activeInHome && !activeInAway && (
-                  <p className="text-xs text-amber-500">Select at least one arm mode.</p>
+                  <p className="text-xs text-amber-500">Επιλέξτε τουλάχιστον έναν τρόπο όπλισης.</p>
                 )}
               </div>
 
               {/* Action */}
               <div className="flex flex-col gap-3">
-                <p className="text-xs text-slate-400 uppercase tracking-widest">When triggered</p>
+                <p className="text-xs text-slate-400 uppercase tracking-widest">Σε ενεργοποίηση</p>
                 <div className="flex flex-col gap-2">
                   {[
                     {
                       value: 'ENTRY_DELAY' as AlarmAction,
-                      label: 'Entry Delay',
-                      desc: 'Countdown before alarm fires. You have time to disarm.',
+                      label: 'Καθυστέρηση εισόδου',
+                      desc: 'Αντίστροφη μέτρηση πριν ενεργοποιηθεί ο συναγερμός, για να προλάβετε να τον αφοπλίσετε.',
                     },
                     {
                       value: 'IMMEDIATE' as AlarmAction,
-                      label: 'Immediate Alarm',
-                      desc: 'Alarm fires instantly. Best for smoke / CO / glass break.',
+                      label: 'Άμεσος συναγερμός',
+                      desc: 'Άμεση ενεργοποίηση. Κατάλληλο για καπνό, μονοξείδιο και θραύση τζαμιού.',
                     },
                   ].map((opt) => (
                     <button
                       key={opt.value}
                       onClick={() => setAction(opt.value)}
-                      className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
+                      className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-colors ${
                         action === opt.value
                           ? 'border-brand bg-brand/5'
                           : 'border-slate-200 dark:border-white/10 hover:border-brand/30'
@@ -729,7 +729,7 @@ function AddRuleModal({
                         className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 ${
                           action === opt.value
                             ? 'border-brand bg-brand'
-                            : 'border-slate-300 dark:border-slate-600'
+                            : 'border-slate-200 dark:border-slate-600'
                         }`}
                       />
                       <div>
@@ -754,7 +754,7 @@ function AddRuleModal({
               disabled={!activeInHome && !activeInAway}
               className="w-full py-3 bg-brand text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-brand/90 transition-colors"
             >
-              Add Rule
+              Προσθήκη κανόνα
             </button>
           </div>
         )}
@@ -778,10 +778,10 @@ function RuleCard({
 
   return (
     <div
-      className={`bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-4 transition-opacity ${!rule.enabled && 'opacity-50'}`}
+      className={`bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-4 transition-opacity ${!rule.enabled && 'opacity-50'}`}
     >
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center flex-shrink-0">
           <Shield size={15} className="text-brand" />
         </div>
 
@@ -806,32 +806,32 @@ function RuleCard({
           </p>
 
           <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <span className="text-[11px] text-slate-400 uppercase tracking-widest">Active</span>
+            <span className="text-[11px] text-slate-400 uppercase tracking-widest">Ενεργό</span>
             <Chip
               active={rule.activeInHome}
               onClick={() => onUpdate({ activeInHome: !rule.activeInHome })}
             >
-              Home
+              Σπίτι
             </Chip>
             <Chip
               active={rule.activeInAway}
               onClick={() => onUpdate({ activeInAway: !rule.activeInAway })}
             >
-              Away
+              Εκτός σπιτιού
             </Chip>
             <span className="ml-auto">
               <Chip
                 active={rule.action === 'ENTRY_DELAY'}
                 onClick={() => onUpdate({ action: 'ENTRY_DELAY' })}
               >
-                Delay
+                Καθυστέρηση
               </Chip>
             </span>
             <Chip
               active={rule.action === 'IMMEDIATE'}
               onClick={() => onUpdate({ action: 'IMMEDIATE' })}
             >
-              Instant
+              Άμεσα
             </Chip>
           </div>
         </div>
@@ -862,12 +862,12 @@ function PinSection({ hasPinHash }: { hasPinHash: boolean }) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">Alarm PIN</p>
-          <p className="text-xs text-slate-400 mt-0.5">Required to disarm when armed away</p>
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100">PIN συναγερμού</p>
+          <p className="text-xs text-slate-400 mt-0.5">Απαιτείται για αφόπλιση εκτός σπιτιού</p>
         </div>
         {saved && (
           <span className="flex items-center gap-1 text-emerald-500 text-xs">
-            <Check size={12} /> Saved
+            <Check size={12} /> Αποθηκεύτηκε
           </span>
         )}
       </div>
@@ -877,10 +877,10 @@ function PinSection({ hasPinHash }: { hasPinHash: boolean }) {
           <div className="relative flex-1">
             <input
               type={visible ? 'text' : 'password'}
-              placeholder="4–8 digits"
+              placeholder="4–8 ψηφία"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 pr-10"
+              className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 pr-10"
             />
             <button
               onClick={() => setVisible((v) => !v)}
@@ -892,16 +892,16 @@ function PinSection({ hasPinHash }: { hasPinHash: boolean }) {
           <button
             onClick={() => save.mutate(pin)}
             disabled={pin.length < 4 || save.isPending}
-            className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40"
+            className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium disabled:opacity-40"
           >
-            Save
+            Αποθήκευση
           </button>
           <button
             onClick={() => {
               setEditing(false);
               setPin('');
             }}
-            className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-md text-sm text-slate-400"
+            className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-400"
           >
             ✕
           </button>
@@ -909,10 +909,10 @@ function PinSection({ hasPinHash }: { hasPinHash: boolean }) {
       ) : (
         <button
           onClick={() => setEditing(true)}
-          className="self-start flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-white/10 rounded-md text-sm text-slate-600 dark:text-slate-300 hover:border-brand/50 hover:text-brand transition-colors"
+          className="self-start flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:border-brand/50 hover:text-brand transition-colors"
         >
           <Shield size={14} />
-          {hasPinHash ? 'Change PIN' : 'Set PIN'}
+          {hasPinHash ? 'Αλλαγή PIN' : 'Ορισμός PIN'}
         </button>
       )}
     </div>
@@ -968,7 +968,7 @@ function PhoneNotificationsSection({
       setOtpSent(true);
       setOtpError('');
     },
-    onError: () => setOtpError('Failed to send code. Check the number and try again.'),
+    onError: () => setOtpError('Δεν στάλθηκε ο κωδικός. Ελέγξτε τον αριθμό και δοκιμάστε ξανά.'),
   });
 
   const verifyOtp = useMutation({
@@ -982,29 +982,29 @@ function PhoneNotificationsSection({
         setOtpError('');
         onRefresh();
       } else {
-        setOtpError('Invalid code. Please try again.');
+        setOtpError('Μη έγκυρος κωδικός. Δοκιμάστε ξανά.');
       }
     },
-    onError: () => setOtpError('Verification failed. Please try again.'),
+    onError: () => setOtpError('Η επιβεβαίωση απέτυχε. Δοκιμάστε ξανά.'),
   });
 
   const inputCls =
-    'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 w-full';
+    'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 w-full';
 
   return (
-    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-5">
+    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6 flex flex-col gap-5">
       {/* Header row with enable toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center flex-shrink-0">
             <Phone size={15} className="text-brand" />
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              Phone notifications
+              Τηλεφωνικές ειδοποιήσεις
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              Receive a call when the alarm is triggered
+              Λάβετε κλήση όταν ενεργοποιείται ο συναγερμός
             </p>
           </div>
         </div>
@@ -1021,15 +1021,15 @@ function PhoneNotificationsSection({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                  Step 1 — Infobip credentials
+                  Βήμα 1 — Στοιχεία Infobip
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  API key, base URL and sender name from your Infobip account
+                  Κλειδί API, διεύθυνση υπηρεσίας και όνομα αποστολέα από τον λογαριασμό Infobip
                 </p>
               </div>
               {configured && !editingCreds && (
                 <span className="flex items-center gap-1 text-emerald-500 text-xs shrink-0">
-                  <Check size={12} /> Configured
+                  <Check size={12} /> Ρυθμισμένο
                 </span>
               )}
             </div>
@@ -1042,24 +1042,24 @@ function PhoneNotificationsSection({
                   setApiKey('');
                   setEditingCreds(true);
                 }}
-                className="self-start flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-white/10 rounded-md text-xs text-slate-600 dark:text-slate-300 hover:border-brand/50 hover:text-brand transition-colors"
+                className="self-start flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-600 dark:text-slate-300 hover:border-brand/50 hover:text-brand transition-colors"
               >
-                {configured ? 'Update credentials' : 'Enter credentials'}
+                {configured ? 'Ενημέρωση στοιχείων' : 'Εισαγωγή στοιχείων'}
               </button>
             ) : (
-              <div className="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10">
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-slate-400">API Key</label>
+                  <label className="text-xs text-slate-400">Κλειδί API</label>
                   <input
                     type="password"
-                    placeholder="Your Infobip API key"
+                    placeholder="Το κλειδί API του Infobip"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     className={inputCls}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-slate-400">Base URL</label>
+                  <label className="text-xs text-slate-400">Διεύθυνση υπηρεσίας</label>
                   <input
                     type="text"
                     placeholder="https://xxxxx.api.infobip.com"
@@ -1069,7 +1069,7 @@ function PhoneNotificationsSection({
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-slate-400">Sender name</label>
+                  <label className="text-xs text-slate-400">Όνομα αποστολέα</label>
                   <input
                     type="text"
                     placeholder="Domo"
@@ -1082,15 +1082,15 @@ function PhoneNotificationsSection({
                   <button
                     onClick={() => saveCreds.mutate()}
                     disabled={!apiKey || !baseUrl || saveCreds.isPending}
-                    className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40"
+                    className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium disabled:opacity-40"
                   >
-                    {saveCreds.isPending ? 'Saving…' : 'Save'}
+                    {saveCreds.isPending ? 'Αποθήκευση…' : 'Αποθήκευση'}
                   </button>
                   <button
                     onClick={() => setEditingCreds(false)}
-                    className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-md text-sm text-slate-400"
+                    className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-400"
                   >
-                    Cancel
+                    Ακύρωση
                   </button>
                 </div>
               </div>
@@ -1105,21 +1105,21 @@ function PhoneNotificationsSection({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                      Step 2 — Verify phone number
+                      Βήμα 2 — Επιβεβαίωση τηλεφώνου
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      We'll send a 6-digit SMS code to confirm
+                      Θα στείλουμε 6ψήφιο κωδικό SMS για επιβεβαίωση
                     </p>
                   </div>
                   {currentPhone && !editingPhone && (
                     <span className="flex items-center gap-1 text-emerald-500 text-xs shrink-0">
-                      <Check size={12} /> Verified
+                      <Check size={12} /> Επιβεβαιωμένο
                     </span>
                   )}
                 </div>
 
                 {currentPhone && !editingPhone && (
-                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
                     <div className="flex items-center gap-2">
                       <Phone size={13} className="text-brand" />
                       <span className="text-sm text-slate-700 dark:text-slate-300 font-mono">
@@ -1136,7 +1136,7 @@ function PhoneNotificationsSection({
                       }}
                       className="text-xs text-slate-400 hover:text-brand transition-colors"
                     >
-                      Change
+                      Αλλαγή
                     </button>
                   </div>
                 )}
@@ -1148,19 +1148,19 @@ function PhoneNotificationsSection({
                       placeholder="+30 69..."
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                      className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
                     />
                     <button
                       onClick={() => sendOtp.mutate()}
                       disabled={phone.length < 7 || sendOtp.isPending}
-                      className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40 whitespace-nowrap"
+                      className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium disabled:opacity-40 whitespace-nowrap"
                     >
-                      {sendOtp.isPending ? 'Sending…' : 'Send code'}
+                      {sendOtp.isPending ? 'Αποστολή…' : 'Αποστολή κωδικού'}
                     </button>
                     {editingPhone && (
                       <button
                         onClick={() => setEditingPhone(false)}
-                        className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-md text-sm text-slate-400"
+                        className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-400"
                       >
                         ✕
                       </button>
@@ -1171,13 +1171,13 @@ function PhoneNotificationsSection({
                 {otpSent && (
                   <div className="flex flex-col gap-2">
                     <p className="text-xs text-slate-400">
-                      Code sent to{' '}
+                      Ο κωδικός στάλθηκε στο{' '}
                       <span className="font-mono text-slate-700 dark:text-slate-200">{phone}</span>.{' '}
                       <button
                         onClick={() => setOtpSent(false)}
                         className="text-brand hover:underline"
                       >
-                        Change number
+                        Αλλαγή αριθμού
                       </button>
                     </p>
                     <div className="flex gap-2">
@@ -1185,17 +1185,17 @@ function PhoneNotificationsSection({
                         type="text"
                         inputMode="numeric"
                         maxLength={6}
-                        placeholder="6-digit code"
+                        placeholder="6ψήφιος κωδικός"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-2 text-sm text-slate-800 dark:text-slate-100 tracking-widest font-mono"
+                        className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-slate-100 tracking-widest font-mono"
                       />
                       <button
                         onClick={() => verifyOtp.mutate()}
                         disabled={otp.length !== 6 || verifyOtp.isPending}
-                        className="px-4 py-2 bg-brand text-white rounded-md text-sm font-medium disabled:opacity-40"
+                        className="px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium disabled:opacity-40"
                       >
-                        {verifyOtp.isPending ? 'Verifying…' : 'Verify'}
+                        {verifyOtp.isPending ? 'Επιβεβαίωση…' : 'Επιβεβαίωση'}
                       </button>
                     </div>
                   </div>
@@ -1301,54 +1301,56 @@ export default function AlarmPage() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Alarm System</h1>
+      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Σύστημα συναγερμού</h1>
 
       {/* Status & Controls */}
-      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
+      <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-slate-400 uppercase tracking-widest">Status</p>
+            <p className="text-xs text-slate-400 uppercase tracking-widest">Κατάσταση</p>
             <StatusBadge state={currentState} />
           </div>
           <ArmControls currentState={currentState} hasPinSet={hasPinSet} />
         </div>
         {currentState === 'EXIT_DELAY' && (
-          <p className="mt-4 text-sm text-amber-500 bg-amber-50 dark:bg-amber-500/10 rounded-lg px-4 py-2.5">
-            Exit delay active — leave now.
+          <p className="mt-4 text-sm text-amber-500 bg-amber-50 dark:bg-amber-500/10 rounded-xl px-4 py-2.5">
+            Η καθυστέρηση εξόδου είναι ενεργή — αποχωρήστε τώρα.
           </p>
         )}
         {currentState === 'TRIGGERED' && (
-          <p className="mt-4 text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-lg px-4 py-2.5">
-            ⚠ Alarm triggered. Go to the panel to disarm with your PIN.
+          <p className="mt-4 text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-xl px-4 py-2.5">
+            ⚠ Ο συναγερμός ενεργοποιήθηκε. Ανοίξτε τον πίνακα ελέγχου για αφόπλιση με PIN.
           </p>
         )}
       </div>
 
       {/* Trigger Rules — owner only */}
       {isOwner && (
-        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-4">
+        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                Trigger Rules
+                Κανόνες ενεργοποίησης
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Device conditions that trigger the alarm
+                Συνθήκες συσκευών που ενεργοποιούν τον συναγερμό
               </p>
             </div>
             <button
               onClick={() => setAddingRule(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-md text-xs font-medium hover:bg-brand/90 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-xl text-xs font-medium hover:bg-brand/90 transition-colors"
             >
-              <Plus size={13} /> Add Rule
+              <Plus size={13} /> Προσθήκη κανόνα
             </button>
           </div>
 
           {rules.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <ShieldAlert size={32} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No rules yet.</p>
-              <p className="text-xs mt-1">Add sensor rules to trigger the alarm.</p>
+              <p className="text-sm">Δεν υπάρχουν κανόνες ακόμη.</p>
+              <p className="text-xs mt-1">
+                Προσθέστε κανόνες αισθητήρων για την ενεργοποίηση του συναγερμού.
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -1367,36 +1369,36 @@ export default function AlarmPage() {
 
       {/* On Trigger Actions — owner only */}
       {isOwner && (
-        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6 flex flex-col gap-4">
+        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                On Trigger — Actions
+                Ενέργειες ενεργοποίησης
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Device commands to execute when the alarm fires
+                Εντολές συσκευών όταν ενεργοποιείται ο συναγερμός
               </p>
             </div>
             <button
               onClick={() => setAddingTriggerAction(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-md text-xs font-medium hover:bg-brand/90 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white rounded-xl text-xs font-medium hover:bg-brand/90 transition-colors"
             >
-              <Plus size={13} /> Add Action
+              <Plus size={13} /> Προσθήκη ενέργειας
             </button>
           </div>
 
           {triggerActions.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <Zap size={32} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No actions yet.</p>
-              <p className="text-xs mt-1">e.g. turn on a siren or flash lights when triggered.</p>
+              <p className="text-sm">Δεν υπάρχουν ενέργειες ακόμη.</p>
+              <p className="text-xs mt-1">π.χ. ενεργοποίηση σειρήνας ή φώτων σε συναγερμό.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               {triggerActions.map((action) => (
                 <div
                   key={action.id}
-                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10"
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10"
                 >
                   <div className="flex flex-col gap-0.5">
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
@@ -1421,13 +1423,13 @@ export default function AlarmPage() {
 
       {/* Security Settings — owner only */}
       {isOwner && (
-        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm">
+        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl">
           <button
             onClick={() => setSecurityOpen((o) => !o)}
             className="w-full flex items-center justify-between px-6 py-4"
           >
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-              Security Settings
+              Ρυθμίσεις ασφαλείας
             </h2>
             {securityOpen ? (
               <ChevronUp size={16} className="text-slate-400" />
@@ -1446,12 +1448,14 @@ export default function AlarmPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                      Exit delay
+                      Καθυστέρηση εξόδου
                     </p>
-                    <p className="text-xs text-slate-400">Time to leave after arming Away</p>
+                    <p className="text-xs text-slate-400">
+                      Χρόνος αποχώρησης μετά την όπλιση εκτός σπιτιού
+                    </p>
                   </div>
                   <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                    {alarmSettings?.exitDelaySecs ?? 30}s
+                    {alarmSettings?.exitDelaySecs ?? 30}δευτ.
                   </span>
                 </div>
                 <input
@@ -1469,12 +1473,14 @@ export default function AlarmPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                      Entry delay
+                      Καθυστέρηση εισόδου
                     </p>
-                    <p className="text-xs text-slate-400">Time to disarm after sensor triggers</p>
+                    <p className="text-xs text-slate-400">
+                      Χρόνος αφόπλισης μετά την ενεργοποίηση αισθητήρα
+                    </p>
                   </div>
                   <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                    {alarmSettings?.entryDelaySecs ?? 30}s
+                    {alarmSettings?.entryDelaySecs ?? 30}δευτ.
                   </span>
                 </div>
                 <input

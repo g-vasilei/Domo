@@ -95,21 +95,17 @@ export class AutomationEvaluatorService {
     }
   }
 
-  // ── Cron: execute expired device timers every 30s ─────────────────────────
+  // ── Cron: execute expired device timers every 5s ─────────────────────────
 
-  @Cron('*/30 * * * * *')
+  @Cron('*/5 * * * * *')
   async executeExpiredTimers() {
     const expired = await this.prisma.deviceTimer.findMany({
       where: { endsAt: { lte: new Date() } },
     });
 
     for (const timer of expired) {
-      // Delete first to prevent double-execution if the command is slow
-      await this.prisma.deviceTimer.delete({ where: { id: timer.id } }).catch(() => {});
       try {
-        await this.devicesService.sendCommand(timer.userId, timer.deviceId, [
-          { code: timer.switchCode, value: false },
-        ]);
+        await this.devicesService.expireTimer(timer.id, timer.deviceId);
       } catch (e: any) {
         this.logger.error(`Timer execution failed for device ${timer.deviceId}: ${e?.message}`);
       }
@@ -410,19 +406,14 @@ export class AutomationEvaluatorService {
           action.statusCode &&
           action.minutes
         ) {
-          // Turn on, then schedule turn off
-          await this.devicesService.sendCommand(ownerId, action.deviceId, [
-            { code: action.statusCode, value: true },
-          ]);
-          setTimeout(async () => {
-            try {
-              await this.devicesService.sendCommand(ownerId, action.deviceId, [
-                { code: action.statusCode, value: false },
-              ]);
-            } catch (_e) {
-              this.logger.error(`Countdown turn-off failed: ${_e}`);
-            }
-          }, action.minutes * 60_000);
+          await this.devicesService.createTimer(
+            ownerId,
+            action.deviceId,
+            action.deviceName ?? '',
+            action.statusCode,
+            action.minutes,
+            true,
+          );
           this.logger.log(`Action: countdown ${action.minutes}min on device ${action.deviceId}`);
         }
       } catch (e: any) {

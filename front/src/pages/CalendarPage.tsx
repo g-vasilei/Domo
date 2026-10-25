@@ -7,10 +7,20 @@ import { api } from '../lib/api';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS = ['Κυρ', 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ'];
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+  'Ιανουάριος',
+  'Φεβρουάριος',
+  'Μάρτιος',
+  'Απρίλιος',
+  'Μάιος',
+  'Ιούνιος',
+  'Ιούλιος',
+  'Αύγουστος',
+  'Σεπτέμβριος',
+  'Οκτώβριος',
+  'Νοέμβριος',
+  'Δεκέμβριος',
 ];
 
 const COLOR_HEX: Record<string, string> = {
@@ -35,12 +45,16 @@ const HOUR_HEIGHT = 64; // px per hour in week view
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function pad(n: number) { return String(n).padStart(2, '0'); }
+function pad(n: number) {
+  return String(n).padStart(2, '0');
+}
 
 function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() &&
+  return (
+    a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+    a.getDate() === b.getDate()
+  );
 }
 
 function startOfWeek(date: Date): Date {
@@ -70,8 +84,7 @@ function getMonthCells(year: number, month: number): { date: Date; current: bool
   for (let d = 1; d <= daysInMonth; d++)
     cells.push({ date: new Date(year, month, d), current: true });
   const rem = 42 - cells.length;
-  for (let d = 1; d <= rem; d++)
-    cells.push({ date: new Date(year, month + 1, d), current: false });
+  for (let d = 1; d <= rem; d++) cells.push({ date: new Date(year, month + 1, d), current: false });
   return cells;
 }
 
@@ -115,10 +128,13 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
 
   // Now indicator
   const nowTop = (today.getHours() + today.getMinutes() / 60) * HOUR_HEIGHT;
-  const isCurrentWeek = days.some(d => isSameDay(d, today));
+  const isCurrentWeek = days.some((d) => isSameDay(d, today));
 
   return (
-    <div className="bg-white dark:bg-[#1e293b] rounded-xl shadow overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: 500 }}>
+    <div
+      className="bg-white dark:bg-[#1e293b] rounded-xl shadow overflow-hidden flex flex-col"
+      style={{ height: 'calc(100vh - 200px)', minHeight: 500 }}
+    >
       {/* Day header row */}
       <div className="flex border-b border-slate-200 dark:border-white/10 flex-shrink-0">
         {/* Gutter for hour labels */}
@@ -126,13 +142,18 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
         {days.map((day, i) => {
           const isToday = isSameDay(day, today);
           return (
-            <div key={i} className="flex-1 text-center py-2 border-l border-slate-200 dark:border-white/10">
+            <div
+              key={i}
+              className="flex-1 text-center py-2 border-l border-slate-200 dark:border-white/10"
+            >
               <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 {DAYS[day.getDay()]}
               </div>
-              <div className={`w-8 h-8 mx-auto mt-0.5 flex items-center justify-center rounded-full text-sm font-semibold ${
-                isToday ? 'bg-brand text-white' : 'text-slate-700 dark:text-slate-200'
-              }`}>
+              <div
+                className={`w-8 h-8 mx-auto mt-0.5 flex items-center justify-center rounded-full text-sm font-semibold ${
+                  isToday ? 'bg-brand text-white' : 'text-slate-700 dark:text-slate-200'
+                }`}
+              >
                 {day.getDate()}
               </div>
             </div>
@@ -145,7 +166,7 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
         <div className="flex" style={{ height: 24 * HOUR_HEIGHT }}>
           {/* Hour labels */}
           <div className="w-14 flex-shrink-0 relative">
-            {hours.map(h => (
+            {hours.map((h) => (
               <div
                 key={h}
                 className="absolute w-full flex items-start justify-end pr-2"
@@ -162,7 +183,9 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
 
           {/* Day columns */}
           {days.map((day, di) => {
-            const dayEvents = events.filter(e => !e.allDay && isSameDay(new Date(e.startAt), day));
+            const dayEvents = events.filter(
+              (e) => !e.allDay && isSameDay(new Date(e.startAt), day),
+            );
             const isToday = isSameDay(day, today);
 
             return (
@@ -171,7 +194,7 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
                 className="flex-1 relative border-l border-slate-200 dark:border-white/10"
               >
                 {/* Hour lines + click zones */}
-                {hours.map(h => (
+                {hours.map((h) => (
                   <div
                     key={h}
                     className="absolute w-full border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
@@ -194,11 +217,14 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
                 )}
 
                 {/* Events */}
-                {dayEvents.map(event => (
+                {dayEvents.map((event) => (
                   <div
                     key={event.id}
-                    onClick={e => { e.stopPropagation(); onEventClick(event); }}
-                    className="absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 cursor-pointer z-20 overflow-hidden hover:brightness-110 transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(event);
+                    }}
+                    className="absolute left-0.5 right-0.5 rounded-xl px-1.5 py-0.5 cursor-pointer z-20 overflow-hidden hover:brightness-110 transition-all"
                     style={{
                       top: eventTop(event) + 1,
                       height: Math.max(eventHeight(event) - 2, 20),
@@ -206,9 +232,14 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
                     }}
                   >
                     <div className="text-white text-xs font-medium truncate leading-tight">
-                      {new Date(event.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(event.startAt).toLocaleTimeString('el-GR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
-                    <div className="text-white/90 text-xs truncate leading-tight">{event.title}</div>
+                    <div className="text-white/90 text-xs truncate leading-tight">
+                      {event.title}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -218,20 +249,25 @@ function WeekView({ anchor, events, onSlotClick, onEventClick }: WeekViewProps) 
       </div>
 
       {/* All-day events strip */}
-      {events.some(e => e.allDay && days.some(d => isSameDay(new Date(e.startAt), d))) && (
+      {events.some((e) => e.allDay && days.some((d) => isSameDay(new Date(e.startAt), d))) && (
         <div className="flex border-t border-slate-200 dark:border-white/10 flex-shrink-0 min-h-[32px]">
           <div className="w-14 flex-shrink-0 flex items-center justify-end pr-2">
-            <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">All day</span>
+            <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">
+              Όλη μέρα
+            </span>
           </div>
           {days.map((day, di) => {
-            const dayAllDay = events.filter(e => e.allDay && isSameDay(new Date(e.startAt), day));
+            const dayAllDay = events.filter((e) => e.allDay && isSameDay(new Date(e.startAt), day));
             return (
-              <div key={di} className="flex-1 border-l border-slate-200 dark:border-white/10 p-0.5 space-y-0.5">
-                {dayAllDay.map(ev => (
+              <div
+                key={di}
+                className="flex-1 border-l border-slate-200 dark:border-white/10 p-0.5 space-y-0.5"
+              >
+                {dayAllDay.map((ev) => (
                   <div
                     key={ev.id}
                     onClick={() => onEventClick(ev)}
-                    className="text-xs text-white rounded px-1 truncate cursor-pointer hover:brightness-110"
+                    className="text-xs text-white rounded-xl px-1 truncate cursor-pointer hover:brightness-110"
                     style={{ backgroundColor: COLOR_HEX[ev.color] ?? COLOR_HEX.blue }}
                   >
                     {ev.title}
@@ -264,8 +300,11 @@ function MonthView({ year, month, events, onDayClick, onEventClick }: MonthViewP
     <div className="bg-white dark:bg-[#1e293b] rounded-xl shadow overflow-hidden">
       {/* Day headers */}
       <div className="grid grid-cols-7 border-b border-slate-200 dark:border-white/10">
-        {DAYS.map(d => (
-          <div key={d} className="py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+        {DAYS.map((d) => (
+          <div
+            key={d}
+            className="py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
+          >
             {d}
           </div>
         ))}
@@ -275,7 +314,7 @@ function MonthView({ year, month, events, onDayClick, onEventClick }: MonthViewP
       <div className="grid grid-cols-7">
         {cells.map(({ date, current }, idx) => {
           const isToday = isSameDay(date, today);
-          const dayEvents = events.filter(e => isSameDay(new Date(e.startAt), date));
+          const dayEvents = events.filter((e) => isSameDay(new Date(e.startAt), date));
           return (
             <div
               key={idx}
@@ -288,29 +327,39 @@ function MonthView({ year, month, events, onDayClick, onEventClick }: MonthViewP
                 idx >= 35 ? 'border-b-0' : '',
               ].join(' ')}
             >
-              <div className={`w-7 h-7 flex items-center justify-center text-sm font-medium rounded-full mb-1 ${
-                isToday ? 'bg-brand text-white' : 'text-slate-700 dark:text-slate-300'
-              }`}>
+              <div
+                className={`w-7 h-7 flex items-center justify-center text-sm font-medium rounded-full mb-1 ${
+                  isToday ? 'bg-brand text-white' : 'text-slate-700 dark:text-slate-300'
+                }`}
+              >
                 {date.getDate()}
               </div>
               <div className="space-y-0.5">
-                {dayEvents.slice(0, 3).map(event => (
+                {dayEvents.slice(0, 3).map((event) => (
                   <div
                     key={event.id}
-                    onClick={e => { e.stopPropagation(); onEventClick(event); }}
-                    className="text-xs px-1.5 py-0.5 rounded text-white truncate cursor-pointer hover:brightness-110"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEventClick(event);
+                    }}
+                    className="text-xs px-1.5 py-0.5 rounded-xl text-white truncate cursor-pointer hover:brightness-110"
                     style={{ backgroundColor: COLOR_HEX[event.color] ?? COLOR_HEX.blue }}
                   >
                     {!event.allDay && (
                       <span className="mr-1 opacity-80 text-[10px]">
-                        {new Date(event.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(event.startAt).toLocaleTimeString('el-GR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     )}
                     {event.title}
                   </div>
                 ))}
                 {dayEvents.length > 3 && (
-                  <div className="text-xs text-slate-500 dark:text-slate-400 px-1">+{dayEvents.length - 3} more</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 px-1">
+                    +{dayEvents.length - 3} περισσότερα
+                  </div>
                 )}
               </div>
             </div>
@@ -335,16 +384,21 @@ export default function CalendarPage() {
   // Compute fetch range
   const year = anchor.getFullYear();
   const month = anchor.getMonth();
-  const from = view === 'month'
-    ? new Date(year, month, 1).toISOString()
-    : startOfWeek(anchor).toISOString();
-  const to = view === 'month'
-    ? new Date(year, month + 1, 0, 23, 59, 59).toISOString()
-    : (() => { const e = startOfWeek(anchor); e.setDate(e.getDate() + 6); e.setHours(23, 59, 59); return e.toISOString(); })();
+  const from =
+    view === 'month' ? new Date(year, month, 1).toISOString() : startOfWeek(anchor).toISOString();
+  const to =
+    view === 'month'
+      ? new Date(year, month + 1, 0, 23, 59, 59).toISOString()
+      : (() => {
+          const e = startOfWeek(anchor);
+          e.setDate(e.getDate() + 6);
+          e.setHours(23, 59, 59);
+          return e.toISOString();
+        })();
 
   const { data: events = [] } = useQuery({
     queryKey: ['calendar', from, to],
-    queryFn: () => api.get('/calendar', { params: { from, to } }).then(r => r.data),
+    queryFn: () => api.get('/calendar', { params: { from, to } }).then((r) => r.data),
   });
 
   const prev = () => {
@@ -361,14 +415,17 @@ export default function CalendarPage() {
     setAnchor(d);
   };
 
-  const title = view === 'month'
-    ? `${MONTHS[month]} ${year}`
-    : (() => {
-        const days = getWeekDays(anchor);
-        const s = days[0], e = days[6];
-        if (s.getMonth() === e.getMonth()) return `${s.getDate()} – ${e.getDate()} ${MONTHS[s.getMonth()]} ${s.getFullYear()}`;
-        return `${s.getDate()} ${MONTHS[s.getMonth()]} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${s.getFullYear()}`;
-      })();
+  const title =
+    view === 'month'
+      ? `${MONTHS[month]} ${year}`
+      : (() => {
+          const days = getWeekDays(anchor);
+          const s = days[0],
+            e = days[6];
+          if (s.getMonth() === e.getMonth())
+            return `${s.getDate()} – ${e.getDate()} ${MONTHS[s.getMonth()]} ${s.getFullYear()}`;
+          return `${s.getDate()} ${MONTHS[s.getMonth()]} – ${e.getDate()} ${MONTHS[e.getMonth()]} ${s.getFullYear()}`;
+        })();
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['calendar'] });
 
@@ -377,29 +434,35 @@ export default function CalendarPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 transition-colors">
+          <button
+            onClick={prev}
+            className="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 transition-colors"
+          >
             <ChevronLeft size={20} />
           </button>
           <h2 className="text-base font-semibold text-slate-800 dark:text-white min-w-[220px] text-center">
             {title}
           </h2>
-          <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 transition-colors">
+          <button
+            onClick={next}
+            className="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 transition-colors"
+          >
             <ChevronRight size={20} />
           </button>
           <button
             onClick={() => setAnchor(new Date())}
-            className="ml-1 text-sm px-3 py-1.5 rounded-lg border border-slate-300 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+            className="ml-1 text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
           >
-            Today
+            Σήμερα
           </button>
         </div>
 
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-slate-300 dark:border-white/20 text-sm">
-            {(['month', 'week'] as View[]).map(v => (
+          <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-white/20 text-sm">
+            {(['month', 'week'] as View[]).map((v) => (
               <button
-                key={v}
+                key={v === 'month' ? 'Μήνας' : 'Εβδομάδα'}
                 onClick={() => setView(v)}
                 className={`px-3 py-1.5 font-medium capitalize transition-colors ${
                   view === v
@@ -407,17 +470,17 @@ export default function CalendarPage() {
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10'
                 }`}
               >
-                {v}
+                {v === 'month' ? 'Μήνας' : 'Εβδομάδα'}
               </button>
             ))}
           </div>
 
           <button
             onClick={() => setModal({ date: today })}
-            className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand/90 transition-colors"
           >
             <Plus size={16} />
-            Add Event
+            Νέο συμβάν
           </button>
         </div>
       </div>
@@ -428,15 +491,15 @@ export default function CalendarPage() {
           year={year}
           month={month}
           events={events}
-          onDayClick={date => setModal({ date })}
-          onEventClick={event => setModal({ event })}
+          onDayClick={(date) => setModal({ date })}
+          onEventClick={(event) => setModal({ event })}
         />
       ) : (
         <WeekView
           anchor={anchor}
           events={events}
           onSlotClick={(date, hour) => setModal({ date, time: `${pad(hour)}:00` })}
-          onEventClick={event => setModal({ event })}
+          onEventClick={(event) => setModal({ event })}
         />
       )}
 
@@ -446,7 +509,10 @@ export default function CalendarPage() {
           defaultDate={modal.date}
           defaultTime={modal.time}
           onClose={() => setModal(null)}
-          onSaved={() => { invalidate(); setModal(null); }}
+          onSaved={() => {
+            invalidate();
+            setModal(null);
+          }}
         />
       )}
     </div>

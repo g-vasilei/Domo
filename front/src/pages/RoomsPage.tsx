@@ -7,7 +7,7 @@ import { api } from '../lib/api';
 function EmptyRoom() {
   return (
     <div className="col-span-full py-8 text-center">
-      <p className="text-sm text-slate-400">No devices in this room.</p>
+      <p className="text-sm text-slate-400">Δεν υπάρχουν συσκευές σε αυτό το δωμάτιο.</p>
     </div>
   );
 }
@@ -18,13 +18,15 @@ function RoomSection({ room }: { room: { id: string; name: string; devices: any[
   return (
     <section>
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-7 h-7 rounded-md bg-brand/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-7 h-7 rounded-xl bg-brand/10 flex items-center justify-center flex-shrink-0">
           <Home size={14} className="text-brand" />
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{room.name}</h2>
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          {room.id === 'unassigned' ? 'Χωρίς δωμάτιο' : room.name}
+        </h2>
         <div className="flex-1 h-px bg-stroke dark:bg-white/10" />
         <span className="text-xs text-slate-400">
-          {online}/{room.devices.length} online
+          {online}/{room.devices.length} σε σύνδεση
         </span>
       </div>
 
@@ -51,24 +53,22 @@ export default function RoomsPage() {
     queryFn: () => api.get('/devices/rooms').then((r) => r.data),
   });
 
-  const errorMessage = (error as any)?.response?.data?.message ?? 'Failed to load rooms.';
+  const errorMessage = (error as any)?.response?.data?.message ?? 'Δεν φορτώθηκαν τα δωμάτια.';
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Rooms</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Devices grouped by room
-          </p>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Δωμάτια</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Συσκευές ανά δωμάτιο</p>
         </div>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
         >
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-          Refresh
+          Ανανέωση
         </button>
       </div>
 
@@ -76,12 +76,12 @@ export default function RoomsPage() {
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => (
             <div key={i}>
-              <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded animate-pulse mb-3" />
+              <div className="h-5 w-32 bg-slate-200 dark:bg-white/10 rounded-xl animate-pulse mb-3" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(3)].map((_, j) => (
                   <div
                     key={j}
-                    className="h-40 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm animate-pulse"
+                    className="h-40 bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl animate-pulse"
                   />
                 ))}
               </div>
@@ -96,7 +96,7 @@ export default function RoomsPage() {
             <WifiOff size={24} className="text-red-400" />
           </div>
           <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Could not load rooms
+            Δεν φορτώθηκαν τα δωμάτια
           </h3>
           <p className="text-sm text-red-400 max-w-sm">{errorMessage}</p>
         </div>
@@ -108,10 +108,10 @@ export default function RoomsPage() {
             <Home size={24} className="text-slate-300" />
           </div>
           <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            No rooms found
+            Δεν βρέθηκαν δωμάτια
           </h3>
           <p className="text-sm text-slate-400 max-w-xs">
-            Create rooms in the Smart Life app and assign devices to them.
+            Δημιουργήστε δωμάτια στο Smart Life και αντιστοιχίστε συσκευές σε αυτά.
           </p>
         </div>
       )}

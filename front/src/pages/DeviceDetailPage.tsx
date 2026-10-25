@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import AirConditionerControls from '../components/AirConditionerControls';
+import DeviceSchedules from '../components/DeviceSchedules';
 import TimerModal from '../components/TimerModal';
 import { api } from '../lib/api';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
@@ -29,18 +30,18 @@ import { useTimerStore } from '../store/timer.store';
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
-  cz: { label: 'Socket', Icon: Plug },
-  kg: { label: 'Switch', Icon: Zap },
-  dj: { label: 'Light', Icon: Lightbulb },
-  dd: { label: 'LED Strip', Icon: Lightbulb },
-  xdd: { label: 'Ceiling Light', Icon: Lightbulb },
-  kt: { label: 'Air Conditioner', Icon: Wind },
-  wk: { label: 'Thermostat', Icon: Thermometer },
-  kj: { label: 'Air Purifier', Icon: Wind },
-  fs: { label: 'Fan', Icon: Wind },
-  wsdcg: { label: 'Sensor', Icon: Thermometer },
-  mcs: { label: 'Door Sensor', Icon: DoorOpen },
-  pir: { label: 'Motion', Icon: Eye },
+  cz: { label: 'Πρίζα', Icon: Plug },
+  kg: { label: 'Διακόπτης', Icon: Zap },
+  dj: { label: 'Φωτισμός', Icon: Lightbulb },
+  dd: { label: 'Ταινία LED', Icon: Lightbulb },
+  xdd: { label: 'Φωτιστικό οροφής', Icon: Lightbulb },
+  kt: { label: 'Κλιματιστικό', Icon: Wind },
+  wk: { label: 'Θερμοστάτης', Icon: Thermometer },
+  kj: { label: 'Καθαριστής αέρα', Icon: Wind },
+  fs: { label: 'Ανεμιστήρας', Icon: Wind },
+  wsdcg: { label: 'Αισθητήρας', Icon: Thermometer },
+  mcs: { label: 'Αισθητήρας πόρτας', Icon: DoorOpen },
+  pir: { label: 'Κίνηση', Icon: Eye },
 };
 
 function sv(status: any[], code: string) {
@@ -56,9 +57,9 @@ function detectSwitchCodes(status: any[]): string[] {
 }
 
 function switchLabel(code: string, total: number): string {
-  if (total === 1) return 'Power';
+  if (total === 1) return 'Τροφοδοσία';
   const num = code.match(/\d+$/)?.[0];
-  return num ? `Switch ${num}` : code;
+  return num ? `Διακόπτης ${num}` : code;
 }
 
 function formatIconUrl(url: string) {
@@ -70,7 +71,7 @@ function formatIconUrl(url: string) {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
+    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6">
       <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
         {title}
       </h3>
@@ -94,7 +95,7 @@ function PowerToggle({
     <div className="flex items-center justify-between py-1">
       <div>
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
-        <p className="text-xs text-slate-400 mt-0.5">{on ? 'On' : 'Off'}</p>
+        <p className="text-xs text-slate-400 mt-0.5">{on ? 'Ενεργό' : 'Ανενεργό'}</p>
       </div>
       <button
         role="switch"
@@ -182,7 +183,7 @@ function Slider({
 
 function StatPill({ label, value, unit = '' }: { label: string; value: any; unit?: string }) {
   return (
-    <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-sm p-4 text-center">
+    <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 text-center">
       <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
         {value}
         <span className="text-sm font-normal ml-0.5">{unit}</span>
@@ -195,18 +196,18 @@ function StatPill({ label, value, unit = '' }: { label: string; value: any; unit
 function RawStatus({ status }: { status: any[] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm">
+    <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"
       >
-        <span>Raw Status ({status.length} codes)</span>
+        <span>Αναλυτική κατάσταση ({status.length} κωδικοί)</span>
         <span className="text-slate-300">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="px-6 pb-4 grid grid-cols-2 sm:grid-cols-3 gap-2 border-t border-slate-200 dark:border-white/10 pt-4">
           {status.map((s) => (
-            <div key={s.code} className="bg-slate-50 dark:bg-white/5 rounded px-3 py-2">
+            <div key={s.code} className="bg-slate-50 dark:bg-white/5 rounded-xl px-3 py-2">
               <p className="text-[10px] font-mono text-slate-400">{s.code}</p>
               <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
                 {String(s.value)}
@@ -250,8 +251,8 @@ function DeviceControls({
       {isAc && <AirConditionerControls device={device} disabled={disabled} send={sendCommand} />}
       {/* Power — one toggle per switch code */}
       {!isAc && switchCodes.length > 0 && (
-        <Card title="Power Control">
-          <div className="divide-y divide-stroke dark:divide-white/10">
+        <Card title="Έλεγχος τροφοδοσίας">
+          <div className="divide-y divide-slate-200 dark:divide-white/10">
             {switchCodes.map((code) => (
               <PowerToggle
                 key={code}
@@ -267,11 +268,11 @@ function DeviceControls({
 
       {/* Brightness + Color Temp (lights) */}
       {(brightness !== undefined || colorTemp !== undefined) && (
-        <Card title="Light Settings">
+        <Card title="Ρυθμίσεις φωτισμού">
           <div className="space-y-6">
             {brightness !== undefined && (
               <Slider
-                label="Brightness"
+                label="Φωτεινότητα"
                 value={brightness}
                 min={10}
                 max={1000}
@@ -292,7 +293,7 @@ function DeviceControls({
             )}
             {colorTemp !== undefined && (
               <Slider
-                label="Color Temperature"
+                label="Θερμοκρασία χρώματος"
                 value={colorTemp}
                 min={0}
                 max={1000}
@@ -314,11 +315,11 @@ function DeviceControls({
 
       {/* Sensor readings */}
       {(tempCurrent !== undefined || humidity !== undefined) && (
-        <Card title="Readings">
+        <Card title="Μετρήσεις">
           <div className="grid grid-cols-2 gap-3">
             {tempCurrent !== undefined && (
               <StatPill
-                label="Temperature"
+                label="Θερμοκρασία"
                 value={
                   typeof tempCurrent === 'number'
                     ? `${convertTemp(tempCurrent, tempUnit)}°${tempUnit}`
@@ -328,7 +329,7 @@ function DeviceControls({
             )}
             {humidity !== undefined && (
               <StatPill
-                label="Humidity"
+                label="Υγρασία"
                 value={
                   typeof humidity === 'number' && humidity > 100
                     ? (humidity / 10).toFixed(1)
@@ -343,15 +344,15 @@ function DeviceControls({
 
       {/* Energy monitoring (smart plugs) */}
       {(curPower !== undefined || curVoltage !== undefined || curCurrent !== undefined) && (
-        <Card title="Energy Monitor">
+        <Card title="Κατανάλωση ενέργειας">
           <div className="grid grid-cols-3 gap-3">
             {curPower !== undefined && (
-              <StatPill label="Power" value={(curPower / 10).toFixed(1)} unit="W" />
+              <StatPill label="Τροφοδοσία" value={(curPower / 10).toFixed(1)} unit="W" />
             )}
             {curVoltage !== undefined && (
-              <StatPill label="Voltage" value={(curVoltage / 10).toFixed(1)} unit="V" />
+              <StatPill label="Τάση" value={(curVoltage / 10).toFixed(1)} unit="V" />
             )}
-            {curCurrent !== undefined && <StatPill label="Current" value={curCurrent} unit="mA" />}
+            {curCurrent !== undefined && <StatPill label="Ένταση" value={curCurrent} unit="mA" />}
           </div>
         </Card>
       )}
@@ -383,16 +384,16 @@ function NotifToggle({ deviceId, deviceName }: { deviceId: string; deviceName: s
       onClick={() => mutate(!enabled)}
       disabled={isPending}
       title={
-        enabled ? 'Disable notifications for this device' : 'Enable notifications for this device'
+        enabled ? 'Απενεργοποίηση ειδοποιήσεων συσκευής' : 'Ενεργοποίηση ειδοποιήσεων συσκευής'
       }
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 ${
         enabled
           ? 'bg-brand/10 text-brand hover:bg-brand/20'
           : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10'
       }`}
     >
       {enabled ? <Bell size={12} /> : <BellOff size={12} />}
-      {enabled ? 'Notifying' : 'Notify me'}
+      {enabled ? 'Ειδοποιήσεις ενεργές' : 'Ειδοποιήσεις'}
     </button>
   );
 }
@@ -404,9 +405,9 @@ function formatCountdown(ms: number): string {
   const h = Math.floor(totalSecs / 3600);
   const m = Math.floor((totalSecs % 3600) / 60);
   const s = totalSecs % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
+  if (h > 0) return `${h}ώρ. ${m}λ.`;
+  if (m > 0) return `${m}λ. ${s}δ.`;
+  return `${s}δ.`;
 }
 
 function TimerControl({
@@ -414,14 +415,14 @@ function TimerControl({
   deviceName,
   switchCode,
   online,
-  onTurnOn,
 }: {
   deviceId: string;
   deviceName: string;
   switchCode: string | null;
   online: boolean;
-  onTurnOn: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const [timerError, setTimerError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [, setTick] = useState(0);
   const activeTimer = useTimerStore((s) => s.timers.find((t) => t.deviceId === deviceId));
@@ -435,9 +436,9 @@ function TimerControl({
 
   if (!switchCode) return null;
 
-  function handleConfirm(minutes: number) {
-    onTurnOn();
-    startTimer(deviceId, deviceName, switchCode!, minutes);
+  async function handleConfirm(minutes: number) {
+    await startTimer(deviceId, deviceName, switchCode!, minutes);
+    await queryClient.invalidateQueries({ queryKey: ['device', deviceId] });
     setShowModal(false);
   }
 
@@ -446,15 +447,20 @@ function TimerControl({
   return (
     <>
       {activeTimer && remaining > 0 ? (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
           <Timer size={13} className="text-amber-500 flex-shrink-0" />
           <span className="text-xs font-medium text-amber-600 dark:text-amber-400 tabular-nums">
-            Auto-off in {formatCountdown(remaining)}
+            Αυτόματο σβήσιμο σε {formatCountdown(remaining)}
           </span>
           <button
-            onClick={() => cancelTimer(deviceId)}
+            onClick={() => {
+              setTimerError(null);
+              cancelTimer(deviceId).catch(() =>
+                setTimerError('Δεν ακυρώθηκε ο χρονοδιακόπτης. Δοκιμάστε ξανά.'),
+              );
+            }}
             className="ml-1 text-amber-400 hover:text-amber-600 transition-colors"
-            title="Cancel timer"
+            title="Ακύρωση χρονοδιακόπτη"
           >
             <X size={13} />
           </button>
@@ -463,14 +469,19 @@ function TimerControl({
         <button
           onClick={() => setShowModal(true)}
           disabled={!online}
-          title="Set auto-off timer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Ορισμός αυτόματου σβησίματος"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Timer size={12} />
-          Timer
+          Λειτουργία για…
         </button>
       )}
 
+      {timerError && (
+        <p role="alert" className="text-xs text-red-500">
+          {timerError}
+        </p>
+      )}
       {showModal && (
         <TimerModal
           deviceName={deviceName}
@@ -522,7 +533,7 @@ export default function DeviceDetailPage() {
     onSuccess: () => setCmdError(null),
     onError: (e: any, _vars, ctx: any) => {
       queryClient.setQueryData(['device', id], ctx?.previous);
-      setCmdError(e?.response?.data?.message ?? e?.message ?? 'Command failed');
+      setCmdError(e?.response?.data?.message ?? e?.message ?? 'Η εντολή απέτυχε');
     },
   });
 
@@ -545,23 +556,23 @@ export default function DeviceDetailPage() {
         onClick={() => navigate('/')}
         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
       >
-        <ArrowLeft size={16} /> Back to Dashboard
+        <ArrowLeft size={16} /> Επιστροφή στην επισκόπηση
       </button>
 
       {isLoading && (
-        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-8 animate-pulse h-48" />
+        <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-8 animate-pulse h-48" />
       )}
 
       {error && (
-        <div className="bg-white dark:bg-[#1A222C] border border-red-200 dark:border-red-500/20 rounded-sm p-6 text-center">
-          <p className="text-sm text-red-400">Failed to load device.</p>
+        <div className="bg-white dark:bg-[#1A222C] border border-red-200 dark:border-red-500/20 rounded-xl p-6 text-center">
+          <p className="text-sm text-red-400">Δεν φορτώθηκε η συσκευή.</p>
         </div>
       )}
 
       {device && (
         <>
           {/* Device header */}
-          <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-sm p-6">
+          <div className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl p-6">
             <div className="flex items-center gap-4">
               <div
                 className={`w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 ${
@@ -597,7 +608,7 @@ export default function DeviceDetailPage() {
                     }`}
                   >
                     {device.online ? <Wifi size={10} /> : <WifiOff size={10} />}
-                    {device.online ? 'Online' : 'Offline'}
+                    {device.online ? 'Σε σύνδεση' : 'Εκτός σύνδεσης'}
                   </span>
                 </div>
                 {device.model && <p className="text-xs text-slate-400 mt-1">{device.model}</p>}
@@ -609,15 +620,12 @@ export default function DeviceDetailPage() {
                   deviceName={device.name}
                   switchCode={primarySwitchCode}
                   online={device.online}
-                  onTurnOn={() =>
-                    primarySwitchCode && sendCommand([{ code: primarySwitchCode, value: true }])
-                  }
                 />
                 <NotifToggle deviceId={device.id} deviceName={device.name} />
                 <button
                   onClick={() => queryClient.invalidateQueries({ queryKey: ['device', id] })}
-                  className="p-2 rounded-md text-slate-400 hover:text-brand hover:bg-brand/5"
-                  title="Refresh"
+                  className="p-2 rounded-xl text-slate-400 hover:text-brand hover:bg-brand/5"
+                  title="Ανανέωση"
                 >
                   <RefreshCw
                     size={16}
@@ -630,7 +638,7 @@ export default function DeviceDetailPage() {
 
           {/* Command error */}
           {cmdError && (
-            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-sm px-5 py-3 flex items-center justify-between">
+            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl px-5 py-3 flex items-center justify-between">
               <p className="text-sm text-red-500">{cmdError}</p>
               <button
                 onClick={() => setCmdError(null)}
@@ -643,14 +651,21 @@ export default function DeviceDetailPage() {
 
           {/* Controls */}
           {!device.online && (
-            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-sm px-5 py-3">
+            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-5 py-3">
               <p className="text-sm text-amber-600 dark:text-amber-400">
-                This device is offline. Controls are disabled until it reconnects.
+                Η συσκευή είναι εκτός σύνδεσης. Τα χειριστήρια ενεργοποιούνται όταν επανασυνδεθεί.
               </p>
             </div>
           )}
 
           <DeviceControls device={device} sendCommand={sendCommand} isPending={isPending} />
+          {primarySwitchCode && (
+            <DeviceSchedules
+              deviceId={device.id}
+              deviceName={device.name}
+              switchCode={primarySwitchCode}
+            />
+          )}
 
           {/* Raw status */}
           {device.status?.length > 0 && <RawStatus status={device.status} />}

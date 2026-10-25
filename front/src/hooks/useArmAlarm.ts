@@ -34,7 +34,7 @@ export function useArmAlarm() {
         setCountdown({ mode: 'home', seconds: 3, isExitDelay: false });
       }
     },
-    onError: (e: any) => setPinError(e?.response?.data?.message ?? 'Invalid PIN'),
+    onError: (e: any) => setPinError(e?.response?.data?.message ?? 'Μη έγκυρο PIN'),
   });
 
   const disarm = useMutation({
@@ -48,7 +48,7 @@ export function useArmAlarm() {
       setPinError('');
       setCountdown(null);
     },
-    onError: (e: any) => setPinError(e?.response?.data?.message ?? 'Invalid PIN'),
+    onError: (e: any) => setPinError(e?.response?.data?.message ?? 'Μη έγκυρο PIN'),
   });
 
   const handlePinConfirm = useCallback(

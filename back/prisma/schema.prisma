@@ -53,6 +53,7 @@ model User {
   deviceNotifPrefs DeviceNotifPref[]
   automationRules  AutomationRule[]
   deviceTimers     DeviceTimer[]
+  deviceSchedules  DeviceSchedule[]
   calendarEvents CalendarEvent[]
 
   createdAt DateTime @default(now())
@@ -278,4 +279,33 @@ model AutomationAction {
   minutes    Int?   // for countdown
 
   order Int @default(0)
+}
+
+model DeviceSchedule {
+  id         String @id @default(cuid())
+  userId     String
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId   String
+  deviceName String
+  switchCode String
+  name       String
+  timezone   String
+  days       Int[] // 0 = Sunday, 6 = Saturday
+  enabled    Boolean @default(true)
+  slots      DeviceScheduleSlot[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, deviceId])
+}
+
+model DeviceScheduleSlot {
+  id          String @id @default(cuid())
+  scheduleId  String
+  schedule    DeviceSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  time        String // HH:mm in schedule timezone
+  minutes     Int
+  lastRunKey  String? // local date + time, prevents duplicate starts including DST fallback
+
+  @@unique([scheduleId, time])
 }

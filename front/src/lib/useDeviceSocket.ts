@@ -10,11 +10,20 @@ import { usePrefsStore } from '../store/prefs.store';
 let socket: Socket | null = null;
 
 const ALARM_EVENTS: Partial<Record<AlarmState, { title: string; body: string }>> = {
-  TRIGGERED: { title: '⚠️ Alarm Triggered!', body: 'Your alarm has been triggered.' },
-  ARMED_HOME: { title: '🔒 Armed — Home', body: 'System armed in home mode.' },
-  ARMED_AWAY: { title: '🔒 Armed — Away', body: 'System armed in away mode.' },
-  DISARMED: { title: '🔓 Disarmed', body: 'Alarm system has been disarmed.' },
-  ENTRY_DELAY: { title: '⏱ Entry Delay', body: 'Disarm now to prevent the alarm.' },
+  TRIGGERED: { title: '⚠️ Ενεργοποίηση συναγερμού!', body: 'Ο συναγερμός σας ενεργοποιήθηκε.' },
+  ARMED_HOME: {
+    title: '🔒 Οπλισμένος — Εντός',
+    body: 'Το σύστημα οπλίστηκε σε λειτουργία εντός σπιτιού.',
+  },
+  ARMED_AWAY: {
+    title: '🔒 Οπλισμένος — Εκτός',
+    body: 'Το σύστημα οπλίστηκε σε λειτουργία εκτός σπιτιού.',
+  },
+  DISARMED: { title: '🔓 Αφοπλισμένος', body: 'Το σύστημα συναγερμού αφοπλίστηκε.' },
+  ENTRY_DELAY: {
+    title: '⏱ Καθυστέρηση εισόδου',
+    body: 'Αφοπλίστε τώρα για να μην ενεργοποιηθεί ο συναγερμός.',
+  },
 };
 
 function fireBrowserNotif(title: string, body: string) {
@@ -32,9 +41,7 @@ export function useDeviceSocket() {
   useEffect(() => {
     if (!accessToken) return;
 
-    const socketUrl = import.meta.env.DEV
-      ? 'http://localhost:3001'
-      : window.location.origin;
+    const socketUrl = import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin;
 
     socket = io(socketUrl, {
       path: '/socket.io',
@@ -92,16 +99,16 @@ export function useDeviceSocket() {
         batteryLevel?: number;
       }) => {
         if (payload.type === 'battery_low') {
-          const title = `🔋 Low Battery — ${payload.deviceName}`;
-          const body = `Battery is at ${payload.batteryLevel}%. Please replace soon.`;
+          const title = `🔋 Χαμηλή μπαταρία — ${payload.deviceName}`;
+          const body = `Η μπαταρία είναι στο ${payload.batteryLevel}%. Αντικαταστήστε την σύντομα.`;
           useNotificationsStore
             .getState()
             .push({ kind: 'battery', title, body, deviceId: payload.deviceId });
           fireBrowserNotif(title, body);
         } else if (payload.type === 'state_change') {
           const changes = (payload.commands ?? []).map((c) => `${c.code}: ${c.value}`).join(', ');
-          const title = `📡 ${payload.deviceName} changed`;
-          const body = changes || 'Device state updated';
+          const title = `📡 Άλλαξε η συσκευή ${payload.deviceName}`;
+          const body = changes || 'Η κατάσταση συσκευής ενημερώθηκε';
           useNotificationsStore
             .getState()
             .push({ kind: 'device', title, body, deviceId: payload.deviceId });
@@ -110,16 +117,11 @@ export function useDeviceSocket() {
       },
     );
 
-    socket.on(
-      'automation:alert',
-      (payload: { message: string; ruleName?: string }) => {
-        const title = payload.ruleName ? `🤖 ${payload.ruleName}` : '🤖 Automation';
-        useNotificationsStore
-          .getState()
-          .push({ kind: 'automation', title, body: payload.message });
-        fireBrowserNotif(title, payload.message);
-      },
-    );
+    socket.on('automation:alert', (payload: { message: string; ruleName?: string }) => {
+      const title = payload.ruleName ? `🤖 ${payload.ruleName}` : '🤖 Αυτοματισμός';
+      useNotificationsStore.getState().push({ kind: 'automation', title, body: payload.message });
+      fireBrowserNotif(title, payload.message);
+    });
 
     return () => {
       socket?.disconnect();

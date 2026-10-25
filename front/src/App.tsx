@@ -44,7 +44,7 @@ function AuthedLayout() {
   if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
   if (isLoading)
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center text-slate-400">Φόρτωση…</div>
     );
   if (!me?.tuyaCredentials && me?.role !== 'MEMBER') return <Navigate to="/setup" replace />;
 
@@ -77,7 +77,7 @@ function SetupGuard() {
   if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
   if (isLoading)
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center text-slate-400">Φόρτωση…</div>
     );
   if (me?.tuyaCredentials || me?.role === 'MEMBER') return <Navigate to="/" replace />;
   return <Outlet />;

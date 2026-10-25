@@ -25,7 +25,9 @@ Thumbs.db
 
 # IDE
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/css-custom-data.json
 *.swp
 *.swo
 

@@ -101,7 +101,7 @@ function PinPad({ onConfirm, label }: { onConfirm: (pin: string) => void; label:
           disabled={pin.length < 4}
           className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-30 text-white text-sm font-bold transition-colors"
         >
-          OK
+          Εντάξει
         </button>
       </div>
     </div>
@@ -138,8 +138,12 @@ function InfoDisplay({ settings, now }: { settings: AlarmSettings; now: Date }) 
     100,
   );
 
-  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const dateStr = now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' });
+  const timeStr = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('el-GR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   return (
     <div className="flex flex-col items-center justify-center gap-3">
@@ -155,13 +159,13 @@ function InfoDisplay({ settings, now }: { settings: AlarmSettings; now: Date }) 
         {settings.showTemp && temp !== null && (
           <div className="text-center">
             <p className="text-4xl font-semibold text-white">{temp}°</p>
-            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Temp</p>
+            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Θερμοκρασία</p>
           </div>
         )}
         {settings.showHumidity && humidity !== null && (
           <div className="text-center">
             <p className="text-4xl font-semibold text-white">{humidity}%</p>
-            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Humidity</p>
+            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest">Υγρασία</p>
           </div>
         )}
       </div>
@@ -230,7 +234,7 @@ export default function PanelPage() {
       setArmingMode(null);
       setArmPinError('');
     },
-    onError: () => setArmPinError('Wrong PIN. Try again.'),
+    onError: () => setArmPinError('Λάθος PIN. Δοκιμάστε ξανά.'),
   });
 
   const disarm = useMutation({
@@ -257,14 +261,14 @@ export default function PanelPage() {
     try {
       await disarm.mutateAsync(pin);
     } catch {
-      setDisarmError('Wrong PIN. Try again.');
+      setDisarmError('Λάθος PIN. Δοκιμάστε ξανά.');
     }
   };
 
   if (isLoading || !storeSettings) {
     return (
       <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-slate-500">
-        Loading...
+        Φόρτωση…
       </div>
     );
   }
@@ -276,11 +280,11 @@ export default function PanelPage() {
         <ShieldAlert size={64} className="text-red-400 animate-pulse" />
         <div className="text-center">
           <p className="text-red-300 text-3xl font-bold uppercase tracking-widest">
-            Alarm Triggered
+            Ο συναγερμός ενεργοποιήθηκε
           </p>
-          <p className="text-red-400/60 text-sm mt-2">Enter PIN to disarm</p>
+          <p className="text-red-400/60 text-sm mt-2">Εισαγάγετε PIN για αφόπλιση</p>
         </div>
-        <PinPad label="Enter PIN" onConfirm={handleDisarm} />
+        <PinPad label="Εισαγωγή PIN" onConfirm={handleDisarm} />
         {disarmError && <p className="text-red-400 text-sm">{disarmError}</p>}
       </div>
     );
@@ -292,9 +296,11 @@ export default function PanelPage() {
       <div className="min-h-screen bg-amber-950 flex flex-col items-center justify-center gap-10 p-8">
         <div className="text-center">
           <p className="text-amber-300 text-2xl font-bold uppercase tracking-widest">
-            Enter PIN to Disarm
+            Εισαγάγετε PIN για αφόπλιση
           </p>
-          <p className="text-amber-500/60 text-sm mt-1">Alarm will trigger in {secs}s</p>
+          <p className="text-amber-500/60 text-sm mt-1">
+            Ο συναγερμός ενεργοποιείται σε {secs}δευτ.
+          </p>
         </div>
         <CountdownRing secs={secs} total={storeSettings.entryDelaySecs} color="#f59e0b" />
         <PinPad label="PIN" onConfirm={handleDisarm} />
@@ -307,14 +313,16 @@ export default function PanelPage() {
   if (isExitDelay) {
     return (
       <div className="min-h-screen bg-[#0f1117] flex flex-col items-center justify-center gap-8 p-8">
-        <p className="text-slate-400 text-lg uppercase tracking-widest">Leave now</p>
+        <p className="text-slate-400 text-lg uppercase tracking-widest">Αποχωρήστε τώρα</p>
         <CountdownRing secs={secs} total={storeSettings.exitDelaySecs} color="#3b82f6" />
-        <p className="text-slate-500 text-sm">System will arm when countdown ends</p>
+        <p className="text-slate-500 text-sm">
+          Το σύστημα οπλίζεται όταν τελειώσει η αντίστροφη μέτρηση
+        </p>
         <button
           onClick={() => handleDisarm()}
           className="mt-4 px-6 py-2.5 rounded-full border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200 text-sm transition-colors"
         >
-          Cancel
+          Ακύρωση
         </button>
       </div>
     );
@@ -326,10 +334,12 @@ export default function PanelPage() {
       <div className="min-h-screen bg-[#0f1117] flex flex-col items-center justify-center gap-10 p-8">
         <Shield size={56} className="text-blue-500" />
         <div className="text-center">
-          <p className="text-blue-400 text-2xl font-bold uppercase tracking-widest">Armed — Away</p>
-          <p className="text-slate-600 text-sm mt-2">Door sensors active</p>
+          <p className="text-blue-400 text-2xl font-bold uppercase tracking-widest">
+            Οπλισμένος — Εκτός
+          </p>
+          <p className="text-slate-600 text-sm mt-2">Ενεργοί αισθητήρες πόρτας</p>
         </div>
-        <PinPad label="Enter PIN to disarm" onConfirm={handleDisarm} />
+        <PinPad label="Εισαγάγετε PIN για αφόπλιση" onConfirm={handleDisarm} />
         {disarmError && <p className="text-red-400 text-sm">{disarmError}</p>}
       </div>
     );
@@ -342,15 +352,15 @@ export default function PanelPage() {
         <Home size={56} className="text-emerald-400" />
         <div className="text-center">
           <p className="text-emerald-400 text-2xl font-bold uppercase tracking-widest">
-            Armed — Home
+            Οπλισμένος — Εντός
           </p>
-          <p className="text-slate-600 text-sm mt-2">Perimeter active</p>
+          <p className="text-slate-600 text-sm mt-2">Ενεργή περίμετρος</p>
         </div>
         <button
           onClick={() => handleDisarm()}
           className="mt-2 px-8 py-3 rounded-full bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium transition-colors flex items-center gap-2"
         >
-          <ShieldOff size={16} /> Disarm
+          <ShieldOff size={16} /> Αφόπλιση
         </button>
       </div>
     );
@@ -367,21 +377,21 @@ export default function PanelPage() {
           <p
             className={`text-2xl font-bold uppercase tracking-widest ${isHome ? 'text-emerald-400' : 'text-blue-400'}`}
           >
-            {isHome ? 'Arm — Home' : 'Arm — Away'}
+            {isHome ? 'Όπλιση — Εντός' : 'Όπλιση — Εκτός'}
           </p>
           <p className="text-slate-500 text-sm mt-2">
-            {hasPinSet ? 'Enter your PIN to confirm' : 'Confirm to arm'}
+            {hasPinSet ? 'Εισαγάγετε το PIN για επιβεβαίωση' : 'Επιβεβαίωση όπλισης'}
           </p>
         </div>
         {hasPinSet ? (
-          <PinPad label="Enter PIN" onConfirm={handleArmPin} />
+          <PinPad label="Εισαγωγή PIN" onConfirm={handleArmPin} />
         ) : (
           <button
             onClick={() => arm.mutate({ mode: armingMode })}
             disabled={arm.isPending}
             className={`px-8 py-3 rounded-full font-semibold text-white transition-colors ${isHome ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-blue-500 hover:bg-blue-400'}`}
           >
-            {arm.isPending ? '…' : 'Confirm'}
+            {arm.isPending ? '…' : 'Επιβεβαίωση'}
           </button>
         )}
         {armPinError && <p className="text-red-400 text-sm">{armPinError}</p>}
@@ -392,7 +402,7 @@ export default function PanelPage() {
           }}
           className="px-6 py-2.5 rounded-full border border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200 text-sm transition-colors"
         >
-          Cancel
+          Ακύρωση
         </button>
       </div>
     );
@@ -413,7 +423,7 @@ export default function PanelPage() {
           className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/40 text-slate-400 hover:text-emerald-400 transition-all"
         >
           <Home size={24} />
-          <span className="text-xs uppercase tracking-widest font-medium">Lock Inside</span>
+          <span className="text-xs uppercase tracking-widest font-medium">Όπλιση εντός</span>
         </button>
 
         <button
@@ -421,7 +431,7 @@ export default function PanelPage() {
           className="flex-1 flex flex-col items-center gap-2 py-5 rounded-2xl bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/40 text-slate-400 hover:text-blue-400 transition-all"
         >
           <LogOut size={24} />
-          <span className="text-xs uppercase tracking-widest font-medium">Lock Away</span>
+          <span className="text-xs uppercase tracking-widest font-medium">Όπλιση εκτός</span>
         </button>
       </div>
     </div>

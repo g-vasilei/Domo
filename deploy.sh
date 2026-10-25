@@ -13,9 +13,15 @@ git reset --hard origin/main
 CURRENT_COMMIT=$(git rev-parse HEAD)
 LAST_COMMIT_FILE=".last-deploy-commit"
 
+migrate_database() {
+  echo ">>> Applying pending database migrations before starting the backend..."
+  docker compose run --rm backend npx prisma migrate deploy
+}
+
 if [ ! -f "$LAST_COMMIT_FILE" ]; then
   echo "First deploy — building all services."
   docker compose build
+  migrate_database
   docker compose up -d
   echo "$CURRENT_COMMIT" > "$LAST_COMMIT_FILE"
   echo "=== Deploy complete ==="
@@ -31,32 +37,29 @@ echo ""
 
 REBUILT=0
 
-# ── Backend ─────────────────────────────────────────────────────────────────────
-if echo "$CHANGED" | grep -qE "^back/"; then
-  echo ">>> Rebuilding backend..."
-  docker compose build backend
-  if echo "$CHANGED" | grep -qE "^back/prisma/migrations/"; then
-    echo ">>> Running database migrations with new image..."
-    docker compose run --rm backend npx prisma migrate deploy
-  fi
-  docker compose up -d backend
-  REBUILT=$((REBUILT + 1))
-fi
-
-# ── Frontend ────────────────────────────────────────────────────────────────────
-if echo "$CHANGED" | grep -qE "^front/"; then
-  echo ">>> Rebuilding frontend..."
-  docker compose build frontend
-  docker compose up -d frontend
-  REBUILT=$((REBUILT + 1))
-fi
-
-# ── Root-level changes (tsconfig, package.json, docker-compose, etc.) ──────────
+# Root changes need a full rebuild; handle this first to avoid rebuilding twice.
 if echo "$CHANGED" | grep -qE "^(tsconfig|package|docker-compose|eslint)"; then
   echo ">>> Root config changed — rebuilding all services..."
   docker compose build
+  migrate_database
   docker compose up -d
-  REBUILT=$((REBUILT + 1))
+  REBUILT=1
+else
+  if echo "$CHANGED" | grep -qE "^back/"; then
+    echo ">>> Rebuilding backend..."
+    docker compose build backend
+    # Idempotent: also picks up migrations missed by an earlier deployment.
+    migrate_database
+    docker compose up -d backend
+    REBUILT=$((REBUILT + 1))
+  fi
+
+  if echo "$CHANGED" | grep -qE "^front/"; then
+    echo ">>> Rebuilding frontend..."
+    docker compose build frontend
+    docker compose up -d frontend
+    REBUILT=$((REBUILT + 1))
+  fi
 fi
 
 if [ "$REBUILT" -eq 0 ]; then

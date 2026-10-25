@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { useAuthStore } from '../store/auth.store';
+import { localizeApiMessage } from './greek';
 
 export const api = axios.create({ baseURL: '/api' });
 
@@ -15,6 +16,9 @@ let refreshPromise: Promise<string> | null = null;
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
+    if (error.response?.data?.message) {
+      error.response.data.message = localizeApiMessage(error.response.data.message);
+    }
     const original = error.config;
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;

@@ -1,5 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Cpu, LayoutDashboard, Monitor, ShieldAlert, Users, Workflow, X, Zap } from 'lucide-react';
+import {
+  CalendarDays,
+  Cpu,
+  LayoutDashboard,
+  Monitor,
+  ShieldAlert,
+  Users,
+  Workflow,
+  X,
+} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 import { api } from '../lib/api';
@@ -24,13 +33,13 @@ export default function Sidebar({ open, onClose }: Props) {
   const canSeeAutomations = isOwner || me?.permissions?.canManageAutomations;
 
   const nav = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-    { to: '/calendar', icon: CalendarDays, label: 'Calendar', show: true },
-    { to: '/devices', icon: Cpu, label: 'Devices', show: true },
-    { to: '/automations', icon: Workflow, label: 'Automations', show: canSeeAutomations },
-    { to: '/alarm', icon: ShieldAlert, label: 'Alarm', show: canSeeAlarm },
-    { to: '/members', icon: Users, label: 'Members', show: isOwner },
-    { to: '/panel', icon: Monitor, label: 'Panel Mode', show: true },
+    { to: '/', icon: LayoutDashboard, label: 'Επισκόπηση', show: true },
+    { to: '/calendar', icon: CalendarDays, label: 'Ημερολόγιο', show: true },
+    { to: '/devices', icon: Cpu, label: 'Συσκευές', show: true },
+    { to: '/automations', icon: Workflow, label: 'Αυτοματισμοί', show: canSeeAutomations },
+    { to: '/alarm', icon: ShieldAlert, label: 'Συναγερμός', show: canSeeAlarm },
+    { to: '/members', icon: Users, label: 'Μέλη', show: isOwner },
+    { to: '/panel', icon: Monitor, label: 'Πίνακας ελέγχου', show: true },
   ].filter((item) => item.show);
 
   return (
@@ -48,7 +57,7 @@ export default function Sidebar({ open, onClose }: Props) {
         <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center">
-              <img src="/logo/Domo.png" width={24} alt="Logo image" />
+              <img src="/logo/Domo.png" width={24} alt="Λογότυπο" />
             </div>
             <span className="text-white font-semibold text-lg tracking-tight">{__APP_NAME__}</span>
           </div>
@@ -59,7 +68,7 @@ export default function Sidebar({ open, onClose }: Props) {
 
         <nav className="flex-1 overflow-y-auto scrollbar-thin px-4 py-6 space-y-1">
           <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-3">
-            Main Menu
+            Κύριο μενού
           </p>
           {nav.map(({ to, icon: Icon, label }) => (
             <NavLink
@@ -68,7 +77,7 @@ export default function Sidebar({ open, onClose }: Props) {
               end={to === '/'}
               onClick={onClose}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
                   isActive
                     ? 'bg-brand text-white'
                     : 'text-slate-400 hover:bg-sidebar-hover hover:text-white'

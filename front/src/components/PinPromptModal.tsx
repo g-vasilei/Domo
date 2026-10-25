@@ -52,7 +52,7 @@ export default function PinPromptModal({
                 className={`w-3 h-3 rounded-full border-2 transition-colors ${
                   i < pin.length
                     ? 'bg-brand border-brand'
-                    : 'border-slate-300 dark:border-slate-600'
+                    : 'border-slate-200 dark:border-slate-600'
                 }`}
               />
             ))}

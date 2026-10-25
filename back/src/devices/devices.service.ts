@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   BadRequestException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -122,6 +123,7 @@ export class DevicesService {
         deviceId,
         commands,
       );
+      if (result === false) throw new Error('Device rejected command');
       this.gateway.broadcastDeviceUpdate(userId, deviceId, commands);
       this.logCommand(userId, deviceId, commands).catch(() => {});
       this.notifyDeviceChange(userId, deviceId, commands).catch(() => {});
@@ -235,23 +237,106 @@ export class DevicesService {
 
   // ── Device timers ──────────────────────────────────────────────────────────
 
+  async deviceAccess(userId: string, deviceId: string, action: 'view' | 'control' | 'schedule') {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { permissions: true },
+    });
+    if (!user) throw new ForbiddenException();
+    if (user.role === 'MEMBER') {
+      const p = user.permissions;
+      if (
+        !p?.canViewDevices ||
+        (p.allowedDeviceIds.length && !p.allowedDeviceIds.includes(deviceId)) ||
+        (action !== 'view' && !p.canControlDevices) ||
+        (action === 'schedule' && !p.canCreateSchedules)
+      ) {
+        throw new ForbiddenException('No permission for this device action');
+      }
+    }
+    return user.role === 'MEMBER' && user.createdById ? user.createdById : userId;
+  }
+
+  async getTimers(userId: string) {
+    const ownerId = await this.resolveOwnerId(userId);
+    const timers = await this.prisma.deviceTimer.findMany({ where: { userId: ownerId } });
+    const visible = [];
+    for (const timer of timers) {
+      try {
+        await this.deviceAccess(userId, timer.deviceId, 'view');
+        visible.push(timer);
+      } catch {
+        /* inaccessible device */
+      }
+    }
+    return visible;
+  }
+
+  private readonly timerOperations = new Map<string, Promise<unknown>>();
+
+  private async withTimerLock<T>(deviceId: string, operation: () => Promise<T>): Promise<T> {
+    const previous = this.timerOperations.get(deviceId) ?? Promise.resolve();
+    const current = previous.catch(() => {}).then(operation);
+    this.timerOperations.set(deviceId, current);
+    try {
+      return await current;
+    } finally {
+      if (this.timerOperations.get(deviceId) === current) this.timerOperations.delete(deviceId);
+    }
+  }
+
+  async expireTimer(id: string, deviceId: string) {
+    return this.withTimerLock(deviceId, async () => {
+      const timer = await this.prisma.deviceTimer.findUnique({ where: { id } });
+      if (!timer || timer.endsAt.getTime() > Date.now()) return;
+      await this.sendCommand(timer.userId, timer.deviceId, [
+        { code: timer.switchCode, value: false },
+      ]);
+      await this.prisma.deviceTimer.deleteMany({ where: { id: timer.id, endsAt: timer.endsAt } });
+    });
+  }
+
   async createTimer(
     userId: string,
     deviceId: string,
     deviceName: string,
     switchCode: string,
     minutes: number,
+    extend = false,
   ) {
-    const endsAt = new Date(Date.now() + minutes * 60_000);
-    return this.prisma.deviceTimer.upsert({
-      where: { userId_deviceId: { userId, deviceId } },
-      create: { userId, deviceId, deviceName, switchCode, endsAt },
-      update: { deviceName, switchCode, endsAt },
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+      throw new BadRequestException('Duration must be between 1 and 1440 minutes');
+    }
+    return this.withTimerLock(deviceId, async () => {
+      const ownerId = await this.deviceAccess(userId, deviceId, 'control');
+      const device = await this.getDevice(ownerId, deviceId);
+      if (!device.status?.some((s: any) => s.code === switchCode && typeof s.value === 'boolean')) {
+        throw new BadRequestException('Device does not expose this power switch');
+      }
+      const requestedEnd = new Date(Date.now() + minutes * 60_000);
+      // Persist auto-off before sending power-on, including ambiguous network failures.
+      const timer = await this.prisma.$transaction(async (tx) => {
+        const previous = await tx.deviceTimer.findUnique({
+          where: { userId_deviceId: { userId: ownerId, deviceId } },
+        });
+        const endsAt =
+          extend && previous && previous.endsAt > requestedEnd ? previous.endsAt : requestedEnd;
+        return tx.deviceTimer.upsert({
+          where: { userId_deviceId: { userId: ownerId, deviceId } },
+          create: { userId: ownerId, deviceId, deviceName, switchCode, endsAt },
+          update: { deviceName, switchCode, endsAt },
+        });
+      });
+      await this.sendCommand(ownerId, deviceId, [{ code: switchCode, value: true }]);
+      return timer;
     });
   }
 
   async cancelTimer(userId: string, deviceId: string) {
-    await this.prisma.deviceTimer.deleteMany({ where: { userId, deviceId } });
+    const ownerId = await this.deviceAccess(userId, deviceId, 'control');
+    await this.withTimerLock(deviceId, () =>
+      this.prisma.deviceTimer.deleteMany({ where: { userId: ownerId, deviceId } }),
+    );
   }
 
   private async resolveOwnerId(userId: string): Promise<string> {

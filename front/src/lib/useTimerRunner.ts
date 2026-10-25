@@ -1,28 +1,36 @@
 import { useEffect } from 'react';
 
-import { useTimerStore } from '../store/timer.store';
+import { useAuthStore } from '../store/auth.store';
+import { parseTimer, useTimerStore } from '../store/timer.store';
 import { api } from './api';
 
-/**
- * Mounted once at the app level. Every second it checks for expired timers
- * and fires a turn-off command, then removes the timer from the store.
- */
+/** Sync server timers; only the backend sends auto-off commands. */
 export function useTimerRunner() {
+  const token = useAuthStore((state) => state.accessToken);
   useEffect(() => {
-    const interval = setInterval(() => {
-      const { timers, remove } = useTimerStore.getState();
-      const now = Date.now();
-      timers.forEach((timer) => {
-        if (timer.endsAt <= now) {
-          remove(timer.id);
-          api
-            .post(`/devices/${timer.deviceId}/commands`, {
-              commands: [{ code: timer.switchCode, value: false }],
-            })
-            .catch(() => {});
-        }
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    let cancelled = false;
+    let inFlight = false;
+    useTimerStore.setState({ timers: [] });
+    if (!token) return;
+    const sync = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const { data } = await api.get('/devices/timers/active');
+        if (!cancelled) useTimerStore.setState({ timers: data.map(parseTimer) });
+      } catch {
+        /* Keep the last confirmed state during temporary network failures. */
+      } finally {
+        inFlight = false;
+      }
+    };
+    void sync();
+    const interval = setInterval(sync, 10_000);
+    window.addEventListener('focus', sync);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', sync);
+    };
+  }, [token]);
 }

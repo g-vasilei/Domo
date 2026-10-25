@@ -61,37 +61,37 @@ function StatCard({
 
 const ALARM_META: Record<string, { label: string; icon: any; color: string; bg: string }> = {
   DISARMED: {
-    label: 'Disarmed',
+    label: 'Αφοπλισμένος',
     icon: ShieldOff,
     color: 'text-slate-400',
     bg: 'bg-slate-100 dark:bg-white/5',
   },
   ARMED_HOME: {
-    label: 'Armed — Home',
+    label: 'Οπλισμένος — Εντός',
     icon: Shield,
     color: 'text-emerald-500',
     bg: 'bg-emerald-50 dark:bg-emerald-500/10',
   },
   ARMED_AWAY: {
-    label: 'Armed — Away',
+    label: 'Οπλισμένος — Εκτός',
     icon: Shield,
     color: 'text-blue-500',
     bg: 'bg-blue-50 dark:bg-blue-500/10',
   },
   EXIT_DELAY: {
-    label: 'Exit Delay…',
+    label: 'Καθυστέρηση εξόδου…',
     icon: ShieldAlert,
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-500/10',
   },
   ENTRY_DELAY: {
-    label: 'Entry Delay…',
+    label: 'Καθυστέρηση εισόδου…',
     icon: ShieldAlert,
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-500/10',
   },
   TRIGGERED: {
-    label: 'TRIGGERED',
+    label: 'ΕΝΕΡΓΟΠΟΙΗΘΗΚΕ',
     icon: ShieldAlert,
     color: 'text-red-500',
     bg: 'bg-red-50 dark:bg-red-500/10',
@@ -123,7 +123,7 @@ function SortableWidget({
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-2 left-2 z-10 p-1 rounded cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 opacity-0 group-hover/widget:opacity-100 transition-opacity"
+        className="absolute top-2 left-2 z-10 p-1 rounded-xl cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 opacity-0 group-hover/widget:opacity-100 transition-opacity"
       >
         <GripVertical size={14} />
       </div>
@@ -161,10 +161,12 @@ function DevicePickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white dark:bg-[#1A222C] rounded-xl border border-slate-200 dark:border-white/10 shadow-xl w-full max-w-sm flex flex-col max-h-[80vh]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10">
-          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Add widgets</h2>
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            Προσθήκη συσκευών
+          </h2>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded transition-colors"
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl transition-colors"
           >
             <X size={16} />
           </button>
@@ -174,9 +176,9 @@ function DevicePickerModal({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search devices…"
+            placeholder="Αναζήτηση συσκευών…"
             autoFocus
-            className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md px-3 py-1.5 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
+            className="w-full text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-slate-800 dark:text-slate-100 outline-none focus:border-brand"
           />
         </div>
 
@@ -190,8 +192,8 @@ function DevicePickerModal({
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
               >
                 <span
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    isAdded ? 'bg-brand border-brand' : 'border-slate-300 dark:border-white/20'
+                  className={`w-4 h-4 rounded-xl border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isAdded ? 'bg-brand border-brand' : 'border-slate-200 dark:border-white/20'
                   }`}
                 >
                   {isAdded && (
@@ -212,23 +214,23 @@ function DevicePickerModal({
                     {d.name}
                   </span>
                   <span className="block text-xs text-slate-400">
-                    {d.online ? 'Online' : 'Offline'}
+                    {d.online ? 'Σε σύνδεση' : 'Εκτός σύνδεσης'}
                   </span>
                 </span>
               </button>
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-8">No devices found</p>
+            <p className="text-sm text-slate-400 text-center py-8">Δεν βρέθηκαν συσκευές</p>
           )}
         </div>
 
         <div className="px-4 py-3 border-t border-slate-100 dark:border-white/10">
           <button
             onClick={onClose}
-            className="w-full py-2 text-sm bg-brand text-white rounded-lg hover:bg-brand/90 transition-colors"
+            className="w-full py-2 text-sm bg-brand text-white rounded-xl hover:bg-brand/90 transition-colors"
           >
-            Done
+            Έτοιμο
           </button>
         </div>
       </div>
@@ -286,7 +288,8 @@ export default function DashboardPage() {
   const online = (devices as any[]).filter((d) => d.online).length;
   const offline = (devices as any[]).filter((d) => !d.online).length;
   const roomCount = (rooms as any[]).filter((r: any) => r.id !== 'unassigned').length;
-  const errorMessage = (error as any)?.response?.data?.message ?? 'An unexpected error occurred.';
+  const errorMessage =
+    (error as any)?.response?.data?.message ?? 'Παρουσιάστηκε μη αναμενόμενο σφάλμα.';
 
   const validIds = widgetIds.filter((id) => (devices as any[]).some((d) => d.id === id));
   const widgetDevices = validIds
@@ -325,35 +328,33 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Dashboard</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Επισκόπηση</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Overview of your smart home
+            Το έξυπνο σπίτι σας με μια ματιά
           </p>
         </div>
         <button
           onClick={() => setEditing((v) => !v)}
-          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border transition-colors ${
             editing
               ? 'bg-brand text-white border-brand'
               : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-brand hover:text-brand'
           }`}
         >
           <Settings2 size={13} />
-          {editing ? 'Done' : 'Customize'}
+          {editing ? 'Έτοιμο' : 'Προσαρμογή'}
         </button>
       </div>
 
       {/* Alarm banner */}
-      <div
-        className={`flex items-center justify-between flex-wrap gap-4 rounded-sm border px-6 py-4 ${meta.bg} border-transparent`}
-      >
+      <div className="flex items-center justify-between flex-wrap gap-4 rounded-xl border border-slate-200 bg-white px-6 py-4 dark:border-white/10 dark:bg-[#1A222C]">
         <div className="flex items-center gap-4">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${meta.bg}`}>
             <AlarmIcon size={22} className={meta.color} />
           </div>
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              Alarm System
+              Σύστημα συναγερμού
             </p>
             <p className={`text-lg font-bold ${meta.color}`}>{meta.label}</p>
           </div>
@@ -365,25 +366,25 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Cpu}
-          label="Total Devices"
+          label="Σύνολο συσκευών"
           value={(devices as any[]).length}
           color="bg-brand/10 text-brand"
         />
         <StatCard
           icon={Wifi}
-          label="Online"
+          label="Σε σύνδεση"
           value={online}
           color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
         />
         <StatCard
           icon={WifiOff}
-          label="Offline"
+          label="Εκτός σύνδεσης"
           value={offline}
           color="bg-red-50 text-red-400 dark:bg-red-500/10"
         />
         <StatCard
           icon={Home}
-          label="Rooms"
+          label="Δωμάτια"
           value={roomCount}
           color="bg-violet-50 text-violet-500 dark:bg-violet-500/10"
         />
@@ -402,10 +403,10 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              My Widgets
+              Οι συσκευές μου
               {widgetDevices.length > 0 && (
                 <span className="ml-2 text-xs font-normal text-slate-400">
-                  {widgetDevices.length} device{widgetDevices.length !== 1 ? 's' : ''}
+                  {widgetDevices.length} {widgetDevices.length === 1 ? 'συσκευή' : 'συσκευές'}
                 </span>
               )}
             </h2>
@@ -414,7 +415,7 @@ export default function DashboardPage() {
                 onClick={() => setShowPicker(true)}
                 className="flex items-center gap-1 text-xs text-brand hover:underline"
               >
-                <Plus size={12} /> Add device
+                <Plus size={12} /> Προσθήκη συσκευής
               </button>
             )}
           </div>
@@ -436,19 +437,19 @@ export default function DashboardPage() {
                 <LayoutDashboard size={20} className="text-slate-300" />
               </div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-                No widgets yet
+                Δεν έχετε προσθέσει συσκευές ακόμη
               </p>
               <p className="text-xs text-slate-400 mb-4">
-                Add your favourite devices for quick access
+                Οι αγαπημένες σας συσκευές για γρήγορη πρόσβαση
               </p>
               <button
                 onClick={() => {
                   setEditing(true);
                   setShowPicker(true);
                 }}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-brand text-white hover:bg-brand/90 transition-colors"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-brand text-white hover:bg-brand/90 transition-colors"
               >
-                <Plus size={12} /> Add device
+                <Plus size={12} /> Προσθήκη συσκευής
               </button>
             </div>
           )}
