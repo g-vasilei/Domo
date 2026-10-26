@@ -27,6 +27,7 @@ import {
 import { useState } from 'react';
 
 import ArmControls from '../components/ArmControls';
+import DashboardHealth from '../components/DashboardHealth';
 import DeviceCard from '../components/DeviceCard';
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
@@ -249,10 +250,19 @@ export default function DashboardPage() {
     data: devices = [],
     isLoading,
     error,
+    isFetching,
+    dataUpdatedAt,
+    refetch,
   } = useQuery({
     queryKey: ['devices'],
     queryFn: () => api.get('/devices').then((r) => r.data),
     refetchInterval: 30_000,
+  });
+
+  const { data: me, isPending: profileLoading } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api.get('/users/me').then((response) => response.data),
+    staleTime: 60_000,
   });
 
   const { data: rooms = [] } = useQuery({
@@ -285,8 +295,8 @@ export default function DashboardPage() {
   const meta = ALARM_META[alarmState] ?? ALARM_META.DISARMED;
   const AlarmIcon = meta.icon;
 
-  const online = (devices as any[]).filter((d) => d.online).length;
-  const offline = (devices as any[]).filter((d) => !d.online).length;
+  const online = (devices as any[]).filter((d) => d.online === true).length;
+  const offline = (devices as any[]).filter((d) => d.online === false).length;
   const roomCount = (rooms as any[]).filter((r: any) => r.id !== 'unassigned').length;
   const errorMessage =
     (error as any)?.response?.data?.message ?? 'Παρουσιάστηκε μη αναμενόμενο σφάλμα.';
@@ -367,19 +377,19 @@ export default function DashboardPage() {
         <StatCard
           icon={Cpu}
           label="Σύνολο συσκευών"
-          value={(devices as any[]).length}
+          value={isLoading || error ? '—' : (devices as any[]).length}
           color="bg-brand/10 text-brand"
         />
         <StatCard
           icon={Wifi}
           label="Σε σύνδεση"
-          value={online}
+          value={isLoading || error ? '—' : online}
           color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
         />
         <StatCard
           icon={WifiOff}
           label="Εκτός σύνδεσης"
-          value={offline}
+          value={isLoading || error ? '—' : offline}
           color="bg-red-50 text-red-400 dark:bg-red-500/10"
         />
         <StatCard
@@ -480,6 +490,18 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      <DashboardHealth
+        devices={devices}
+        viewer={me}
+        loading={isLoading || profileLoading}
+        failed={!!error}
+        updatedAt={dataUpdatedAt}
+        refreshing={isFetching}
+        onRefresh={() => {
+          void refetch();
+        }}
+      />
 
       {showPicker && (
         <DevicePickerModal

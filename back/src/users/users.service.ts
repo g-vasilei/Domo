@@ -12,6 +12,7 @@ import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TuyaService } from '../tuya/tuya.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { ActivityQueryDto } from './dto/activity-query.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
@@ -217,6 +218,40 @@ export class UsersService {
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
+  }
+
+  async getActivity(userId: string, query: ActivityQueryDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (!user) throw new ForbiddenException();
+    const members =
+      user.role === 'OWNER'
+        ? await this.prisma.user.findMany({ where: { createdById: userId }, select: { id: true } })
+        : [];
+    const page = query.page ?? 1;
+    const rows = await this.prisma.log.findMany({
+      where: {
+        userId: { in: [userId, ...members.map((member) => member.id)] },
+        context: query.context ?? { in: ['device', 'alarm', 'automation'] },
+        ...(query.level ? { level: query.level } : {}),
+        ...(query.since ? { createdAt: { gte: new Date(query.since) } } : {}),
+      },
+      select: {
+        id: true,
+        level: true,
+        message: true,
+        context: true,
+        metadata: true,
+        createdAt: true,
+        user: { select: { email: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: (page - 1) * 50,
+      take: 51,
+    });
+    return { items: rows.slice(0, 50), page, hasMore: rows.length > 50 };
   }
 
   async getPendingInvitations(ownerId: string) {

@@ -5,12 +5,14 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 
 import { AutomationEvaluatorService } from '../automation/automation-evaluator.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TuyaService } from '../tuya/tuya.service';
 import { UsersService } from '../users/users.service';
+import { assertCanViewDevices, canAccessDevice, DeviceAction } from './device-permissions';
 import { DevicesGateway } from './devices.gateway';
 
 /** Battery codes Tuya devices report */
@@ -20,6 +22,7 @@ const BATTERY_LOW_THRESHOLD = 20; // percent
 
 @Injectable()
 export class DevicesService {
+  private readonly logger = new Logger(DevicesService.name);
   constructor(
     private readonly usersService: UsersService,
     private readonly tuyaService: TuyaService,
@@ -39,19 +42,28 @@ export class DevicesService {
   }
 
   async getRooms(userId: string) {
+    const viewer = await this.deviceViewer(userId);
     const creds = await this.getCreds(userId);
     try {
-      return await this.tuyaService.getRooms(
+      const rooms = await this.tuyaService.getRooms(
         creds.accessId,
         creds.accessSecret,
         creds.region as any,
       );
+      if (viewer.role === 'OWNER') return rooms;
+      return rooms
+        .map((room: any) => ({
+          ...room,
+          devices: room.devices.filter((device: any) => canAccessDevice(viewer, device.id, 'view')),
+        }))
+        .filter((room: any) => room.devices.length > 0);
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve rooms from Tuya');
     }
   }
 
   async getDevices(userId: string) {
+    const viewer = await this.deviceViewer(userId);
     const creds = await this.getCreds(userId);
     try {
       const result = await this.tuyaService.getDevices(
@@ -59,13 +71,15 @@ export class DevicesService {
         creds.accessSecret,
         creds.region as any,
       );
-      return result?.devices ?? result ?? [];
+      const devices = result?.devices ?? result ?? [];
+      return devices.filter((device: any) => canAccessDevice(viewer, device.id, 'view'));
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve devices from Tuya');
     }
   }
 
   async getDevice(userId: string, deviceId: string) {
+    await this.deviceAccess(userId, deviceId, 'view');
     const creds = await this.getCreds(userId);
     try {
       const device = await this.tuyaService.getDevice(
@@ -82,6 +96,7 @@ export class DevicesService {
   }
 
   async getDeviceSpecifications(userId: string, deviceId: string) {
+    await this.deviceAccess(userId, deviceId, 'view');
     const creds = await this.getCreds(userId);
     try {
       return await this.tuyaService.getDeviceSpecifications(
@@ -96,6 +111,7 @@ export class DevicesService {
   }
 
   async getDeviceStatus(userId: string, deviceId: string) {
+    await this.deviceAccess(userId, deviceId, 'view');
     const creds = await this.getCreds(userId);
     try {
       return await this.tuyaService.getDeviceStatus(
@@ -114,6 +130,7 @@ export class DevicesService {
     deviceId: string,
     commands: { code: string; value: unknown }[],
   ) {
+    const ownerId = await this.deviceAccess(userId, deviceId, 'control');
     const creds = await this.getCreds(userId);
     try {
       const result = await this.tuyaService.sendCommand(
@@ -124,14 +141,21 @@ export class DevicesService {
         commands,
       );
       if (result === false) throw new Error('Device rejected command');
-      this.gateway.broadcastDeviceUpdate(userId, deviceId, commands);
-      this.logCommand(userId, deviceId, commands).catch(() => {});
+      this.deviceRecipients(ownerId, deviceId)
+        .then((ids) => this.gateway.broadcastToUsers(ids, 'device:update', { deviceId, commands }))
+        .catch((error) => this.logger.error('Could not broadcast device update', error));
+      this.logCommand(userId, deviceId, commands).catch((error) =>
+        this.logger.error('Could not record device command', error),
+      );
       this.notifyDeviceChange(userId, deviceId, commands).catch(() => {});
-      this.resolveOwnerId(userId)
-        .then((ownerId) => this.automationEvaluator.evaluateOnCommand(ownerId, deviceId, commands))
-        .catch(() => {});
+      this.automationEvaluator
+        .evaluateOnCommand(ownerId, deviceId, commands)
+        .catch((error) => this.logger.error(`Automation evaluation failed for ${deviceId}`, error));
       return result;
     } catch (e: any) {
+      await this.logCommand(userId, deviceId, commands, true).catch((error) =>
+        this.logger.error('Could not record failed command', error),
+      );
       throw new BadGatewayException(e?.message ?? 'Failed to send command to Tuya');
     }
   }
@@ -139,6 +163,7 @@ export class DevicesService {
   // ── Notification preferences ───────────────────────────────────────────────
 
   async getNotifPref(userId: string, deviceId: string) {
+    await this.deviceAccess(userId, deviceId, 'view');
     const pref = await this.prisma.deviceNotifPref.findUnique({
       where: { userId_deviceId: { userId, deviceId } },
     });
@@ -146,6 +171,7 @@ export class DevicesService {
   }
 
   async setNotifPref(userId: string, deviceId: string, enabled: boolean, deviceName = '') {
+    await this.deviceAccess(userId, deviceId, 'view');
     return this.prisma.deviceNotifPref.upsert({
       where: { userId_deviceId: { userId, deviceId } },
       create: { userId, deviceId, enabled, deviceName },
@@ -164,7 +190,7 @@ export class DevicesService {
     deviceId: string,
     commands: { code: string; value: unknown }[],
   ) {
-    const groupIds = await this.usersService.getGroupUserIds(actorId);
+    const groupIds = await this.deviceRecipients(actorId, deviceId);
     const others = groupIds.filter((id) => id !== actorId);
     if (others.length === 0) return;
 
@@ -219,7 +245,7 @@ export class DevicesService {
     const isLow = pct < BATTERY_LOW_THRESHOLD;
     if (!isLow || wasLow) return;
 
-    const groupIds = await this.usersService.getGroupUserIds(userId);
+    const groupIds = await this.deviceRecipients(userId, deviceId);
     const prefs = await this.prisma.deviceNotifPref.findMany({
       where: { userId: { in: groupIds }, deviceId, enabled: true },
     });
@@ -237,27 +263,34 @@ export class DevicesService {
 
   // ── Device timers ──────────────────────────────────────────────────────────
 
-  async deviceAccess(userId: string, deviceId: string, action: 'view' | 'control' | 'schedule') {
+  private async deviceViewer(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { permissions: true },
     });
-    if (!user) throw new ForbiddenException();
-    if (user.role === 'MEMBER') {
-      const p = user.permissions;
-      if (
-        !p?.canViewDevices ||
-        (p.allowedDeviceIds.length && !p.allowedDeviceIds.includes(deviceId)) ||
-        (action !== 'view' && !p.canControlDevices) ||
-        (action === 'schedule' && !p.canCreateSchedules)
-      ) {
-        throw new ForbiddenException('No permission for this device action');
-      }
+    assertCanViewDevices(user);
+    return user;
+  }
+
+  async deviceAccess(userId: string, deviceId: string, action: DeviceAction) {
+    const user = await this.deviceViewer(userId);
+    if (!canAccessDevice(user, deviceId, action)) {
+      throw new ForbiddenException('No permission for this device action');
     }
-    return user.role === 'MEMBER' && user.createdById ? user.createdById : userId;
+    return user.role === 'MEMBER' ? user.createdById! : userId;
+  }
+
+  private async deviceRecipients(userId: string, deviceId: string) {
+    const ownerId = await this.resolveOwnerId(userId);
+    const users = await this.prisma.user.findMany({
+      where: { OR: [{ id: ownerId }, { createdById: ownerId }] },
+      include: { permissions: true },
+    });
+    return users.filter((user) => canAccessDevice(user, deviceId, 'view')).map((user) => user.id);
   }
 
   async getTimers(userId: string) {
+    await this.deviceViewer(userId);
     const ownerId = await this.resolveOwnerId(userId);
     const timers = await this.prisma.deviceTimer.findMany({ where: { userId: ownerId } });
     const visible = [];
@@ -327,7 +360,7 @@ export class DevicesService {
           update: { deviceName, switchCode, endsAt },
         });
       });
-      await this.sendCommand(ownerId, deviceId, [{ code: switchCode, value: true }]);
+      await this.sendCommand(userId, deviceId, [{ code: switchCode, value: true }]);
       return timer;
     });
   }
@@ -351,6 +384,7 @@ export class DevicesService {
     userId: string,
     deviceId: string,
     commands: { code: string; value: unknown }[],
+    failed = false,
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -360,8 +394,8 @@ export class DevicesService {
     await this.prisma.log.create({
       data: {
         userId,
-        level: 'info',
-        message: `Device command: ${commands.map((c) => `${c.code}=${c.value}`).join(', ')}`,
+        level: failed ? 'error' : 'info',
+        message: `${failed ? 'Αποτυχία εντολής συσκευής' : 'Εντολή συσκευής'}: ${commands.map((c) => `${c.code}=${c.value}`).join(', ')}`,
         context: 'device',
         metadata: { deviceId, commands: commands as any, ownerId },
       },

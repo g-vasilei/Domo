@@ -21,8 +21,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import AirConditionerControls from '../components/AirConditionerControls';
+import CommandFeedback from '../components/CommandFeedback';
 import DeviceSchedules from '../components/DeviceSchedules';
+import PowerSwitch from '../components/PowerSwitch';
 import TimerModal from '../components/TimerModal';
+import { useDeviceCommand } from '../hooks/useDeviceCommand';
+import { useDevicePermissions } from '../hooks/useDevicePermissions';
 import { api } from '../lib/api';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
 import { useTimerStore } from '../store/timer.store';
@@ -97,20 +101,7 @@ function PowerToggle({
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
         <p className="text-xs text-slate-400 mt-0.5">{on ? 'Ενεργό' : 'Ανενεργό'}</p>
       </div>
-      <button
-        role="switch"
-        aria-label={label}
-        aria-checked={on}
-        onClick={() => onChange(!on)}
-        disabled={disabled}
-        className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed ${
-          on ? 'bg-brand' : 'bg-slate-200 dark:bg-slate-600'
-        }`}
-      >
-        <span
-          className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform duration-200 ${on ? 'translate-x-9' : 'translate-x-1'}`}
-        />
-      </button>
+      <PowerSwitch on={on} label={label} disabled={disabled} onChange={onChange} />
     </div>
   );
 }
@@ -415,11 +406,13 @@ function TimerControl({
   deviceName,
   switchCode,
   online,
+  disabled,
 }: {
   deviceId: string;
   deviceName: string;
   switchCode: string | null;
   online: boolean;
+  disabled: boolean;
 }) {
   const queryClient = useQueryClient();
   const [timerError, setTimerError] = useState<string | null>(null);
@@ -459,6 +452,7 @@ function TimerControl({
                 setTimerError('Δεν ακυρώθηκε ο χρονοδιακόπτης. Δοκιμάστε ξανά.'),
               );
             }}
+            disabled={disabled}
             className="ml-1 text-amber-400 hover:text-amber-600 transition-colors"
             title="Ακύρωση χρονοδιακόπτη"
           >
@@ -468,7 +462,7 @@ function TimerControl({
       ) : (
         <button
           onClick={() => setShowModal(true)}
-          disabled={!online}
+          disabled={!online || disabled}
           title="Ορισμός αυτόματου σβησίματος"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -513,29 +507,8 @@ export default function DeviceDetailPage() {
     enabled: !!id,
   });
 
-  const [cmdError, setCmdError] = useState<string | null>(null);
-
-  const { mutate: sendCommand, isPending } = useMutation({
-    mutationFn: (commands: { code: string; value: unknown }[]) =>
-      api.post(`/devices/${id}/commands`, { commands }),
-    onMutate: async (commands) => {
-      await queryClient.cancelQueries({ queryKey: ['device', id] });
-      const previous = queryClient.getQueryData(['device', id]);
-      queryClient.setQueryData(['device', id], (old: any) => ({
-        ...old,
-        status: [
-          ...(old.status ?? []).filter((s: any) => !commands.some((c) => c.code === s.code)),
-          ...commands,
-        ],
-      }));
-      return { previous };
-    },
-    onSuccess: () => setCmdError(null),
-    onError: (e: any, _vars, ctx: any) => {
-      queryClient.setQueryData(['device', id], ctx?.previous);
-      setCmdError(e?.response?.data?.message ?? e?.message ?? 'Η εντολή απέτυχε');
-    },
-  });
+  const { sendCommand, isPending, feedback } = useDeviceCommand(id ?? '');
+  const { canControl } = useDevicePermissions(id ?? '');
 
   const meta = device
     ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu })
@@ -620,6 +593,7 @@ export default function DeviceDetailPage() {
                   deviceName={device.name}
                   switchCode={primarySwitchCode}
                   online={device.online}
+                  disabled={!canControl || isPending}
                 />
                 <NotifToggle deviceId={device.id} deviceName={device.name} />
                 <button
@@ -636,17 +610,11 @@ export default function DeviceDetailPage() {
             </div>
           </div>
 
-          {/* Command error */}
-          {cmdError && (
-            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl px-5 py-3 flex items-center justify-between">
-              <p className="text-sm text-red-500">{cmdError}</p>
-              <button
-                onClick={() => setCmdError(null)}
-                className="text-red-400 hover:text-red-600 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
+          <CommandFeedback feedback={feedback} />
+          {!canControl && (
+            <p className="text-sm text-slate-500">
+              Μόνο προβολή · Δεν έχετε δικαίωμα χειρισμού της συσκευής.
+            </p>
           )}
 
           {/* Controls */}
@@ -658,7 +626,11 @@ export default function DeviceDetailPage() {
             </div>
           )}
 
-          <DeviceControls device={device} sendCommand={sendCommand} isPending={isPending} />
+          <DeviceControls
+            device={device}
+            sendCommand={sendCommand}
+            isPending={isPending || !canControl}
+          />
           {primarySwitchCode && (
             <DeviceSchedules
               deviceId={device.id}

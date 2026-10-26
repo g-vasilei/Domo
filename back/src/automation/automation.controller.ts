@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AutomationEvaluatorService } from './automation-evaluator.service';
 import { AutomationService } from './automation.service';
+import { AutomationEvaluatorService } from './automation-evaluator.service';
 import { CreateRuleDto, UpdateLocationDto, UpdateRuleDto } from './dto/automation.dto';
 
 @Controller('automations')
@@ -61,8 +61,8 @@ export class AutomationController {
 
   @Post(':id/test')
   async testRule(@Req() req: any, @Param('id') id: string) {
-    const ownerId = await this.service.resolveOwnerIdPublic(req.user.id);
-    return this.evaluator.testRule(ownerId, id);
+    const rule = await this.service.getRule(req.user.id, id);
+    return this.evaluator.testRule(rule.userId, id);
   }
 
   @Delete(':id')

@@ -16,7 +16,10 @@
     "prestart": "npm run prisma:generate",
     "prestart:dev": "npm run prisma:generate",
     "prestart:debug": "npm run prisma:generate",
-    "test:deploy": "node --test test/deploy.test.cjs"
+    "test:deploy": "node --test test/deploy.test.cjs",
+    "test:alarm": "npm run build && node --test test/alarm-recovery.test.cjs",
+    "test:automations": "npm run build && node --test test/automation-events.test.cjs",
+    "test:activity": "npm run build && node --test test/activity.test.cjs"
   },
   "dependencies": {
     "@fastify/static": "^6.12.0",

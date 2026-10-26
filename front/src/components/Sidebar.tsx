@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   CalendarDays,
   Cpu,
+  History,
   LayoutDashboard,
   Monitor,
   ShieldAlert,
@@ -38,6 +39,7 @@ export default function Sidebar({ open, onClose }: Props) {
     { to: '/devices', icon: Cpu, label: 'Συσκευές', show: true },
     { to: '/automations', icon: Workflow, label: 'Αυτοματισμοί', show: canSeeAutomations },
     { to: '/alarm', icon: ShieldAlert, label: 'Συναγερμός', show: canSeeAlarm },
+    { to: '/activity', icon: History, label: 'Ιστορικό', show: true },
     { to: '/members', icon: Users, label: 'Μέλη', show: isOwner },
     { to: '/panel', icon: Monitor, label: 'Πίνακας ελέγχου', show: true },
   ].filter((item) => item.show);

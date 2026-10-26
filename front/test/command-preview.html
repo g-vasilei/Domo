@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="el">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Domo · Έλεγχος εντολών</title></head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+      import { BrowserRouter } from 'react-router-dom';
+      import DeviceCard from '/src/components/DeviceCard.tsx';
+      import PowerSwitch from '/src/components/PowerSwitch.tsx';
+      import { api } from '/src/lib/api.ts';
+      import '/src/index.css';
+
+      // Isolated manual QA: every API request is handled here. No real devices are contacted.
+      const devices = [
+        { id: 'preview-success', name: 'Δοκιμή επιτυχίας', category: 'cz', online: true, status: [{ code: 'switch', value: false }] },
+        { id: 'preview-error', name: 'Δοκιμή αποτυχίας', category: 'cz', online: true, status: [{ code: 'switch', value: false }] },
+      ];
+      api.defaults.adapter = async (config) => {
+        if (config.method === 'get' && config.url === '/users/me') {
+          return { data: { role: 'OWNER' }, status: 200, statusText: 'OK', headers: {}, config };
+        }
+        if (config.method === 'post' && config.url.endsWith('/commands')) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          if (config.url.includes('preview-error')) {
+            throw Object.assign(new Error('Forbidden'), {
+              config, response: { status: 403, data: { message: 'No permission for this device action' } },
+            });
+          }
+          return { data: true, status: 200, statusText: 'OK', headers: {}, config };
+        }
+        throw new Error('No real API calls are allowed in this preview');
+      };
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+      client.setQueryData(['devices'], devices);
+      function SupplyPreview() {
+        const [on, setOn] = React.useState(false);
+        return React.createElement('section', { className: 'rounded-xl border border-slate-200 bg-white p-6' },
+          React.createElement('h2', { className: 'mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500' }, 'Έλεγχος τροφοδοσίας'),
+          React.createElement('div', { className: 'flex items-center justify-between' },
+            React.createElement('div', null,
+              React.createElement('p', { className: 'text-sm font-semibold text-slate-800' }, 'Τροφοδοσία'),
+              React.createElement('p', { className: 'mt-1 text-xs text-slate-400' }, on ? 'Ενεργό' : 'Ανενεργό'),
+            ),
+            React.createElement(PowerSwitch, { on, label: 'Τροφοδοσία', onChange: setOn }),
+          ),
+        );
+      }
+      function Preview() {
+        const { data = [] } = __useQuery({ queryKey: ['devices'], queryFn: async () => devices });
+        return React.createElement('main', { className: 'min-h-screen bg-slate-100 p-6 md:p-12' },
+          React.createElement('div', { className: 'max-w-3xl mx-auto space-y-6' },
+            React.createElement('h1', { className: 'text-xl font-bold text-slate-800' }, 'Έλεγχος ανατροφοδότησης εντολών'),
+            React.createElement('p', { className: 'text-sm text-slate-500' }, 'Απομονωμένη δοκιμή με προσομοιωμένες απαντήσεις API. Οι πραγματικές συσκευές δεν επηρεάζονται.'),
+            React.createElement(SupplyPreview),
+            React.createElement('div', { className: 'grid gap-4 sm:grid-cols-2' }, data.map((device) => React.createElement(DeviceCard, { key: device.id, device }))),
+          ),
+        );
+      }
+      import { useQuery as __useQuery } from '@tanstack/react-query';
+      createRoot(document.getElementById('root')).render(
+        React.createElement(QueryClientProvider, { client }, React.createElement(BrowserRouter, null, React.createElement(Preview))),
+      );
+    </script>
+  </body>
+</html>

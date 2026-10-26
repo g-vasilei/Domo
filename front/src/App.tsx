@@ -8,6 +8,7 @@ import { api } from './lib/api';
 import { useDeviceSocket } from './lib/useDeviceSocket';
 import { useTimerRunner } from './lib/useTimerRunner';
 import AcceptInvitePage from './pages/AcceptInvitePage';
+import ActivityPage from './pages/ActivityPage';
 import AlarmPage from './pages/AlarmPage';
 import AutomationsPage from './pages/AutomationsPage';
 import CalendarPage from './pages/CalendarPage';
@@ -109,6 +110,7 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/automations" element={<AutomationsPage />} />
+        <Route path="/activity" element={<ActivityPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
 
         <Route element={<AlarmGuard />}>

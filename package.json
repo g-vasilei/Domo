@@ -11,7 +11,8 @@
     "front": "npm run dev --workspace=front",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,json}\""
+    "format": "prettier --write \"**/*.{ts,tsx,json}\"",
+    "test": "npm run build --workspace=back && node --test back/test/*.test.cjs front/test/*.test.cjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import * as SunCalc from 'suncalc';
 
@@ -6,14 +6,13 @@ import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes between triggers
-
 @Injectable()
 export class AutomationEvaluatorService {
   private readonly logger = new Logger(AutomationEvaluatorService.name);
 
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => DevicesService))
     private readonly devicesService: DevicesService,
     private readonly gateway: DevicesGateway,
   ) {}
@@ -66,7 +65,7 @@ export class AutomationEvaluatorService {
       return trace;
     }
 
-    // Execute actions (skipCooldown=true, so edge detection is bypassed)
+    // Manual testing deliberately bypasses automatic edge detection.
     await this.executeActions(rule.actions, ownerId, rule.name);
     await this.prisma.automationRule.update({
       where: { id: rule.id },
@@ -87,12 +86,48 @@ export class AutomationEvaluatorService {
     const rules = await this.getEnabledRulesWithDeviceCondition(ownerId, deviceId);
     if (!rules.length) return;
 
-    // Build a fake status array from the commands we just sent
-    const knownStatus = commands.map((c) => ({ code: c.code, value: c.value }));
-
+    // Commands may contain only one property; fetch the rest of each rule's inputs.
+    // Reuse reads across rules and overlay the accepted command on Tuya's snapshot,
+    // which can briefly lag behind a successful write.
+    const statusMap = await this.fetchRuleStatuses(rules, ownerId);
+    const changedStatus = new Map(
+      (statusMap.get(deviceId) ?? []).map((entry) => [entry.code, entry]),
+    );
+    for (const command of commands) changedStatus.set(command.code, command);
+    statusMap.set(deviceId, [...changedStatus.values()]);
     for (const rule of rules) {
-      await this.evaluateRule(rule, ownerId, knownStatus, deviceId, undefined, true);
+      if (!this.hasDeviceInputs(rule, statusMap)) continue;
+      await this.evaluateRule(rule, ownerId, undefined, undefined, statusMap);
     }
+  }
+
+  private async fetchRuleStatuses(rules: any[], ownerId: string) {
+    const deviceIds = new Set<string>();
+    for (const rule of rules) {
+      for (const condition of rule.conditions) {
+        if (condition.type === 'device_state' && condition.deviceId) {
+          deviceIds.add(condition.deviceId);
+        }
+      }
+    }
+    const statuses = new Map<string, { code: string; value: unknown }[]>();
+    for (const deviceId of deviceIds) {
+      try {
+        const status = await this.devicesService.getDeviceStatus(ownerId, deviceId);
+        if (Array.isArray(status)) statuses.set(deviceId, status);
+      } catch (error: any) {
+        this.logger.warn(`Could not fetch status for device ${deviceId}: ${error?.message}`);
+      }
+    }
+    return statuses;
+  }
+
+  private hasDeviceInputs(rule: any, statuses: Map<string, { code: string; value: unknown }[]>) {
+    return rule.conditions.every(
+      (condition: any) =>
+        condition.type !== 'device_state' ||
+        statuses.get(condition.deviceId)?.some((entry) => entry.code === condition.statusCode),
+    );
   }
 
   // ── Cron: execute expired device timers every 5s ─────────────────────────
@@ -124,7 +159,7 @@ export class AutomationEvaluatorService {
       include: {
         conditions: { orderBy: { order: 'asc' } },
         actions: { orderBy: { order: 'asc' } },
-        user: { select: { id: true } },
+        user: { select: { id: true, timezone: true, latitude: true, longitude: true } },
       },
     });
 
@@ -137,28 +172,10 @@ export class AutomationEvaluatorService {
     }
 
     for (const [ownerId, userRules] of byUser) {
-      // Collect unique device IDs needed
-      const deviceIds = new Set<string>();
-      for (const rule of userRules) {
-        for (const cond of rule.conditions) {
-          if (cond.type === 'device_state' && cond.deviceId) {
-            deviceIds.add(cond.deviceId);
-          }
-        }
-      }
-
-      // Fetch each device's status
-      const statusMap = new Map<string, any[]>();
-      for (const did of deviceIds) {
-        try {
-          const status = await this.devicesService.getDeviceStatus(ownerId, did);
-          statusMap.set(did, Array.isArray(status) ? status : []);
-        } catch (e: any) {
-          this.logger.warn(`Could not fetch status for device ${did}: ${e?.message}`);
-        }
-      }
+      const statusMap = await this.fetchRuleStatuses(userRules, ownerId);
 
       for (const rule of userRules) {
+        if (!this.hasDeviceInputs(rule, statusMap)) continue;
         await this.evaluateRule(rule, ownerId, undefined, undefined, statusMap);
       }
     }
@@ -193,9 +210,12 @@ export class AutomationEvaluatorService {
     knownStatus?: { code: string; value: unknown }[],
     knownDeviceId?: string,
     statusMap?: Map<string, any[]>,
-    skipCooldown = false,
   ) {
     if (!rule.enabled) return;
+    if (!statusMap && rule.conditions.some((condition: any) => condition.type === 'device_state')) {
+      statusMap = await this.fetchRuleStatuses([rule], ownerId);
+    }
+    if (statusMap && !this.hasDeviceInputs(rule, statusMap)) return;
 
     const user =
       rule.user ??
@@ -212,29 +232,29 @@ export class AutomationEvaluatorService {
       user,
     );
 
-    // Edge detection for cron-based evaluation: only fire on false → true transition.
-    // Command-triggered evaluation (skipCooldown=true) always fires when condition is met.
+    // Commands and polling share persistent edge detection.
     if (!condMet) {
-      if (!skipCooldown && rule.conditionMet) {
-        await this.prisma.automationRule.update({
-          where: { id: rule.id },
+      if (rule.conditionMet) {
+        await this.prisma.automationRule.updateMany({
+          where: { id: rule.id, lastTriggeredAt: rule.lastTriggeredAt },
           data: { conditionMet: false },
         });
       }
       return;
     }
 
-    if (!skipCooldown && rule.conditionMet) {
+    if (rule.conditionMet) {
       // Condition was already true last evaluation — don't re-fire
       return;
     }
 
-    this.logger.log(`Rule "${rule.name}" (${rule.id}) triggered for user ${ownerId}`);
-
-    await this.prisma.automationRule.update({
-      where: { id: rule.id },
+    // Claim the false → true edge atomically, including concurrent command/cron checks.
+    const claimed = await this.prisma.automationRule.updateMany({
+      where: { id: rule.id, enabled: true, conditionMet: false },
       data: { lastTriggeredAt: new Date(), conditionMet: true },
     });
+    if (!claimed.count) return;
+    this.logger.log(`Rule "${rule.name}" (${rule.id}) triggered for user ${ownerId}`);
 
     await this.executeActions(rule.actions, ownerId, rule.name);
   }
@@ -352,7 +372,7 @@ export class AutomationEvaluatorService {
     cond: any,
     latitude?: number | null,
     longitude?: number | null,
-    timezone?: string | null,
+    _timezone?: string | null,
   ): boolean {
     if (!cond.sunEvent || latitude == null || longitude == null) return false;
 
@@ -416,9 +436,37 @@ export class AutomationEvaluatorService {
           );
           this.logger.log(`Action: countdown ${action.minutes}min on device ${action.deviceId}`);
         }
+        await this.recordAction(ownerId, ruleName, action, false);
       } catch (e: any) {
         this.logger.error(`Action failed: ${e?.message}`);
+        await this.recordAction(ownerId, ruleName, action, true);
       }
+    }
+  }
+
+  private async recordAction(
+    ownerId: string,
+    ruleName: string | undefined,
+    action: any,
+    failed: boolean,
+  ) {
+    try {
+      await this.prisma.log.create({
+        data: {
+          userId: ownerId,
+          context: 'automation',
+          level: failed ? 'error' : 'info',
+          message: `${failed ? 'Αποτυχία ενέργειας' : 'Εκτέλεση ενέργειας'} αυτοματισμού «${ruleName ?? 'Κανόνας'}» (${action.type})`,
+          metadata: {
+            ownerId,
+            ruleName: ruleName ?? '',
+            actionType: action.type,
+            ...(action.deviceId ? { deviceId: action.deviceId } : {}),
+          },
+        },
+      });
+    } catch (error) {
+      this.logger.error('Could not record automation action', error);
     }
   }
 

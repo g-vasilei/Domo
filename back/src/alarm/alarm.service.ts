@@ -2,15 +2,16 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  OnModuleDestroy,
   OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AlarmAction, AlarmState } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-import { EncryptionService } from '../encryption/encryption.service';
 import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
+import { EncryptionService } from '../encryption/encryption.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AlarmCallService } from './alarm-call.service';
 import {
@@ -22,7 +23,7 @@ import {
 } from './dto/alarm.dto';
 
 @Injectable()
-export class AlarmService implements OnModuleInit {
+export class AlarmService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AlarmService.name);
 
   private exitTimers = new Map<string, NodeJS.Timeout>();
@@ -40,11 +41,15 @@ export class AlarmService implements OnModuleInit {
   async onModuleInit() {
     // Restore polling for users who were armed when the server last restarted
     const armed = await this.prisma.alarmSettings.findMany({
-      where: { state: { in: ['ARMED_HOME', 'ARMED_AWAY'] } },
+      where: { state: { in: ['ARMED_HOME', 'ARMED_AWAY', 'EXIT_DELAY', 'ENTRY_DELAY'] } },
     });
     for (const s of armed) {
-      this.startPolling(s.userId, s.state as 'ARMED_HOME' | 'ARMED_AWAY');
-      this.logger.log(`Restored polling for user ${s.userId} (${s.state})`);
+      if (s.state === 'EXIT_DELAY' || s.state === 'ENTRY_DELAY') {
+        await this.scheduleDelay(s);
+      } else {
+        this.startPolling(s.userId, s.state as 'ARMED_HOME' | 'ARMED_AWAY');
+      }
+      this.logger.log(`Restored alarm for user ${s.userId} (${s.state})`);
     }
   }
 
@@ -181,13 +186,7 @@ export class AlarmService implements OnModuleInit {
     } else {
       this.clearDelayTimers(userId);
       const result = await this.setState(userId, 'EXIT_DELAY', actorId);
-      const delay = (result.exitDelaySecs ?? 30) * 1000;
-      const timer = setTimeout(async () => {
-        this.exitTimers.delete(userId);
-        await this.setState(userId, 'ARMED_AWAY', actorId);
-        this.startPolling(userId, 'ARMED_AWAY');
-      }, delay);
-      this.exitTimers.set(userId, timer);
+      await this.scheduleDelay(result, actorId);
       return result;
     }
   }
@@ -214,12 +213,7 @@ export class AlarmService implements OnModuleInit {
     this.stopPolling(userId);
     this.clearDelayTimers(userId);
     const result = await this.setState(userId, 'ENTRY_DELAY');
-    const delay = (result.entryDelaySecs ?? 30) * 1000;
-    const timer = setTimeout(async () => {
-      this.entryTimers.delete(userId);
-      await this.setState(userId, 'TRIGGERED');
-    }, delay);
-    this.entryTimers.set(userId, timer);
+    await this.scheduleDelay(result);
   }
 
   async triggerImmediate(userId: string) {
@@ -228,6 +222,50 @@ export class AlarmService implements OnModuleInit {
     this.stopPolling(userId);
     this.clearDelayTimers(userId);
     await this.setState(userId, 'TRIGGERED');
+  }
+
+  onModuleDestroy() {
+    for (const userId of new Set([
+      ...this.exitTimers.keys(),
+      ...this.entryTimers.keys(),
+      ...this.pollTimers.keys(),
+    ]))
+      this.clearAll(userId);
+  }
+
+  private async scheduleDelay(
+    settings: {
+      userId: string;
+      state: AlarmState;
+      stateAt: Date;
+      exitDelaySecs: number;
+      entryDelaySecs: number;
+    },
+    actorId?: string,
+  ) {
+    const { userId, state, stateAt } = settings;
+    const exiting = state === 'EXIT_DELAY';
+    const duration = exiting ? settings.exitDelaySecs : settings.entryDelaySecs;
+    const remaining = Math.max(0, stateAt.getTime() + duration * 1000 - Date.now());
+    const timers = exiting ? this.exitTimers : this.entryTimers;
+    const complete = async () => {
+      timers.delete(userId);
+      const next = exiting ? 'ARMED_AWAY' : 'TRIGGERED';
+      const result = await this.setState(userId, next, actorId, { state, stateAt });
+      if (result && exiting) this.startPolling(userId, 'ARMED_AWAY');
+    };
+    if (remaining === 0) {
+      await complete();
+    } else {
+      timers.set(
+        userId,
+        setTimeout(() => {
+          void complete().catch((error) =>
+            this.logger.error(`Alarm delay failed for ${userId}`, error),
+          );
+        }, remaining),
+      );
+    }
   }
 
   // ── Polling ───────────────────────────────────────────────────────────────
@@ -298,12 +336,38 @@ export class AlarmService implements OnModuleInit {
 
   // ── State management ──────────────────────────────────────────────────────
 
-  private async setState(userId: string, state: AlarmState, actorId?: string) {
-    const result = await this.prisma.alarmSettings.upsert({
-      where: { userId },
-      create: { userId, state, stateAt: new Date() },
-      update: { state, stateAt: new Date() },
-    });
+  private setState(
+    userId: string,
+    state: AlarmState,
+    actorId?: string,
+  ): Promise<import('@prisma/client').AlarmSettings>;
+  private setState(
+    userId: string,
+    state: AlarmState,
+    actorId: string | undefined,
+    expected: { state: AlarmState; stateAt: Date },
+  ): Promise<import('@prisma/client').AlarmSettings | null>;
+  private async setState(
+    userId: string,
+    state: AlarmState,
+    actorId?: string,
+    expected?: { state: AlarmState; stateAt: Date },
+  ) {
+    // Compare both state and timestamp so an old countdown cannot overwrite a new session.
+    if (expected) {
+      const changed = await this.prisma.alarmSettings.updateMany({
+        where: { userId, ...expected },
+        data: { state, stateAt: new Date() },
+      });
+      if (changed.count === 0) return null;
+    }
+    const result = expected
+      ? await this.prisma.alarmSettings.findUniqueOrThrow({ where: { userId } })
+      : await this.prisma.alarmSettings.upsert({
+          where: { userId },
+          create: { userId, state, stateAt: new Date() },
+          update: { state, stateAt: new Date() },
+        });
     this.logger.log(`Alarm → ${state} (user ${userId})`);
 
     // Broadcast to owner + all their members so every connected session gets the update
@@ -322,12 +386,24 @@ export class AlarmService implements OnModuleInit {
     };
 
     this.gateway.broadcastToUsers(groupIds, 'alarm:state', payload);
+    await this.recordAlarmEvent(
+      userId,
+      actorId ?? userId,
+      state === 'TRIGGERED' ? 'warn' : 'info',
+      `Συναγερμός: ${state}`,
+      { state },
+    );
 
     // On trigger: execute device actions + phone call
     if (state === 'TRIGGERED') {
-      this.executeTriggerActions(userId).catch(() => {});
+      this.executeTriggerActions(userId).catch((error) =>
+        this.logger.error('Alarm actions failed', error),
+      );
       if (result.callOnTrigger && result.phoneNumber) {
-        this.callService.callNumber(userId, result.phoneNumber).catch(() => {});
+        this.callService.callNumber(userId, result.phoneNumber).catch(async (error) => {
+          this.logger.error('Alarm call failed', error);
+          await this.recordAlarmEvent(userId, userId, 'error', 'Αποτυχία κλήσης συναγερμού', {});
+        });
       }
     }
 
@@ -347,7 +423,32 @@ export class AlarmService implements OnModuleInit {
         this.logger.log(`Trigger action: set ${action.statusCode} on ${action.deviceId}`);
       } catch (e: any) {
         this.logger.error(`Trigger action failed: ${e?.message}`);
+        await this.recordAlarmEvent(userId, userId, 'error', 'Αποτυχία ενέργειας συναγερμού', {
+          deviceId: action.deviceId,
+        });
       }
+    }
+  }
+
+  private async recordAlarmEvent(
+    ownerId: string,
+    actorId: string,
+    level: string,
+    message: string,
+    metadata: Record<string, string>,
+  ) {
+    try {
+      await this.prisma.log.create({
+        data: {
+          userId: actorId,
+          context: 'alarm',
+          level,
+          message,
+          metadata: { ownerId, ...metadata },
+        },
+      });
+    } catch (error) {
+      this.logger.error('Could not record alarm event', error);
     }
   }
 

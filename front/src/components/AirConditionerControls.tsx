@@ -21,6 +21,8 @@ interface Capability {
 }
 type Command = { code: string; value: unknown };
 
+import PowerSwitch from './PowerSwitch';
+
 const LABELS: Record<string, string> = {
   switch: 'Τροφοδοσία',
   temp_set: 'Επιθυμητή θερμοκρασία',
@@ -118,21 +120,29 @@ function Control({
     'transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/15 disabled:cursor-not-allowed disabled:opacity-40';
   let input;
   if (type === 'boolean') {
-    input = (
-      <button
-        type="button"
-        role="switch"
-        aria-label={label(code)}
-        aria-checked={value === true}
-        disabled={disabled}
-        onClick={() => send([{ code, value: value !== true }])}
-        className={`${common} relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border ${value === true ? 'border-brand bg-brand shadow-sm shadow-brand/20' : 'border-slate-200 bg-slate-200/80 dark:border-slate-600 dark:bg-slate-700'}`}
-      >
-        <span
-          className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${value === true ? 'translate-x-6' : 'translate-x-0.5'}`}
+    input =
+      code === 'switch' ? (
+        <PowerSwitch
+          on={value === true}
+          label={label(code)}
+          disabled={disabled}
+          onChange={(value) => send([{ code, value }])}
         />
-      </button>
-    );
+      ) : (
+        <button
+          type="button"
+          role="switch"
+          aria-label={label(code)}
+          aria-checked={value === true}
+          disabled={disabled}
+          onClick={() => send([{ code, value: value !== true }])}
+          className={`${common} relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border ${value === true ? 'border-brand bg-brand shadow-sm shadow-brand/20' : 'border-slate-200 bg-slate-200/80 dark:border-slate-600 dark:bg-slate-700'}`}
+        >
+          <span
+            className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${value === true ? 'translate-x-6' : 'translate-x-0.5'}`}
+          />
+        </button>
+      );
   } else if (type === 'enum' && Array.isArray(spec.range) && spec.range.length) {
     const Icon =
       code.includes('fan') || code === 'windspeed'

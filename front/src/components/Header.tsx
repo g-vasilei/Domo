@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { AlarmState } from '../store/alarm.store';
 import { useAuthStore } from '../store/auth.store';
+import { useConnectionStore } from '../store/connection.store';
 import { AppNotification, NotifKind, useNotificationsStore } from '../store/notifications.store';
 import { useThemeStore } from '../store/theme.store';
 
@@ -168,6 +169,7 @@ function NotificationCenter() {
 }
 
 export default function Header({ onMenuClick }: Props) {
+  const connection = useConnectionStore((s) => s.status);
   const { dark, toggle } = useThemeStore();
   const clear = useAuthStore((s) => s.clear);
   const queryClient = useQueryClient();
@@ -191,6 +193,18 @@ export default function Header({ onMenuClick }: Props) {
       </button>
 
       <div className="flex-1" />
+      <span
+        role="status"
+        className={`text-xs ${connection === 'connected' ? 'text-emerald-600' : 'text-amber-600'}`}
+      >
+        {connection === 'connected'
+          ? 'Συνδεδεμένο'
+          : connection === 'syncing'
+            ? 'Συγχρονισμός…'
+            : connection === 'connecting'
+              ? 'Σύνδεση…'
+              : 'Παρωχημένα δεδομένα · Επανασύνδεση…'}
+      </span>
 
       <div className="flex items-center gap-2">
         <button

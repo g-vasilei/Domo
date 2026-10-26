@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/guards/roles.guard';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { ActivityQueryDto } from './dto/activity-query.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
@@ -32,6 +34,11 @@ export class UsersController {
   @Get('logs')
   getLogs(@Req() req: any) {
     return this.usersService.getLogs(req.user.id);
+  }
+
+  @Get('activity')
+  getActivity(@Req() req: any, @Query() query: ActivityQueryDto) {
+    return this.usersService.getActivity(req.user.id, query);
   }
 
   @Get('me/dashboard-widgets')

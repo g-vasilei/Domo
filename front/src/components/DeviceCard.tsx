@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
   Cpu,
@@ -15,9 +15,11 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { api } from '../lib/api';
+import { useDeviceCommand } from '../hooks/useDeviceCommand';
+import { useDevicePermissions } from '../hooks/useDevicePermissions';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
 import { useTimerStore } from '../store/timer.store';
+import CommandFeedback from './CommandFeedback';
 import TimerModal from './TimerModal';
 
 const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
@@ -118,34 +120,8 @@ export default function DeviceCard({ device }: { device: any }) {
   const activeTimer = useTimerStore((s) => s.timers.find((t) => t.deviceId === device.id));
   const { start: startTimer, cancel: cancelTimer } = useTimerStore();
 
-  const { mutate: sendCommand, isPending } = useMutation({
-    mutationFn: (commands: { code: string; value: unknown }[]) =>
-      api.post(`/devices/${device.id}/commands`, { commands }),
-    onMutate: async (commands) => {
-      await queryClient.cancelQueries({ queryKey: ['rooms'] });
-      const previous = queryClient.getQueryData(['rooms']);
-      queryClient.setQueryData(['rooms'], (old: any[]) =>
-        old?.map((room) => ({
-          ...room,
-          devices: room.devices.map((d: any) =>
-            d.id !== device.id
-              ? d
-              : {
-                  ...d,
-                  status: d.status.map((s: any) => {
-                    const cmd = commands.find((c) => c.code === s.code);
-                    return cmd ? { ...s, value: cmd.value } : s;
-                  }),
-                },
-          ),
-        })),
-      );
-      return { previous };
-    },
-    onError: (_e, _vars, ctx: any) => {
-      queryClient.setQueryData(['rooms'], ctx?.previous);
-    },
-  });
+  const { sendCommand, isPending, feedback } = useDeviceCommand(device.id);
+  const { canControl } = useDevicePermissions(device.id);
 
   async function handleTimerConfirm(minutes: number) {
     if (!switchCode) return;
@@ -209,6 +185,7 @@ export default function DeviceCard({ device }: { device: any }) {
           </div>
         )}
 
+        <CommandFeedback feedback={feedback} />
         {timerError && (
           <p role="alert" className="text-xs text-red-500">
             {timerError}
@@ -216,12 +193,14 @@ export default function DeviceCard({ device }: { device: any }) {
         )}
         {/* Bottom row */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-white/10 mt-auto">
-          {switchCode !== null ? (
+          {switchCode !== null && canControl ? (
             <div className="flex items-center gap-2">
               {/* Power toggle */}
               <button
                 onClick={() => sendCommand([{ code: switchCode, value: !isOn }])}
                 disabled={isPending || !device.online}
+                aria-label={isPending ? 'Αποστολή εντολής' : isOn ? 'Σβήσιμο' : 'Άναμμα'}
+                aria-busy={isPending}
                 title={isOn ? 'Σβήσιμο' : 'Άναμμα'}
                 className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
                   isOn
@@ -242,7 +221,7 @@ export default function DeviceCard({ device }: { device: any }) {
                     );
                   else setShowTimerModal(true);
                 }}
-                disabled={!device.online}
+                disabled={isPending || !device.online}
                 title={activeTimer ? 'Ακύρωση χρονοδιακόπτη' : 'Ορισμός αυτόματου σβησίματος'}
                 className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTimer

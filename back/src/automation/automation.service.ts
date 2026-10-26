@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { canAccessDevice } from '../devices/device-permissions';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRuleDto, UpdateLocationDto, UpdateRuleDto } from './dto/automation.dto';
 
@@ -27,34 +28,73 @@ export class AutomationService {
   private async assertCanManage(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, permissions: { select: { canManageAutomations: true } } },
+      include: { permissions: true },
     });
-    if (user?.role === 'MEMBER' && !user.permissions?.canManageAutomations) {
+    if (
+      !user ||
+      (user.role !== 'OWNER' &&
+        (user.role !== 'MEMBER' || !user.createdById || !user.permissions?.canManageAutomations))
+    ) {
       throw new ForbiddenException('No permission to manage automations');
     }
+    return user;
+  }
+
+  private canAccessRule(
+    user: Awaited<ReturnType<AutomationService['assertCanManage']>>,
+    rule: {
+      conditions: { type: string; deviceId?: string | null }[];
+      actions: { type: string; deviceId?: string | null }[];
+    },
+  ) {
+    return (
+      rule.conditions.every(
+        (condition) =>
+          condition.type !== 'device_state' ||
+          (!!condition.deviceId && canAccessDevice(user, condition.deviceId, 'view')),
+      ) &&
+      rule.actions.every(
+        (action) =>
+          !['device_control', 'countdown'].includes(action.type) ||
+          (!!action.deviceId && canAccessDevice(user, action.deviceId, 'control')),
+      )
+    );
+  }
+
+  private async assertRuleAccess(
+    userId: string,
+    rule: Parameters<AutomationService['canAccessRule']>[1],
+  ) {
+    const user = await this.assertCanManage(userId);
+    if (!this.canAccessRule(user, rule))
+      throw new ForbiddenException('No permission for this device action');
   }
 
   async getRules(userId: string) {
+    const user = await this.assertCanManage(userId);
     const ownerId = await this.resolveOwnerId(userId);
-    return this.prisma.automationRule.findMany({
+    const rules = await this.prisma.automationRule.findMany({
       where: { userId: ownerId },
       include: RULE_INCLUDE,
       orderBy: { createdAt: 'asc' },
     });
+    return rules.filter((rule) => this.canAccessRule(user, rule));
   }
 
   async getRule(userId: string, id: string) {
+    await this.assertCanManage(userId);
     const ownerId = await this.resolveOwnerId(userId);
     const rule = await this.prisma.automationRule.findUnique({
       where: { id },
       include: RULE_INCLUDE,
     });
     if (!rule || rule.userId !== ownerId) throw new NotFoundException('Rule not found');
+    await this.assertRuleAccess(userId, rule);
     return rule;
   }
 
   async createRule(userId: string, dto: CreateRuleDto) {
-    await this.assertCanManage(userId);
+    await this.assertRuleAccess(userId, dto);
     const ownerId = await this.resolveOwnerId(userId);
     return this.prisma.automationRule.create({
       data: {
@@ -95,8 +135,16 @@ export class AutomationService {
   async updateRule(userId: string, id: string, dto: UpdateRuleDto) {
     await this.assertCanManage(userId);
     const ownerId = await this.resolveOwnerId(userId);
-    const rule = await this.prisma.automationRule.findUnique({ where: { id } });
+    const rule = await this.prisma.automationRule.findUnique({
+      where: { id },
+      include: RULE_INCLUDE,
+    });
     if (!rule || rule.userId !== ownerId) throw new NotFoundException('Rule not found');
+    await this.assertRuleAccess(userId, rule);
+    await this.assertRuleAccess(userId, {
+      conditions: dto.conditions ?? rule.conditions,
+      actions: dto.actions ?? rule.actions,
+    });
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.conditions !== undefined) {
@@ -151,8 +199,12 @@ export class AutomationService {
   async toggleRule(userId: string, id: string) {
     await this.assertCanManage(userId);
     const ownerId = await this.resolveOwnerId(userId);
-    const rule = await this.prisma.automationRule.findUnique({ where: { id } });
+    const rule = await this.prisma.automationRule.findUnique({
+      where: { id },
+      include: RULE_INCLUDE,
+    });
     if (!rule || rule.userId !== ownerId) throw new NotFoundException('Rule not found');
+    await this.assertRuleAccess(userId, rule);
     return this.prisma.automationRule.update({
       where: { id },
       data: { enabled: !rule.enabled, conditionMet: false },
@@ -163,8 +215,12 @@ export class AutomationService {
   async deleteRule(userId: string, id: string) {
     await this.assertCanManage(userId);
     const ownerId = await this.resolveOwnerId(userId);
-    const rule = await this.prisma.automationRule.findUnique({ where: { id } });
+    const rule = await this.prisma.automationRule.findUnique({
+      where: { id },
+      include: RULE_INCLUDE,
+    });
     if (!rule || rule.userId !== ownerId) throw new NotFoundException('Rule not found');
+    await this.assertRuleAccess(userId, rule);
     await this.prisma.automationRule.delete({ where: { id } });
     return { message: 'Rule deleted' };
   }
