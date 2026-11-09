@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import PinPromptModal from '../components/PinPromptModal';
 import { api } from '../lib/api';
+import { getWeatherCity, GREEK_CITIES } from '../lib/greekCities';
 import { usePrefsStore } from '../store/prefs.store';
 
 // ── Shared UI ──────────────────────────────────────────────────────────────
@@ -85,15 +86,24 @@ function Divider() {
 // ── Tab: User (preferences) ────────────────────────────────────────────────
 
 function UserTab() {
-  const { tempUnit, setTempUnit, notificationsEnabled, setNotificationsEnabled } = usePrefsStore();
+  const {
+    saving,
+    saveError,
+    tempUnit,
+    setTempUnit,
+    notificationsEnabled,
+    setNotificationsEnabled,
+    weatherCityId,
+    setWeatherCityId,
+  } = usePrefsStore();
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    if ('Ειδοποίηση' in window) setPermission(Notification.permission);
+    if ('Notification' in window) setPermission(Notification.permission);
   }, []);
 
   async function requestNotifications() {
-    if (!('Ειδοποίηση' in window)) return;
+    if (!('Notification' in window)) return;
     const result = await Notification.requestPermission();
     setPermission(result);
     if (result === 'granted') {
@@ -109,8 +119,26 @@ function UserTab() {
   const isDenied = permission === 'denied';
 
   return (
-    <div className="flex flex-col gap-6 max-w-sm">
+    <fieldset disabled={saving} className="flex flex-col gap-6 max-w-sm">
       <SectionHeader title="Προτιμήσεις" description="Προσαρμόστε την εμπειρία σας." />
+
+      <Field
+        label="Πόλη για τον καιρό"
+        hint="Ο καιρός στην αρχική ενημερώνεται αυτόματα. Η επιλογή αποθηκεύεται στον λογαριασμό σας."
+      >
+        <select
+          aria-label="Πόλη για τον καιρό"
+          value={getWeatherCity(weatherCityId).id}
+          onChange={(e) => setWeatherCityId(e.target.value)}
+          className="w-full bg-slate-50 dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
+        >
+          {GREEK_CITIES.map((city) => (
+            <option key={city.id} value={city.id}>
+              {city.name}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       {/* Temperature unit */}
       <Field label="Μονάδα θερμοκρασίας">
@@ -186,7 +214,17 @@ function UserTab() {
           </button>
         )}
       </div>
-    </div>
+      {saving && (
+        <p role="status" className="text-xs text-slate-400">
+          Αποθήκευση…
+        </p>
+      )}
+      {saveError && (
+        <p role="alert" className="text-sm text-red-500">
+          {saveError}
+        </p>
+      )}
+    </fieldset>
   );
 }
 

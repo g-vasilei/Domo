@@ -37,6 +37,10 @@ model User {
   createdBy    User?     @relation("ManagedUsers", fields: [createdById], references: [id])
   managedUsers User[]    @relation("ManagedUsers")
 
+  weatherCityId String @default("veria")
+  tempUnit String @default("C")
+  notificationsEnabled Boolean @default(false)
+
   timezone  String? // IANA e.g. "Europe/Athens"
   latitude  Float?
   longitude Float?

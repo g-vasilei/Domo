@@ -16,6 +16,13 @@ import { ActivityQueryDto } from './dto/activity-query.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
+
+const PREFERENCES_SELECT = {
+  weatherCityId: true,
+  tempUnit: true,
+  notificationsEnabled: true,
+} as const;
 
 @Injectable()
 export class UsersService {
@@ -27,6 +34,29 @@ export class UsersService {
     private readonly tuyaService: TuyaService,
     private readonly mail: MailService,
   ) {}
+
+  async getPreferences(userId: string) {
+    const preferences = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: PREFERENCES_SELECT,
+    });
+    if (!preferences) throw new NotFoundException('User not found');
+    return preferences;
+  }
+
+  async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.weatherCityId !== undefined && { weatherCityId: dto.weatherCityId }),
+        ...(dto.tempUnit !== undefined && { tempUnit: dto.tempUnit }),
+        ...(dto.notificationsEnabled !== undefined && {
+          notificationsEnabled: dto.notificationsEnabled,
+        }),
+      },
+      select: PREFERENCES_SELECT,
+    });
+  }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

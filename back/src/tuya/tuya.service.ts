@@ -35,8 +35,8 @@ export class TuyaService {
     try {
       const token = await this.getToken(accessId, accessSecret, region);
       return !!token;
-    } catch (e: any) {
-      this.logger.error(`Tuya validation failed: ${e?.message}`);
+    } catch {
+      this.logger.warn('Tuya credential validation failed');
       return false;
     }
   }
@@ -210,8 +210,10 @@ export class TuyaService {
       },
     });
     const data = (await res.json()) as any;
-    this.logger.debug(`Tuya token response: ${JSON.stringify(data)}`);
-    if (!data.success) throw new Error(data.msg ?? JSON.stringify(data));
+    this.logger.debug(
+      `Tuya token request completed (HTTP ${res.status}, success=${data.success === true})`,
+    );
+    if (!data.success) throw new Error(data.msg ?? 'Tuya request failed');
 
     const token = data.result.access_token as string;
     const ttlMs = (data.result.expire_time ?? 7200) * 1000;
@@ -246,8 +248,10 @@ export class TuyaService {
       ...(bodyStr ? { body: bodyStr } : {}),
     });
     const data = (await res.json()) as any;
-    this.logger.debug(`Tuya ${method} ${path} → ${JSON.stringify(data)}`);
-    if (!data.success) throw new Error(data.msg ?? JSON.stringify(data));
+    this.logger.debug(
+      `Tuya ${method} ${path} (HTTP ${res.status}, success=${data.success === true})`,
+    );
+    if (!data.success) throw new Error(data.msg ?? 'Tuya request failed');
     return data.result;
   }
 

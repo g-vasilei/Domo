@@ -36,7 +36,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['back/test/**/*.cjs'],
+    files: ['back/test/**/*.cjs', 'front/test/**/*.cjs'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {

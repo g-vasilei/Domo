@@ -5,10 +5,11 @@ import { LoggerModule } from 'nestjs-pino';
 
 import { AlarmModule } from './alarm/alarm.module';
 import { AuthModule } from './auth/auth.module';
-import { EncryptionModule } from './encryption/encryption.module';
 import { AutomationModule } from './automation/automation.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { httpLoggingOptions } from './common/logging';
 import { DevicesModule } from './devices/devices.module';
+import { EncryptionModule } from './encryption/encryption.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
@@ -21,12 +22,11 @@ import { UsersModule } from './users/users.module';
     ScheduleModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
+        ...httpLoggingOptions,
         transport:
           process.env.NODE_ENV !== 'production'
             ? { target: 'pino-pretty', options: { colorize: true } }
             : undefined,
-        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
-        autoLogging: true,
       },
     }),
     PrismaModule,

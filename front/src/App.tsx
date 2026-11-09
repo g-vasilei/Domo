@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 
 import Header from './components/Header';
+import PreferencesGate from './components/PreferencesGate';
 import Sidebar from './components/Sidebar';
 import { api } from './lib/api';
 import { useDeviceSocket } from './lib/useDeviceSocket';
@@ -55,7 +56,9 @@ function AuthedLayout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
+          <PreferencesGate>
+            <Outlet />
+          </PreferencesGate>
         </main>
       </div>
     </div>
@@ -67,7 +70,11 @@ function PanelLayout() {
   const location = useLocation();
   useDeviceSocket();
   if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
-  return <Outlet />;
+  return (
+    <PreferencesGate>
+      <Outlet />
+    </PreferencesGate>
+  );
 }
 
 function SetupGuard() {

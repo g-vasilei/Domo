@@ -19,6 +19,7 @@ import { ActivityQueryDto } from './dto/activity-query.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { SetTuyaCredentialsDto } from './dto/set-tuya-credentials.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
+import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UsersService } from './users.service';
 
 @UseGuards(JwtAuthGuard)
@@ -29,6 +30,16 @@ export class UsersController {
   @Get('me')
   getMe(@Req() req: any) {
     return this.usersService.getProfile(req.user.id);
+  }
+
+  @Get('me/preferences')
+  getPreferences(@Req() req: any) {
+    return this.usersService.getPreferences(req.user.id);
+  }
+
+  @Patch('me/preferences')
+  updatePreferences(@Req() req: any, @Body() dto: UpdatePreferencesDto) {
+    return this.usersService.updatePreferences(req.user.id, dto);
   }
 
   @Get('logs')

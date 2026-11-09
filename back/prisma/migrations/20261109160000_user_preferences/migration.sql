@@ -1,0 +1,4 @@
+ALTER TABLE "User"
+  ADD COLUMN "weatherCityId" TEXT NOT NULL DEFAULT 'veria',
+  ADD COLUMN "tempUnit" TEXT NOT NULL DEFAULT 'C',
+  ADD COLUMN "notificationsEnabled" BOOLEAN NOT NULL DEFAULT false;

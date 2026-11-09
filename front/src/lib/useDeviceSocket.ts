@@ -29,7 +29,7 @@ const ALARM_EVENTS: Partial<Record<AlarmState, { title: string; body: string }>>
 
 function fireBrowserNotif(title: string, body: string) {
   const { notificationsEnabled } = usePrefsStore.getState();
-  if (notificationsEnabled && Notification.permission === 'granted') {
+  if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
     new Notification(title, { body, icon: '/favicon.ico' });
   }
 }

@@ -29,6 +29,8 @@ import { useState } from 'react';
 import ArmControls from '../components/ArmControls';
 import DashboardHealth from '../components/DashboardHealth';
 import DeviceCard from '../components/DeviceCard';
+import IndoorTemperatureCard from '../components/IndoorTemperatureCard';
+import WeatherCard from '../components/WeatherCard';
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
 
@@ -356,47 +358,30 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Alarm banner */}
-      <div className="flex items-center justify-between flex-wrap gap-4 rounded-xl border border-slate-200 bg-white px-6 py-4 dark:border-white/10 dark:bg-[#1A222C]">
-        <div className="flex items-center gap-4">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${meta.bg}`}>
-            <AlarmIcon size={22} className={meta.color} />
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+        <section
+          aria-label="Σύστημα συναγερμού"
+          className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#1A222C]"
+        >
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Σύστημα συναγερμού
+          </h2>
+          <div className="my-5 flex flex-1 items-center gap-3">
+            <div
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${meta.bg}`}
+            >
+              <AlarmIcon size={24} className={meta.color} />
+            </div>
+            <p className={`text-xl font-bold ${meta.color}`}>{meta.label}</p>
           </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              Σύστημα συναγερμού
-            </p>
-            <p className={`text-lg font-bold ${meta.color}`}>{meta.label}</p>
-          </div>
-        </div>
-        <ArmControls currentState={alarmState} hasPinSet={hasPinSet} />
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Cpu}
-          label="Σύνολο συσκευών"
-          value={isLoading || error ? '—' : (devices as any[]).length}
-          color="bg-brand/10 text-brand"
-        />
-        <StatCard
-          icon={Wifi}
-          label="Σε σύνδεση"
-          value={isLoading || error ? '—' : online}
-          color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
-        />
-        <StatCard
-          icon={WifiOff}
-          label="Εκτός σύνδεσης"
-          value={isLoading || error ? '—' : offline}
-          color="bg-red-50 text-red-400 dark:bg-red-500/10"
-        />
-        <StatCard
-          icon={Home}
-          label="Δωμάτια"
-          value={roomCount}
-          color="bg-violet-50 text-violet-500 dark:bg-violet-500/10"
+          <ArmControls currentState={alarmState} hasPinSet={hasPinSet} />
+        </section>
+        <WeatherCard />
+        <IndoorTemperatureCard
+          devices={devices}
+          preferredDeviceId={alarmData?.tempDeviceId ?? alarmSettings?.tempDeviceId}
+          loading={isLoading}
+          failed={!!error}
         />
       </div>
 
@@ -490,6 +475,34 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Cpu}
+          label="Σύνολο συσκευών"
+          value={isLoading || error ? '—' : (devices as any[]).length}
+          color="bg-brand/10 text-brand"
+        />
+        <StatCard
+          icon={Wifi}
+          label="Σε σύνδεση"
+          value={isLoading || error ? '—' : online}
+          color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
+        />
+        <StatCard
+          icon={WifiOff}
+          label="Εκτός σύνδεσης"
+          value={isLoading || error ? '—' : offline}
+          color="bg-red-50 text-red-400 dark:bg-red-500/10"
+        />
+        <StatCard
+          icon={Home}
+          label="Δωμάτια"
+          value={roomCount}
+          color="bg-violet-50 text-violet-500 dark:bg-violet-500/10"
+        />
+      </div>
 
       <DashboardHealth
         devices={devices}
