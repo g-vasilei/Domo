@@ -69,9 +69,11 @@ function HourlyForecast({
           ))}
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-          <caption className="sr-only">Πρόγνωση για {forecastDate(day)}. Ώρες Ελλάδας.</caption>
+      <div className="relative w-full overflow-x-auto">
+        <table
+          aria-label={`Πρόγνωση για ${forecastDate(day)}. Ώρες Ελλάδας.`}
+          className="w-full text-left text-sm text-slate-600 dark:text-slate-300"
+        >
           <thead className="border-y border-slate-100 bg-slate-50 text-xs text-slate-400 dark:border-white/10 dark:bg-white/5">
             <tr>
               {[
