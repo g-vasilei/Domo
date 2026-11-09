@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, BellOff, Check, Eye, EyeOff, Shield, Thermometer } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 
 import PinPromptModal from '../components/PinPromptModal';
 import { api } from '../lib/api';
@@ -524,101 +525,20 @@ function AlarmTab() {
   );
 }
 
-// ── Tab: Logs ──────────────────────────────────────────────────────────────
-
-function logBadge(log: any): { label: string; color: string } {
-  const ctx = log.context;
-  const action = log.metadata?.action as string | undefined;
-  if (ctx === 'alarm') {
-    const map: Record<string, { label: string; color: string }> = {
-      arm_home: {
-        label: 'Οπλισμένος — Εντός',
-        color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10',
-      },
-      arm_away: {
-        label: 'Οπλισμένος — Εκτός',
-        color: 'text-blue-600 bg-blue-50 dark:bg-blue-500/10',
-      },
-      disarm: { label: 'Αφοπλισμένος', color: 'text-slate-500 bg-slate-100 dark:bg-white/5' },
-      triggered: { label: 'Ενεργοποιημένος', color: 'text-red-600 bg-red-50 dark:bg-red-500/10' },
-    };
-    return (
-      map[action ?? ''] ?? {
-        label: 'Συναγερμός',
-        color: 'text-slate-500 bg-slate-100 dark:bg-white/5',
-      }
-    );
-  }
-  if (ctx === 'device') {
-    const cmds: { code: string; value: unknown }[] = log.metadata?.commands ?? [];
-    const summary = cmds.map((c) => `${c.code}: ${c.value}`).join(', ');
-    return {
-      label: summary || 'Εντολή συσκευής',
-      color: 'text-violet-600 bg-violet-50 dark:bg-violet-500/10',
-    };
-  }
-  return { label: log.message, color: 'text-slate-500 bg-slate-100 dark:bg-white/5' };
-}
-
-function LogsTab() {
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['logs'],
-    queryFn: () => api.get('/users/logs').then((r) => r.data),
-    staleTime: 30_000,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-2">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-14 rounded-xl bg-slate-100 dark:bg-white/5 animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (!logs.length) {
-    return (
-      <div className="py-16 text-center text-slate-400">
-        <p className="text-sm">Δεν υπάρχουν καταγεγραμμένα συμβάντα.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      {logs.map((log: any) => {
-        const { label, color } = logBadge(log);
-        return (
-          <div
-            key={log.id}
-            className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-          >
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap ${color}`}
-            >
-              {label}
-            </span>
-            <span className="text-sm text-slate-500 dark:text-slate-400 truncate flex-1">
-              {log.user?.email ?? 'Άγνωστο'}
-            </span>
-            <span className="text-xs text-slate-400 flex-shrink-0 whitespace-nowrap">
-              {new Date(log.createdAt).toLocaleString()}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Page ───────────────────────────────────────────────────────────────────
 
-const TABS = ['Προτιμήσεις', 'Κωδικός πρόσβασης', 'Tuya', 'Συναγερμός', 'Ιστορικό'] as const;
+const TABS = ['Προτιμήσεις', 'Κωδικός πρόσβασης', 'Tuya', 'Συναγερμός'] as const;
 type Tab = (typeof TABS)[number];
+const TAB_IDS: Record<Tab, string> = {
+  Προτιμήσεις: 'preferences',
+  'Κωδικός πρόσβασης': 'password',
+  Tuya: 'tuya',
+  Συναγερμός: 'alarm',
+};
 
 export default function SettingsPage() {
-  const [active, setActive] = useState<Tab>('Προτιμήσεις');
+  const [params, setParams] = useSearchParams();
+  const active = TABS.find((tab) => TAB_IDS[tab] === params.get('tab')) ?? 'Προτιμήσεις';
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -631,10 +551,19 @@ export default function SettingsPage() {
   const visibleTabs = TABS.filter((t) => {
     if (t === 'Tuya') return isOwner;
     if (t === 'Συναγερμός') return canSeeAlarm;
-    if (t === 'Ιστορικό') return canSeeAlarm;
     return true;
   });
   const activeTab = visibleTabs.includes(active) ? active : (visibleTabs[0] ?? 'Προτιμήσεις');
+  if (params.get('tab') === 'history') {
+    const legacyParams = new URLSearchParams(params);
+    legacyParams.delete('tab');
+    return (
+      <Navigate
+        to={{ pathname: '/activity', search: legacyParams.toString() ? `?${legacyParams}` : '' }}
+        replace
+      />
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
@@ -644,7 +573,14 @@ export default function SettingsPage() {
         {visibleTabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActive(tab)}
+            onClick={() =>
+              setParams((previous) => {
+                const next = new URLSearchParams(previous);
+                next.set('tab', TAB_IDS[tab]);
+                next.delete('level');
+                return next;
+              })
+            }
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
               activeTab === tab
                 ? 'bg-white dark:bg-[#1A222C] text-slate-800 dark:text-slate-100 shadow-sm'
@@ -661,7 +597,6 @@ export default function SettingsPage() {
         {activeTab === 'Κωδικός πρόσβασης' && <PasswordTab />}
         {activeTab === 'Tuya' && isOwner && <TuyaTab />}
         {activeTab === 'Συναγερμός' && <AlarmTab />}
-        {activeTab === 'Ιστορικό' && <LogsTab />}
       </div>
     </div>
   );

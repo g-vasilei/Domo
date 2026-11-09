@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BatteryLow,
   Bell,
+  History,
   Home,
   LogOut,
   Menu,
@@ -246,6 +247,16 @@ export default function Header({ onMenuClick }: Props) {
               >
                 <Settings size={15} />
                 Ρυθμίσεις
+              </button>
+              <button
+                onClick={() => {
+                  navigate('/activity');
+                  setDropdownOpen(false);
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+              >
+                <History size={15} />
+                Ιστορικό
               </button>
               <div className="my-1 border-t border-slate-100 dark:border-white/10" />
               <button

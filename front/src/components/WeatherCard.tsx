@@ -1,35 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  Cloud,
-  CloudDrizzle,
-  CloudFog,
-  CloudLightning,
-  CloudRain,
-  CloudSnow,
-  CloudSun,
-  Droplets,
-  MapPin,
-  Moon,
-  RefreshCw,
-  Sun,
-  Wind,
-} from 'lucide-react';
+import { Droplets, MapPin, RefreshCw, Wind } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { getWeatherCity } from '../lib/greekCities';
 import { parseWeather, Weather } from '../lib/weather';
+import { weatherConditions } from '../lib/weatherPresentation';
 import { usePrefsStore } from '../store/prefs.store';
-
-function conditions(code: number, day: boolean) {
-  if (code === 0) return { label: day ? 'Αίθριος καιρός' : 'Ξαστεριά', Icon: day ? Sun : Moon };
-  if (code === 1 || code === 2) return { label: 'Λίγες νεφώσεις', Icon: day ? CloudSun : Cloud };
-  if (code === 3) return { label: 'Συννεφιά', Icon: Cloud };
-  if (code === 45 || code === 48) return { label: 'Ομίχλη', Icon: CloudFog };
-  if ([51, 53, 55, 56, 57].includes(code)) return { label: 'Ψιλόβροχο', Icon: CloudDrizzle };
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return { label: 'Βροχή', Icon: CloudRain };
-  if ([71, 73, 75, 77, 85, 86].includes(code)) return { label: 'Χιονόπτωση', Icon: CloudSnow };
-  if ([95, 96, 99].includes(code)) return { label: 'Καταιγίδα', Icon: CloudLightning };
-  return { label: 'Καιρός', Icon: Cloud };
-}
 
 export default function WeatherCard() {
   const unit = usePrefsStore((s) => s.tempUnit);
@@ -57,7 +33,7 @@ export default function WeatherCard() {
     retry: 1,
   });
   const current = weather.data?.current;
-  const { label, Icon } = conditions(current?.weather_code ?? -1, current?.is_day === 1);
+  const { label, Icon } = weatherConditions(current?.weather_code ?? -1, current?.is_day === 1);
   const failed = weather.isError;
   const loading = weather.isPending;
 
@@ -150,6 +126,12 @@ export default function WeatherCard() {
           </>
         ) : null}
       </div>
+      <Link
+        to="/weather"
+        className="mt-3 text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+      >
+        Αναλυτική πρόγνωση →
+      </Link>
     </section>
   );
 }

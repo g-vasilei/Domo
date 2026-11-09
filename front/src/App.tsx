@@ -22,6 +22,7 @@ import PanelPage from './pages/PanelPage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
 import SetupPage from './pages/SetupPage';
+import WeatherPage from './pages/WeatherPage';
 import { useAuthStore } from './store/auth.store';
 
 function useMe() {
@@ -119,6 +120,7 @@ export default function App() {
         <Route path="/automations" element={<AutomationsPage />} />
         <Route path="/activity" element={<ActivityPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/weather" element={<WeatherPage />} />
 
         <Route element={<AlarmGuard />}>
           <Route path="/alarm" element={<AlarmPage />} />
