@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
+import { assertCanViewDevices, canAccessDevice } from '../devices/device-permissions';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TuyaService } from '../tuya/tuya.service';
@@ -19,6 +20,11 @@ import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto'
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 
 const PREFERENCES_SELECT = {
+  dashboardHiddenCards: true,
+  dashboardHiddenSections: true,
+  dashboardTemperatureDeviceIds: true,
+  dashboardCardOrder: true,
+  dashboardSectionOrder: true,
   weatherCityId: true,
   tempUnit: true,
   notificationsEnabled: true,
@@ -45,9 +51,58 @@ export class UsersService {
   }
 
   async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
+    if (dto.dashboardTemperatureDeviceIds?.length) {
+      const viewer = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true, createdById: true, permissions: true },
+      });
+      assertCanViewDevices(viewer);
+      if (dto.dashboardTemperatureDeviceIds.some((id) => !canAccessDevice(viewer, id, 'view'))) {
+        throw new ForbiddenException('No permission for this device action');
+      }
+      const creds = await this.getTuyaCredentials(userId);
+      if (!creds) throw new BadRequestException('Tuya credentials not configured');
+      const result = await this.tuyaService.getDevices(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+      );
+      const devices: any[] = result?.devices ?? result ?? [];
+      const temperatureCodes = [
+        'va_temperature',
+        'temp_current',
+        'temperature_current',
+        'temp_current_f',
+      ];
+      if (
+        dto.dashboardTemperatureDeviceIds.some(
+          (id) =>
+            !devices.some(
+              (device) =>
+                device.id === id &&
+                device.status?.some((entry: any) => temperatureCodes.includes(entry.code)),
+            ),
+        )
+      ) {
+        throw new BadRequestException('Selected device does not report temperature');
+      }
+    }
     return this.prisma.user.update({
       where: { id: userId },
       data: {
+        ...(dto.dashboardHiddenCards !== undefined && {
+          dashboardHiddenCards: dto.dashboardHiddenCards,
+        }),
+        ...(dto.dashboardHiddenSections !== undefined && {
+          dashboardHiddenSections: dto.dashboardHiddenSections,
+        }),
+        ...(dto.dashboardTemperatureDeviceIds !== undefined && {
+          dashboardTemperatureDeviceIds: dto.dashboardTemperatureDeviceIds,
+        }),
+        ...(dto.dashboardCardOrder !== undefined && { dashboardCardOrder: dto.dashboardCardOrder }),
+        ...(dto.dashboardSectionOrder !== undefined && {
+          dashboardSectionOrder: dto.dashboardSectionOrder,
+        }),
         ...(dto.weatherCityId !== undefined && { weatherCityId: dto.weatherCityId }),
         ...(dto.tempUnit !== undefined && { tempUnit: dto.tempUnit }),
         ...(dto.notificationsEnabled !== undefined && {

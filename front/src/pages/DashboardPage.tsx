@@ -28,11 +28,14 @@ import { useState } from 'react';
 
 import ArmControls from '../components/ArmControls';
 import DashboardHealth from '../components/DashboardHealth';
+import DashboardLayout from '../components/DashboardLayout';
+import DashboardVisibilityControls from '../components/DashboardVisibilityControls';
 import DeviceCard from '../components/DeviceCard';
 import IndoorTemperatureCard from '../components/IndoorTemperatureCard';
 import WeatherCard from '../components/WeatherCard';
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
+import { usePrefsStore } from '../store/prefs.store';
 
 // ── Stat card ───────────────────────────────────────────────────────────────
 
@@ -241,12 +244,34 @@ function DevicePickerModal({
   );
 }
 
+const OVERVIEW_CARD_IDS = ['alarm', 'weather', 'temperature'];
+const STAT_CARD_IDS = ['total-devices', 'online-devices', 'offline-devices', 'rooms'];
+const GRID_COLUMNS: Record<number, string> = {
+  0: '',
+  1: '',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+};
+
 // ── Main page ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const {
+    dashboardHiddenCards,
+    dashboardHiddenSections,
+    dashboardCardOrder,
+    dashboardSectionOrder,
+    setDashboardCardOrder,
+    setDashboardSectionOrder,
+    saving,
+    saveError,
+  } = usePrefsStore();
+  const overviewCount = OVERVIEW_CARD_IDS.filter((id) => !dashboardHiddenCards.includes(id)).length;
+  const statsCount = STAT_CARD_IDS.filter((id) => !dashboardHiddenCards.includes(id)).length;
 
   const {
     data: devices = [],
@@ -358,33 +383,6 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-        <section
-          aria-label="Σύστημα συναγερμού"
-          className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#1A222C]"
-        >
-          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Σύστημα συναγερμού
-          </h2>
-          <div className="my-5 flex flex-1 items-center gap-3">
-            <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${meta.bg}`}
-            >
-              <AlarmIcon size={24} className={meta.color} />
-            </div>
-            <p className={`text-xl font-bold ${meta.color}`}>{meta.label}</p>
-          </div>
-          <ArmControls currentState={alarmState} hasPinSet={hasPinSet} />
-        </section>
-        <WeatherCard />
-        <IndoorTemperatureCard
-          devices={devices}
-          preferredDeviceId={alarmData?.tempDeviceId ?? alarmSettings?.tempDeviceId}
-          loading={isLoading}
-          failed={!!error}
-        />
-      </div>
-
       {/* Error */}
       {!isLoading && error && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -393,127 +391,233 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Widgets section */}
-      {!error && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Οι συσκευές μου
-              {widgetDevices.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-slate-400">
-                  {widgetDevices.length} {widgetDevices.length === 1 ? 'συσκευή' : 'συσκευές'}
-                </span>
-              )}
-            </h2>
-            {editing && (
-              <button
-                onClick={() => setShowPicker(true)}
-                className="flex items-center gap-1 text-xs text-brand hover:underline"
-              >
-                <Plus size={12} /> Προσθήκη συσκευής
-              </button>
-            )}
-          </div>
-
-          {isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl h-[140px] animate-pulse"
-                />
-              ))}
-            </div>
-          )}
-
-          {!isLoading && widgetDevices.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl">
-              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3">
-                <LayoutDashboard size={20} className="text-slate-300" />
-              </div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Δεν έχετε προσθέσει συσκευές ακόμη
-              </p>
-              <p className="text-xs text-slate-400 mb-4">
-                Οι αγαπημένες σας συσκευές για γρήγορη πρόσβαση
-              </p>
-              <button
-                onClick={() => {
-                  setEditing(true);
-                  setShowPicker(true);
-                }}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-brand text-white hover:bg-brand/90 transition-colors"
-              >
-                <Plus size={12} /> Προσθήκη συσκευής
-              </button>
-            </div>
-          )}
-
-          {!isLoading && widgetDevices.length > 0 && (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={validIds} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {widgetDevices.map((device) =>
-                    editing ? (
-                      <SortableWidget
-                        key={device.id}
-                        id={device.id}
-                        device={device}
-                        onRemove={() => removeWidget(device.id)}
-                      />
-                    ) : (
-                      <DeviceCard key={device.id} device={device} />
+      {editing && (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Σύρετε από τη λαβή για να αλλάξετε τη σειρά των καρτών και των ενοτήτων. Με πληκτρολόγιο:
+          Space και βελάκια.
+        </p>
+      )}
+      {editing && <DashboardVisibilityControls />}
+      {saving && (
+        <p role="status" className="text-xs text-slate-400">
+          Αποθήκευση διάταξης…
+        </p>
+      )}
+      {saveError && (
+        <p role="alert" className="text-sm text-red-500">
+          {saveError}
+        </p>
+      )}
+      <DashboardLayout
+        items={[
+          {
+            id: 'overview',
+            label: 'Κάρτες επισκόπησης',
+            content: (
+              <DashboardLayout
+                items={[
+                  {
+                    id: 'alarm',
+                    label: 'Συναγερμός',
+                    content: (
+                      <section
+                        aria-label="Σύστημα συναγερμού"
+                        className="flex h-full min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#1A222C]"
+                      >
+                        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          Σύστημα συναγερμού
+                        </h2>
+                        <div className="my-5 flex flex-1 items-center gap-3">
+                          <div
+                            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${meta.bg}`}
+                          >
+                            <AlarmIcon size={24} className={meta.color} />
+                          </div>
+                          <p className={`text-xl font-bold ${meta.color}`}>{meta.label}</p>
+                        </div>
+                        <ArmControls currentState={alarmState} hasPinSet={hasPinSet} />
+                      </section>
                     ),
+                  },
+                  { id: 'weather', label: 'Καιρός', content: <WeatherCard /> },
+                  {
+                    id: 'temperature',
+                    label: 'Θερμόμετρο',
+                    content: (
+                      <IndoorTemperatureCard
+                        devices={devices}
+                        rooms={rooms}
+                        loading={isLoading}
+                        failed={!!error}
+                      />
+                    ),
+                  },
+                ]}
+                hiddenIds={dashboardHiddenCards}
+                order={dashboardCardOrder}
+                onReorder={setDashboardCardOrder}
+                editing={editing}
+                disabled={saving}
+                className={`grid grid-cols-1 items-stretch gap-4 ${overviewCount === 2 ? 'lg:grid-cols-2' : overviewCount === 3 ? 'lg:grid-cols-3' : ''}`}
+              />
+            ),
+          },
+          {
+            id: 'devices',
+            label: 'Οι συσκευές μου',
+            content: !error ? (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Οι συσκευές μου
+                    {widgetDevices.length > 0 && (
+                      <span className="ml-2 text-xs font-normal text-slate-400">
+                        {widgetDevices.length} {widgetDevices.length === 1 ? 'συσκευή' : 'συσκευές'}
+                      </span>
+                    )}
+                  </h2>
+                  {editing && (
+                    <button
+                      onClick={() => setShowPicker(true)}
+                      className="flex items-center gap-1 text-xs text-brand hover:underline"
+                    >
+                      <Plus size={12} /> Προσθήκη συσκευής
+                    </button>
                   )}
                 </div>
-              </SortableContext>
-            </DndContext>
-          )}
-        </div>
-      )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Cpu}
-          label="Σύνολο συσκευών"
-          value={isLoading || error ? '—' : (devices as any[]).length}
-          color="bg-brand/10 text-brand"
-        />
-        <StatCard
-          icon={Wifi}
-          label="Σε σύνδεση"
-          value={isLoading || error ? '—' : online}
-          color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
-        />
-        <StatCard
-          icon={WifiOff}
-          label="Εκτός σύνδεσης"
-          value={isLoading || error ? '—' : offline}
-          color="bg-red-50 text-red-400 dark:bg-red-500/10"
-        />
-        <StatCard
-          icon={Home}
-          label="Δωμάτια"
-          value={roomCount}
-          color="bg-violet-50 text-violet-500 dark:bg-violet-500/10"
-        />
-      </div>
+                {isLoading && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-white dark:bg-[#1A222C] border border-slate-200 dark:border-white/10 rounded-xl h-[140px] animate-pulse"
+                      />
+                    ))}
+                  </div>
+                )}
 
-      <DashboardHealth
-        devices={devices}
-        viewer={me}
-        loading={isLoading || profileLoading}
-        failed={!!error}
-        updatedAt={dataUpdatedAt}
-        refreshing={isFetching}
-        onRefresh={() => {
-          void refetch();
-        }}
+                {!isLoading && widgetDevices.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3">
+                      <LayoutDashboard size={20} className="text-slate-300" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
+                      Δεν έχετε προσθέσει συσκευές ακόμη
+                    </p>
+                    <p className="text-xs text-slate-400 mb-4">
+                      Οι αγαπημένες σας συσκευές για γρήγορη πρόσβαση
+                    </p>
+                    <button
+                      onClick={() => {
+                        setEditing(true);
+                        setShowPicker(true);
+                      }}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-brand text-white hover:bg-brand/90 transition-colors"
+                    >
+                      <Plus size={12} /> Προσθήκη συσκευής
+                    </button>
+                  </div>
+                )}
+
+                {!isLoading && widgetDevices.length > 0 && (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext items={validIds} strategy={rectSortingStrategy}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {widgetDevices.map((device) =>
+                          editing ? (
+                            <SortableWidget
+                              key={device.id}
+                              id={device.id}
+                              device={device}
+                              onRemove={() => removeWidget(device.id)}
+                            />
+                          ) : (
+                            <DeviceCard key={device.id} device={device} />
+                          ),
+                        )}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+            ) : null,
+          },
+          {
+            id: 'stats',
+            label: 'Στατιστικά',
+            content: (
+              <div className={`grid grid-cols-1 gap-4 ${GRID_COLUMNS[statsCount]}`}>
+                {!dashboardHiddenCards.includes('total-devices') && (
+                  <StatCard
+                    icon={Cpu}
+                    label="Σύνολο συσκευών"
+                    value={isLoading || error ? '—' : (devices as any[]).length}
+                    color="bg-brand/10 text-brand"
+                  />
+                )}
+
+                {!dashboardHiddenCards.includes('online-devices') && (
+                  <StatCard
+                    icon={Wifi}
+                    label="Σε σύνδεση"
+                    value={isLoading || error ? '—' : online}
+                    color="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10"
+                  />
+                )}
+
+                {!dashboardHiddenCards.includes('offline-devices') && (
+                  <StatCard
+                    icon={WifiOff}
+                    label="Εκτός σύνδεσης"
+                    value={isLoading || error ? '—' : offline}
+                    color="bg-red-50 text-red-400 dark:bg-red-500/10"
+                  />
+                )}
+
+                {!dashboardHiddenCards.includes('rooms') && (
+                  <StatCard
+                    icon={Home}
+                    label="Δωμάτια"
+                    value={roomCount}
+                    color="bg-violet-50 text-violet-500 dark:bg-violet-500/10"
+                  />
+                )}
+              </div>
+            ),
+          },
+          {
+            id: 'health',
+            label: 'Κατάσταση σπιτιού',
+            content: (
+              <DashboardHealth
+                devices={devices}
+                viewer={me}
+                loading={isLoading || profileLoading}
+                failed={!!error}
+                updatedAt={dataUpdatedAt}
+                refreshing={isFetching}
+                onRefresh={() => {
+                  void refetch();
+                }}
+              />
+            ),
+          },
+        ]}
+        hiddenIds={[
+          ...dashboardHiddenSections,
+          ...(overviewCount === 0 ? ['overview'] : []),
+          ...(statsCount === 0 ? ['stats'] : []),
+        ]}
+        order={dashboardSectionOrder}
+        onReorder={setDashboardSectionOrder}
+        editing={editing}
+        disabled={saving}
+        className="flex flex-col gap-6"
       />
 
       {showPicker && (

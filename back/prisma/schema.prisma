@@ -44,6 +44,11 @@ model User {
   timezone  String? // IANA e.g. "Europe/Athens"
   latitude  Float?
   longitude Float?
+  dashboardHiddenCards String[] @default([])
+  dashboardHiddenSections String[] @default([])
+  dashboardTemperatureDeviceIds String[] @default([])
+  dashboardCardOrder String[] @default(["alarm", "weather", "temperature"])
+  dashboardSectionOrder String[] @default(["overview", "devices", "stats", "health"])
   dashboardWidgets String[] // ordered list of device IDs pinned to dashboard
 
   tuyaCredentials  TuyaCredentials?

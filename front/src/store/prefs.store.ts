@@ -5,16 +5,31 @@ import { DEFAULT_WEATHER_CITY } from '../lib/greekCities';
 import { useAuthStore } from './auth.store';
 
 export interface Preferences {
+  dashboardHiddenCards: string[];
+  dashboardHiddenSections: string[];
+  dashboardTemperatureDeviceIds: string[];
+  dashboardCardOrder: string[];
+  dashboardSectionOrder: string[];
   weatherCityId: string;
   tempUnit: 'C' | 'F';
   notificationsEnabled: boolean;
 }
 const defaults: Preferences = {
+  dashboardHiddenCards: [],
+  dashboardHiddenSections: [],
+  dashboardTemperatureDeviceIds: [],
+  dashboardCardOrder: ['alarm', 'weather', 'temperature'],
+  dashboardSectionOrder: ['overview', 'devices', 'stats', 'health'],
   weatherCityId: DEFAULT_WEATHER_CITY,
   tempUnit: 'C',
   notificationsEnabled: false,
 };
 interface PrefsStore extends Preferences {
+  setDashboardHiddenCards: (ids: string[]) => void;
+  setDashboardHiddenSections: (ids: string[]) => void;
+  setDashboardTemperatureDeviceIds: (ids: string[]) => Promise<boolean>;
+  setDashboardCardOrder: (order: string[]) => void;
+  setDashboardSectionOrder: (order: string[]) => void;
   saving: boolean;
   saveError: string;
   setWeatherCityId: (id: string) => void;
@@ -22,16 +37,25 @@ interface PrefsStore extends Preferences {
   setNotificationsEnabled: (enabled: boolean) => void;
 }
 
-async function savePreferences(patch: Partial<Preferences>) {
-  if (usePrefsStore.getState().saving) return;
+async function savePreferences(patch: Partial<Preferences>, optimistic = false) {
+  if (usePrefsStore.getState().saving) return false;
   const token = useAuthStore.getState().accessToken;
-  usePrefsStore.setState({ saving: true, saveError: '' });
+  const previous = Object.fromEntries(
+    Object.keys(patch).map((key) => [key, usePrefsStore.getState()[key as keyof Preferences]]),
+  );
+  usePrefsStore.setState({ ...(optimistic ? patch : {}), saving: true, saveError: '' });
   try {
     const { data } = await api.patch<Preferences>('/users/me/preferences', patch);
-    if (useAuthStore.getState().accessToken === token) usePrefsStore.setState(data);
+    if (useAuthStore.getState().accessToken !== token) return false;
+    usePrefsStore.setState(data);
+    return true;
   } catch {
     if (useAuthStore.getState().accessToken === token)
-      usePrefsStore.setState({ saveError: 'Η αποθήκευση απέτυχε. Δοκιμάστε ξανά.' });
+      usePrefsStore.setState({
+        ...(optimistic ? previous : {}),
+        saveError: 'Η αποθήκευση απέτυχε. Δοκιμάστε ξανά.',
+      });
+    return false;
   } finally {
     if (useAuthStore.getState().accessToken === token) usePrefsStore.setState({ saving: false });
   }
@@ -39,6 +63,20 @@ async function savePreferences(patch: Partial<Preferences>) {
 
 export const usePrefsStore = create<PrefsStore>(() => ({
   ...defaults,
+  setDashboardHiddenCards: (dashboardHiddenCards) => {
+    void savePreferences({ dashboardHiddenCards }, true);
+  },
+  setDashboardHiddenSections: (dashboardHiddenSections) => {
+    void savePreferences({ dashboardHiddenSections }, true);
+  },
+  setDashboardTemperatureDeviceIds: (dashboardTemperatureDeviceIds) =>
+    savePreferences({ dashboardTemperatureDeviceIds }, true),
+  setDashboardCardOrder: (dashboardCardOrder) => {
+    void savePreferences({ dashboardCardOrder }, true);
+  },
+  setDashboardSectionOrder: (dashboardSectionOrder) => {
+    void savePreferences({ dashboardSectionOrder }, true);
+  },
   saving: false,
   saveError: '',
   setWeatherCityId: (weatherCityId) => {
