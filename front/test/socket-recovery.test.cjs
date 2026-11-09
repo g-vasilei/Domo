@@ -46,7 +46,9 @@ function setup({ fail = false } = {}) {
     '../store/connection.store': {
       useConnectionStore: { setState: (data) => Object.assign(connection, data) },
     },
-    '../store/notifications.store': {},
+    '../store/notifications.store': {
+      useNotificationsStore: { getState: () => ({ load: async () => {} }) },
+    },
     '../store/prefs.store': {},
     './deviceCommands': { updateDeviceCaches: () => {} },
     './api': { api: { get: async () => ({ data: { state: 'ARMED_AWAY' } }) } },

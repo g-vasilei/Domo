@@ -147,7 +147,9 @@ export class DevicesService {
       this.logCommand(userId, deviceId, commands).catch((error) =>
         this.logger.error('Could not record device command', error),
       );
-      this.notifyDeviceChange(userId, deviceId, commands).catch(() => {});
+      this.notifyDeviceChange(userId, deviceId, commands).catch((error) =>
+        this.logger.error('Device notification failed', error),
+      );
       this.automationEvaluator
         .evaluateOnCommand(ownerId, deviceId, commands)
         .catch((error) => this.logger.error(`Automation evaluation failed for ${deviceId}`, error));

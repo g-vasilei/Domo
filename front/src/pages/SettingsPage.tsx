@@ -6,6 +6,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import PinPromptModal from '../components/PinPromptModal';
 import { api } from '../lib/api';
 import { getWeatherCity, GREEK_CITIES } from '../lib/greekCities';
+import { disablePush, enablePush } from '../lib/pushNotifications';
 import { usePrefsStore } from '../store/prefs.store';
 
 // ── Shared UI ──────────────────────────────────────────────────────────────
@@ -103,16 +104,29 @@ function UserTab() {
     if ('Notification' in window) setPermission(Notification.permission);
   }, []);
 
+  const [pushError, setPushError] = useState('');
   async function requestNotifications() {
     if (!('Notification' in window)) return;
     const result = await Notification.requestPermission();
     setPermission(result);
     if (result === 'granted') {
-      setNotificationsEnabled(true);
-      new Notification('Έξυπνο σπίτι', {
-        body: 'Οι ειδοποιήσεις ενεργοποιήθηκαν!',
-        icon: '/favicon.ico',
-      });
+      try {
+        setPushError('');
+        await enablePush();
+        setNotificationsEnabled(true);
+      } catch (error) {
+        setPushError((error as Error).message);
+      }
+    }
+  }
+  async function toggleNotifications() {
+    try {
+      setPushError('');
+      if (notificationsEnabled) await disablePush();
+      else await enablePush();
+      setNotificationsEnabled(!notificationsEnabled);
+    } catch (error) {
+      setPushError((error as Error).message);
     }
   }
 
@@ -162,6 +176,11 @@ function UserTab() {
 
       <Divider />
 
+      {pushError && (
+        <p role="alert" className="text-sm text-red-500">
+          {pushError}
+        </p>
+      )}
       {/* Notifications */}
       <div className="flex flex-col gap-3">
         <SectionHeader
@@ -197,7 +216,7 @@ function UserTab() {
           </p>
         ) : isGranted ? (
           <button
-            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+            onClick={toggleNotifications}
             className={`self-start px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
               notificationsEnabled
                 ? 'border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-red-400 hover:text-red-500'
@@ -525,15 +544,104 @@ function AlarmTab() {
   );
 }
 
+interface PushSettings {
+  contactEmail: string;
+  defaultEmail: string;
+}
+
+function PushSettingsTab() {
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: ['push-settings'],
+    queryFn: () => api.get<PushSettings>('/notifications/settings').then((r) => r.data),
+  });
+  const mutation = useMutation({
+    mutationFn: (contactEmail: string) =>
+      api.patch<PushSettings>('/notifications/settings', { contactEmail }).then((r) => r.data),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(['push-settings'], settings);
+      setDraft(null);
+      setSuccess(true);
+    },
+  });
+  if (isPending)
+    return (
+      <p role="status" className="text-sm text-slate-400">
+        Φόρτωση…
+      </p>
+    );
+  if (isError)
+    return (
+      <div role="alert" className="text-sm text-red-500">
+        Δεν φορτώθηκαν οι ρυθμίσεις ειδοποιήσεων.{' '}
+        <button onClick={() => void refetch()} className="underline">
+          Δοκιμή ξανά
+        </button>
+      </div>
+    );
+  return (
+    <form
+      className="flex flex-col gap-5 max-w-sm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setSuccess(false);
+        mutation.mutate((draft ?? (data.contactEmail || data.defaultEmail)).trim());
+      }}
+    >
+      <SectionHeader
+        title="Ειδοποιήσεις κατοικίας"
+        description="Στοιχεία επικοινωνίας για την υπηρεσία ειδοποιήσεων όλων των μελών."
+      />
+      <Field
+        label="Email επικοινωνίας ειδοποιήσεων"
+        hint="Χρησιμοποιείται από την υπηρεσία Push του browser ως στοιχείο επικοινωνίας. Δεν αποστέλλονται email και δεν χρειάζεται κωδικός email."
+      >
+        <input
+          type="email"
+          aria-label="Email επικοινωνίας ειδοποιήσεων"
+          autoComplete="email"
+          maxLength={254}
+          value={draft ?? (data.contactEmail || data.defaultEmail)}
+          disabled={mutation.isPending}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setSuccess(false);
+            mutation.reset();
+          }}
+          className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand"
+        />
+      </Field>
+      <p className="text-xs text-slate-400">
+        Προεπιλογή είναι το email εγγραφής του ιδιοκτήτη: {data.defaultEmail}. Αν μείνει κενό,
+        επανέρχεται αυτόματα στην προεπιλογή.
+      </p>
+      <SaveFeedback
+        error={mutation.isError ? 'Η αποθήκευση απέτυχε. Ελέγξτε το email και δοκιμάστε ξανά.' : ''}
+        success={success}
+      />
+      <button
+        type="submit"
+        disabled={mutation.isPending || draft === null}
+        className="self-start px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-brand/90 transition-colors"
+      >
+        {mutation.isPending ? 'Αποθήκευση…' : 'Αποθήκευση'}
+      </button>
+    </form>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
-const TABS = ['Προτιμήσεις', 'Κωδικός πρόσβασης', 'Tuya', 'Συναγερμός'] as const;
+const TABS = ['Προτιμήσεις', 'Κωδικός πρόσβασης', 'Tuya', 'Συναγερμός', 'Ειδοποιήσεις'] as const;
 type Tab = (typeof TABS)[number];
 const TAB_IDS: Record<Tab, string> = {
   Προτιμήσεις: 'preferences',
   'Κωδικός πρόσβασης': 'password',
   Tuya: 'tuya',
   Συναγερμός: 'alarm',
+  Ειδοποιήσεις: 'notifications',
 };
 
 export default function SettingsPage() {
@@ -549,7 +657,7 @@ export default function SettingsPage() {
   const isOwner = me?.role === 'OWNER';
   const canSeeAlarm = isOwner || me?.permissions?.canArmAlarm;
   const visibleTabs = TABS.filter((t) => {
-    if (t === 'Tuya') return isOwner;
+    if (t === 'Tuya' || t === 'Ειδοποιήσεις') return isOwner;
     if (t === 'Συναγερμός') return canSeeAlarm;
     return true;
   });
@@ -597,6 +705,7 @@ export default function SettingsPage() {
         {activeTab === 'Κωδικός πρόσβασης' && <PasswordTab />}
         {activeTab === 'Tuya' && isOwner && <TuyaTab />}
         {activeTab === 'Συναγερμός' && <AlarmTab />}
+        {activeTab === 'Ειδοποιήσεις' && isOwner && <PushSettingsTab />}
       </div>
     </div>
   );

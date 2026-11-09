@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api';
+import { disablePush } from '../lib/pushNotifications';
 import { AlarmState } from '../store/alarm.store';
 import { useAuthStore } from '../store/auth.store';
 import { useConnectionStore } from '../store/connection.store';
@@ -100,7 +101,7 @@ function NotificationItem({ n }: { n: AppNotification }) {
 }
 
 function NotificationCenter() {
-  const { items, unread, markAllRead, clear } = useNotificationsStore();
+  const { items, unread, markAllRead, clear, error } = useNotificationsStore();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -149,6 +150,11 @@ function NotificationCenter() {
             )}
           </div>
 
+          {error && (
+            <p role="alert" className="px-4 py-2 text-xs text-red-500">
+              {error}
+            </p>
+          )}
           {/* List */}
           <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5">
             {items.length === 0 ? (
@@ -176,7 +182,7 @@ export default function Header({ onMenuClick }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const clearNotifications = useNotificationsStore((s) => s.clear);
+  const clearNotifications = useNotificationsStore((s) => s.reset);
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -260,7 +266,16 @@ export default function Header({ onMenuClick }: Props) {
               </button>
               <div className="my-1 border-t border-slate-100 dark:border-white/10" />
               <button
-                onClick={() => {
+                onClick={async () => {
+                  try {
+                    await disablePush();
+                  } catch {
+                    useNotificationsStore.setState({
+                      error:
+                        'Δεν απενεργοποιήθηκαν οι ειδοποιήσεις αυτής της συσκευής. Δοκιμάστε ξανά.',
+                    });
+                    return;
+                  }
                   queryClient.clear();
                   clearNotifications();
                   clear();

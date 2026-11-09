@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
 import { AutomationModule } from '../automation/automation.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TuyaModule } from '../tuya/tuya.module';
 import { UsersModule } from '../users/users.module';
@@ -16,6 +17,7 @@ import { DevicesService } from './devices.service';
     TuyaModule,
     UsersModule,
     PrismaModule,
+    NotificationsModule,
     forwardRef(() => AutomationModule),
     JwtModule.registerAsync({
       inject: [ConfigService],

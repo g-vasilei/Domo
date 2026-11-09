@@ -46,10 +46,20 @@ export default tseslint.config(
         __dirname: 'readonly',
         process: 'readonly',
         structuredClone: 'readonly',
+        setImmediate: 'readonly',
+        URL: 'readonly',
       },
     },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
+      // CommonJS tests can import Node globals without redeclaring a global binding.
+      'no-redeclare': ['error', { builtinGlobals: false }],
+    },
+  },
+  {
+    files: ['front/public/sw.js'],
+    languageOptions: {
+      globals: { self: 'readonly', URL: 'readonly' },
     },
   },
   {

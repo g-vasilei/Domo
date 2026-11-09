@@ -202,6 +202,7 @@ export class TuyaService {
     const host = REGION_HOSTS[region];
 
     const res = await fetch(`https://${host}${path}`, {
+      signal: AbortSignal.timeout(15_000),
       headers: {
         client_id: accessId,
         sign,
@@ -236,6 +237,7 @@ export class TuyaService {
     const host = REGION_HOSTS[region];
 
     const res = await fetch(`https://${host}${path}`, {
+      signal: AbortSignal.timeout(15_000),
       method,
       headers: {
         client_id: accessId,

@@ -40,6 +40,7 @@ model User {
   weatherCityId String @default("veria")
   tempUnit String @default("C")
   notificationsEnabled Boolean @default(false)
+  pushContactEmail String?
 
   timezone  String? // IANA e.g. "Europe/Athens"
   latitude  Float?
@@ -63,6 +64,8 @@ model User {
   automationRules  AutomationRule[]
   deviceTimers     DeviceTimer[]
   deviceSchedules  DeviceSchedule[]
+  notifications AppNotification[]
+  pushSubscriptions PushSubscription[]
   calendarEvents CalendarEvent[]
 
   createdAt DateTime @default(now())
@@ -317,4 +320,33 @@ model DeviceScheduleSlot {
   lastRunKey  String? // local date + time, prevents duplicate starts including DST fallback
 
   @@unique([scheduleId, time])
+}
+
+model AppNotification {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind String
+  title String
+  body String
+  state String?
+  deviceId String?
+  at DateTime @default(now())
+  read Boolean @default(false)
+  @@index([userId, at])
+}
+
+model PushSubscription {
+  endpoint String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  p256dh String
+  auth String
+  @@index([userId])
+}
+
+model PushKey {
+  id String @id
+  publicKey String
+  privateKey String
 }

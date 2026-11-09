@@ -34,7 +34,11 @@ export class AlarmCallService {
       return;
     }
 
-    await this.sendSms(creds, phoneNumber, `Your Domo verification code is: ${otp}. Valid for 5 minutes.`);
+    await this.sendSms(
+      creds,
+      phoneNumber,
+      `Your Domo verification code is: ${otp}. Valid for 5 minutes.`,
+    );
     this.logger.log(`OTP sent to ${phoneNumber}`);
   }
 
@@ -54,13 +58,13 @@ export class AlarmCallService {
   async callNumber(userId: string, to: string): Promise<void> {
     const creds = await this.getCredentials(userId);
     if (!creds) {
-      this.logger.warn(`Phone call to ${to} skipped — Infobip not configured`);
-      return;
+      throw new Error('Infobip not configured');
     }
 
     try {
       const res = await fetch(`${creds.baseUrl}/tts/3/single`, {
         method: 'POST',
+        signal: AbortSignal.timeout(15_000),
         headers: {
           Authorization: `App ${creds.apiKey}`,
           'Content-Type': 'application/json',
@@ -77,14 +81,14 @@ export class AlarmCallService {
 
       if (!res.ok) {
         const body = await res.text();
-        this.logger.error(`Infobip voice call failed (${res.status}): ${body}`);
-        return;
+        throw new Error(`Infobip voice call failed (${res.status}): ${body}`);
       }
 
       const data: any = await res.json();
       this.logger.log(`Voice call initiated to ${to} — bulk ID: ${data.bulkId}`);
     } catch (e: any) {
       this.logger.error(`Voice call to ${to} failed: ${e?.message}`);
+      throw e;
     }
   }
 

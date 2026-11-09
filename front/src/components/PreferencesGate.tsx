@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { api } from '../lib/api';
+import { enablePush } from '../lib/pushNotifications';
 import { useAuthStore } from '../store/auth.store';
 import { Preferences, usePrefsStore } from '../store/prefs.store';
 
@@ -22,6 +23,19 @@ export default function PreferencesGate({ children }: { children: React.ReactNod
       setAppliedToken(token);
     }
   }, [data, token]);
+  const notificationsEnabled = usePrefsStore((s) => s.notificationsEnabled);
+  useEffect(() => {
+    if (
+      appliedToken !== token ||
+      !notificationsEnabled ||
+      !('Notification' in window) ||
+      Notification.permission !== 'granted'
+    )
+      return;
+    void enablePush().catch((error) =>
+      usePrefsStore.setState({ saveError: (error as Error).message }),
+    );
+  }, [appliedToken, token, notificationsEnabled]);
   if (isError)
     return (
       <div role="alert" className="p-6 text-sm text-slate-500">

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   OnGatewayConnection,
@@ -7,6 +7,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+
+import { NotificationsService } from '../notifications/notifications.service';
 
 @WebSocketGateway({
   cors: { origin: true, credentials: true },
@@ -17,7 +19,10 @@ export class DevicesGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   private readonly logger = new Logger(DevicesGateway.name);
 
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    @Optional() private readonly notifications?: NotificationsService,
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -62,6 +67,15 @@ export class DevicesGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   /** Broadcast any event to all sessions of a set of users */
   broadcastToUsers(userIds: string[], event: string, payload: object) {
+    if (this.notifications) {
+      void this.notifications
+        .deliver(userIds, event, payload, (userId, item) => {
+          this.server.sockets.sockets.forEach((socket) => {
+            if (socket.data.userId === userId) socket.emit('notification:new', item);
+          });
+        })
+        .catch((error) => this.logger.error('Notification delivery failed', error));
+    }
     this.server.sockets.sockets.forEach((socket) => {
       if (userIds.includes(socket.data.userId)) {
         socket.emit(event, payload);
