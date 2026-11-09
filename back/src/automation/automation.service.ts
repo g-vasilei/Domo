@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { canAccessDevice } from '../devices/device-permissions';
 import { PrismaService } from '../prisma/prisma.service';
@@ -95,6 +100,7 @@ export class AutomationService {
 
   async createRule(userId: string, dto: CreateRuleDto) {
     await this.assertRuleAccess(userId, dto);
+    this.validateConditions(dto.conditions);
     const ownerId = await this.resolveOwnerId(userId);
     return this.prisma.automationRule.create({
       data: {
@@ -146,6 +152,10 @@ export class AutomationService {
       actions: dto.actions ?? rule.actions,
     });
 
+    this.validateConditions(dto.conditions ?? rule.conditions);
+    const conditionsChanged =
+      dto.conditions !== undefined &&
+      this.conditionSignature(dto.conditions) !== this.conditionSignature(rule.conditions);
     return this.prisma.$transaction(async (tx) => {
       if (dto.conditions !== undefined) {
         await tx.automationCondition.deleteMany({ where: { ruleId: id } });
@@ -159,7 +169,10 @@ export class AutomationService {
         data: {
           ...(dto.name !== undefined && { name: dto.name }),
           ...(dto.enabled !== undefined && { enabled: dto.enabled }),
-          conditionMet: false,
+          ...((conditionsChanged ||
+            (dto.enabled !== undefined && dto.enabled !== rule.enabled)) && {
+            conditionMet: false,
+          }),
           ...(dto.conditions !== undefined && {
             conditions: {
               create: dto.conditions.map((c) => ({
@@ -225,9 +238,51 @@ export class AutomationService {
     return { message: 'Rule deleted' };
   }
 
+  private conditionSignature(conditions: any[]) {
+    return JSON.stringify(
+      [...conditions]
+        .sort((a, b) => a.order - b.order)
+        .map((c, index) => ({
+          type: c.type,
+          operator: c.operator ?? 'eq',
+          nextOperator: index < conditions.length - 1 ? (c.nextOperator ?? 'AND') : null,
+          ...(c.type === 'device_state' && {
+            deviceId: c.deviceId,
+            statusCode: c.statusCode,
+            value: c.value,
+          }),
+          ...(c.type === 'time' && { timeValue: c.timeValue }),
+          ...(c.type === 'sun' && { sunEvent: c.sunEvent, sunOffsetMin: c.sunOffsetMin ?? 0 }),
+        })),
+    );
+  }
+
+  private validateConditions(
+    conditions: { type: string; operator?: string | null; value?: unknown }[],
+  ) {
+    for (const condition of conditions) {
+      if (
+        condition.type === 'device_state' &&
+        ['gt', 'lt'].includes(condition.operator ?? '') &&
+        (typeof condition.value !== 'number' || !Number.isFinite(condition.value))
+      ) {
+        throw new BadRequestException('Numeric comparisons require a finite numeric value');
+      }
+    }
+  }
+
   async updateLocation(userId: string, dto: UpdateLocationDto) {
+    await this.assertCanManage(userId);
+    const ownerId = await this.resolveOwnerId(userId);
+    if (dto.timezone !== undefined) {
+      try {
+        new Intl.DateTimeFormat('en-GB', { timeZone: dto.timezone }).format();
+      } catch {
+        throw new BadRequestException('Invalid timezone');
+      }
+    }
     return this.prisma.user.update({
-      where: { id: userId },
+      where: { id: ownerId },
       data: {
         ...(dto.timezone !== undefined && { timezone: dto.timezone }),
         ...(dto.latitude !== undefined && { latitude: dto.latitude }),

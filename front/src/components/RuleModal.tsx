@@ -138,6 +138,7 @@ function ConditionRow({
               onChange={(e) =>
                 set({
                   type: e.target.value as Condition['type'],
+                  operator: 'eq',
                   deviceId: undefined,
                   statusCode: undefined,
                   value: undefined,
@@ -317,7 +318,7 @@ function ActionRow({
 }) {
   const set = (patch: Partial<Action>) => onChange({ ...action, ...patch });
   const { status, isLoading } = useDeviceStatus(
-    action.type === 'device_control' ? action.deviceId : undefined,
+    action.type !== 'notification' ? action.deviceId : undefined,
   );
   const selectedStatus = status.find((s) => s.code === action.statusCode);
 
@@ -372,6 +373,7 @@ function ActionRow({
               <input
                 type="number"
                 min={1}
+                max={1440}
                 value={action.minutes ?? ''}
                 onChange={(e) => set({ minutes: Number(e.target.value) })}
                 placeholder="λεπτά"
@@ -391,6 +393,25 @@ function ActionRow({
             />
           )}
         </div>
+
+        {action.type === 'countdown' && action.deviceId && (
+          <select
+            aria-label="Διακόπτης αντίστροφης μέτρησης"
+            value={action.statusCode ?? ''}
+            onChange={(e) => set({ statusCode: e.target.value })}
+            disabled={isLoading}
+            className={SEL}
+          >
+            <option value="">— διακόπτης —</option>
+            {status
+              .filter((entry) => typeof entry.value === 'boolean')
+              .map((entry) => (
+                <option key={entry.code} value={entry.code}>
+                  {entry.code}
+                </option>
+              ))}
+          </select>
+        )}
 
         {/* Row 2: status code + value (device_control only) */}
         {action.type === 'device_control' && action.deviceId && (
@@ -462,8 +483,37 @@ export default function RuleModal({ rule, onClose }: Props) {
     },
   });
 
+  const valid =
+    !!name.trim() &&
+    conditions.length > 0 &&
+    actions.length > 0 &&
+    conditions.every((condition) => {
+      if (condition.type === 'device_state')
+        return (
+          !!condition.deviceId &&
+          !!condition.statusCode &&
+          condition.value !== undefined &&
+          condition.value !== null &&
+          (!['gt', 'lt'].includes(condition.operator ?? '') || typeof condition.value === 'number')
+        );
+      if (condition.type === 'time')
+        return /^([01]\d|2[0-3]):[0-5]\d$/.test(condition.timeValue ?? '');
+      return (
+        !!condition.sunEvent &&
+        Number.isInteger(condition.sunOffsetMin ?? 0) &&
+        Math.abs(condition.sunOffsetMin ?? 0) <= 1440
+      );
+    }) &&
+    actions.every((action) => {
+      if (action.type === 'notification') return true;
+      if (!action.deviceId || !action.statusCode) return false;
+      if (action.type === 'countdown')
+        return Number.isInteger(action.minutes) && action.minutes! >= 1 && action.minutes! <= 1440;
+      return action.value !== undefined && action.value !== null;
+    });
+
   const handleSave = () => {
-    if (!name.trim()) return;
+    if (!valid) return;
     mutation.mutate({
       name: name.trim(),
       conditions: conditions.map((c, i) => ({
@@ -562,6 +612,12 @@ export default function RuleModal({ rule, onClose }: Props) {
           </div>
         </div>
 
+        {mutation.isError && (
+          <p role="alert" className="px-5 pb-3 text-sm text-red-500">
+            Η αποθήκευση απέτυχε. Ελέγξτε τα πεδία του κανόνα και δοκιμάστε ξανά.
+          </p>
+        )}
+
         {/* Footer */}
         <div className="flex gap-2 px-5 py-4 border-t border-slate-100 dark:border-white/10">
           <button
@@ -572,15 +628,7 @@ export default function RuleModal({ rule, onClose }: Props) {
           </button>
           <button
             onClick={handleSave}
-            disabled={
-              !name.trim() ||
-              mutation.isPending ||
-              conditions.some(
-                (condition) =>
-                  condition.type === 'time' &&
-                  !/^([01]\d|2[0-3]):[0-5]\d$/.test(condition.timeValue ?? ''),
-              )
-            }
+            disabled={!valid || mutation.isPending}
             className="flex-1 py-2 text-sm bg-brand text-white rounded-xl hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {mutation.isPending ? 'Αποθήκευση…' : 'Αποθήκευση κανόνα'}

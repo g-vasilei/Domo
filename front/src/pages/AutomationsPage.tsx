@@ -65,7 +65,8 @@ export default function AutomationsPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Αυτοματισμοί</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Αυτόματοι κανόνες βάσει κατάστασης συσκευών, ώρας, ανατολής ή δύσης
+            Αυτόματοι κανόνες βάσει κατάστασης συσκευών, ώρας, ανατολής ή δύσης. Οι συσκευές
+            ελέγχονται ανά 30 δευτερόλεπτα και οι ώρες ανά λεπτό.
           </p>
         </div>
         <button
@@ -237,7 +238,9 @@ export default function AutomationsPage() {
 
 function LocationModal({ onClose, current }: { onClose: () => void; current: any }) {
   const qc = useQueryClient();
-  const [tz, setTz] = useState(current?.timezone ?? '');
+  const [tz, setTz] = useState(
+    current?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
   const [lat, setLat] = useState(current?.latitude?.toString() ?? '');
   const [lng, setLng] = useState(current?.longitude?.toString() ?? '');
 
@@ -301,6 +304,11 @@ function LocationModal({ onClose, current }: { onClose: () => void; current: any
           </button>
         </div>
 
+        {mutation.isError && (
+          <p role="alert" className="mt-3 text-sm text-red-500">
+            Η αποθήκευση απέτυχε. Ελέγξτε τη ζώνη ώρας και τις συντεταγμένες.
+          </p>
+        )}
         <div className="flex gap-2 mt-5">
           <button
             onClick={onClose}
@@ -309,6 +317,12 @@ function LocationModal({ onClose, current }: { onClose: () => void; current: any
             Ακύρωση
           </button>
           <button
+            disabled={
+              mutation.isPending ||
+              !tz.trim() ||
+              (lat !== '' && (!Number.isFinite(Number(lat)) || Math.abs(Number(lat)) > 90)) ||
+              (lng !== '' && (!Number.isFinite(Number(lng)) || Math.abs(Number(lng)) > 180))
+            }
             onClick={() =>
               mutation.mutate({
                 timezone: tz || undefined,

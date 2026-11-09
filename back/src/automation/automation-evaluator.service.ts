@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import * as SunCalc from 'suncalc';
 
@@ -9,6 +9,8 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class AutomationEvaluatorService {
   private readonly logger = new Logger(AutomationEvaluatorService.name);
+  private pollingDevices = false;
+  private pollingTime = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -60,19 +62,17 @@ export class AutomationEvaluatorService {
     );
     trace.steps.push({ step: 'condition_evaluation', condMet });
 
-    if (!condMet) {
-      trace.result = 'condition_not_met — no actions executed';
+    if (condMet !== true) {
+      trace.result = condMet === null ? 'inputs_unavailable' : 'condition_not_met';
       return trace;
     }
 
     // Manual testing deliberately bypasses automatic edge detection.
-    await this.executeActions(rule.actions, ownerId, rule.name);
-    await this.prisma.automationRule.update({
-      where: { id: rule.id },
-      data: { lastTriggeredAt: new Date(), conditionMet: true },
-    });
-    trace.steps.push({ step: 'actions_executed', actions: rule.actions.map((a: any) => a.type) });
-    trace.result = 'fired — check notification bell';
+    const results = await this.executeActions(rule.actions, ownerId, rule.name);
+    // A manual test must not consume or rearm an automatic condition edge.
+    trace.steps.push({ step: 'actions_executed', actions: results });
+    trace.result =
+      results.length > 0 && results.every((result) => result.ok) ? 'fired' : 'actions_failed';
     return trace;
   }
 
@@ -96,8 +96,7 @@ export class AutomationEvaluatorService {
     for (const command of commands) changedStatus.set(command.code, command);
     statusMap.set(deviceId, [...changedStatus.values()]);
     for (const rule of rules) {
-      if (!this.hasDeviceInputs(rule, statusMap)) continue;
-      await this.evaluateRule(rule, ownerId, undefined, undefined, statusMap);
+      await this.evaluateSafely(rule, ownerId, statusMap);
     }
   }
 
@@ -122,12 +121,12 @@ export class AutomationEvaluatorService {
     return statuses;
   }
 
-  private hasDeviceInputs(rule: any, statuses: Map<string, { code: string; value: unknown }[]>) {
-    return rule.conditions.every(
-      (condition: any) =>
-        condition.type !== 'device_state' ||
-        statuses.get(condition.deviceId)?.some((entry) => entry.code === condition.statusCode),
-    );
+  private async evaluateSafely(rule: any, ownerId: string, statusMap?: Map<string, any[]>) {
+    try {
+      await this.evaluateRule(rule, ownerId, undefined, undefined, statusMap);
+    } catch (error: any) {
+      this.logger.error(`Rule ${rule.id} evaluation failed: ${error?.message}`);
+    }
   }
 
   // ── Cron: execute expired device timers every 5s ─────────────────────────
@@ -147,37 +146,42 @@ export class AutomationEvaluatorService {
     }
   }
 
-  // ── Cron: poll device states every 5min for device_state rules ───────────
+  // ── Cron: poll device states every 30s for device_state rules ───────────
 
-  @Cron('*/5 * * * *')
+  @Cron('*/30 * * * * *')
   async evaluateDeviceStateRules() {
-    const rules = await this.prisma.automationRule.findMany({
-      where: {
-        enabled: true,
-        conditions: { some: { type: 'device_state' } },
-      },
-      include: {
-        conditions: { orderBy: { order: 'asc' } },
-        actions: { orderBy: { order: 'asc' } },
-        user: { select: { id: true, timezone: true, latitude: true, longitude: true } },
-      },
-    });
+    if (this.pollingDevices) return;
+    this.pollingDevices = true;
+    try {
+      const rules = await this.prisma.automationRule.findMany({
+        where: {
+          enabled: true,
+          conditions: { some: { type: 'device_state' } },
+        },
+        include: {
+          conditions: { orderBy: { order: 'asc' } },
+          actions: { orderBy: { order: 'asc' } },
+          user: { select: { id: true, timezone: true, latitude: true, longitude: true } },
+        },
+      });
 
-    // Group by userId to batch device fetches
-    const byUser = new Map<string, typeof rules>();
-    for (const rule of rules) {
-      const uid = rule.userId;
-      if (!byUser.has(uid)) byUser.set(uid, []);
-      byUser.get(uid)!.push(rule);
-    }
-
-    for (const [ownerId, userRules] of byUser) {
-      const statusMap = await this.fetchRuleStatuses(userRules, ownerId);
-
-      for (const rule of userRules) {
-        if (!this.hasDeviceInputs(rule, statusMap)) continue;
-        await this.evaluateRule(rule, ownerId, undefined, undefined, statusMap);
+      // Group by userId to batch device fetches
+      const byUser = new Map<string, typeof rules>();
+      for (const rule of rules) {
+        const uid = rule.userId;
+        if (!byUser.has(uid)) byUser.set(uid, []);
+        byUser.get(uid)!.push(rule);
       }
+
+      for (const [ownerId, userRules] of byUser) {
+        const statusMap = await this.fetchRuleStatuses(userRules, ownerId);
+
+        for (const rule of userRules) {
+          await this.evaluateSafely(rule, ownerId, statusMap);
+        }
+      }
+    } finally {
+      this.pollingDevices = false;
     }
   }
 
@@ -185,20 +189,26 @@ export class AutomationEvaluatorService {
 
   @Cron('* * * * *')
   async evaluateTimeSunRules() {
-    const rules = await this.prisma.automationRule.findMany({
-      where: {
-        enabled: true,
-        conditions: { some: { type: { in: ['time', 'sun'] } } },
-      },
-      include: {
-        conditions: { orderBy: { order: 'asc' } },
-        actions: { orderBy: { order: 'asc' } },
-        user: { select: { id: true, timezone: true, latitude: true, longitude: true } },
-      },
-    });
+    if (this.pollingTime) return;
+    this.pollingTime = true;
+    try {
+      const rules = await this.prisma.automationRule.findMany({
+        where: {
+          enabled: true,
+          conditions: { some: { type: { in: ['time', 'sun'] } } },
+        },
+        include: {
+          conditions: { orderBy: { order: 'asc' } },
+          actions: { orderBy: { order: 'asc' } },
+          user: { select: { id: true, timezone: true, latitude: true, longitude: true } },
+        },
+      });
 
-    for (const rule of rules) {
-      await this.evaluateRule(rule, rule.userId);
+      for (const rule of rules) {
+        await this.evaluateSafely(rule, rule.userId);
+      }
+    } finally {
+      this.pollingTime = false;
     }
   }
 
@@ -215,7 +225,6 @@ export class AutomationEvaluatorService {
     if (!statusMap && rule.conditions.some((condition: any) => condition.type === 'device_state')) {
       statusMap = await this.fetchRuleStatuses([rule], ownerId);
     }
-    if (statusMap && !this.hasDeviceInputs(rule, statusMap)) return;
 
     const user =
       rule.user ??
@@ -232,11 +241,13 @@ export class AutomationEvaluatorService {
       user,
     );
 
+    // An unavailable input is unknown: do not manufacture a false edge.
+    if (condMet === null) return;
     // Commands and polling share persistent edge detection.
     if (!condMet) {
       if (rule.conditionMet) {
         await this.prisma.automationRule.updateMany({
-          where: { id: rule.id, lastTriggeredAt: rule.lastTriggeredAt },
+          where: { id: rule.id, lastTriggeredAt: rule.lastTriggeredAt, updatedAt: rule.updatedAt },
           data: { conditionMet: false },
         });
       }
@@ -250,7 +261,7 @@ export class AutomationEvaluatorService {
 
     // Claim the false → true edge atomically, including concurrent command/cron checks.
     const claimed = await this.prisma.automationRule.updateMany({
-      where: { id: rule.id, enabled: true, conditionMet: false },
+      where: { id: rule.id, enabled: true, conditionMet: false, updatedAt: rule.updatedAt },
       data: { lastTriggeredAt: new Date(), conditionMet: true },
     });
     if (!claimed.count) return;
@@ -265,7 +276,7 @@ export class AutomationEvaluatorService {
     knownDeviceId?: string,
     statusMap?: Map<string, any[]>,
     user?: any,
-  ): Promise<boolean> {
+  ): Promise<boolean | null> {
     if (!conditions.length) return false;
 
     let result = await this.evaluateSingleCondition(
@@ -285,7 +296,19 @@ export class AutomationEvaluatorService {
         statusMap,
         user,
       );
-      result = op === 'OR' ? result || next : result && next;
+      // Three-valued logic: true OR unknown is true; false AND unknown is false.
+      result =
+        op === 'OR'
+          ? result === true || next === true
+            ? true
+            : result === null || next === null
+              ? null
+              : false
+          : result === false || next === false
+            ? false
+            : result === null || next === null
+              ? null
+              : true;
     }
 
     return result;
@@ -297,7 +320,7 @@ export class AutomationEvaluatorService {
     knownDeviceId?: string,
     statusMap?: Map<string, any[]>,
     user?: any,
-  ): Promise<boolean> {
+  ): Promise<boolean | null> {
     if (cond.type === 'device_state') {
       return this.evaluateDeviceCondition(cond, knownStatus, knownDeviceId, statusMap);
     }
@@ -315,7 +338,7 @@ export class AutomationEvaluatorService {
     knownStatus?: { code: string; value: unknown }[],
     knownDeviceId?: string,
     statusMap?: Map<string, any[]>,
-  ): boolean {
+  ): boolean | null {
     let status: any[] | undefined;
 
     if (knownDeviceId && knownDeviceId === cond.deviceId && knownStatus) {
@@ -324,17 +347,23 @@ export class AutomationEvaluatorService {
       status = statusMap.get(cond.deviceId);
     }
 
-    if (!status) return false;
+    if (!status) return null;
 
     const entry = status.find((s: any) => s.code === cond.statusCode);
-    if (!entry) return false;
+    if (!entry) return null;
 
     const op = cond.operator ?? 'eq';
 
     if (op === 'gt' || op === 'lt') {
-      const actualNum = Number(entry.value);
-      const expectedNum = Number(cond.value);
-      if (isNaN(actualNum) || isNaN(expectedNum)) return false;
+      const actualNum = entry.value;
+      const expectedNum = cond.value;
+      if (
+        typeof actualNum !== 'number' ||
+        typeof expectedNum !== 'number' ||
+        !Number.isFinite(actualNum) ||
+        !Number.isFinite(expectedNum)
+      )
+        return false;
       return op === 'gt' ? actualNum > expectedNum : actualNum < expectedNum;
     }
 
@@ -344,7 +373,7 @@ export class AutomationEvaluatorService {
   }
 
   private evaluateTimeCondition(cond: any, timezone?: string | null): boolean {
-    if (!cond.timeValue) return false;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(cond.timeValue ?? '')) return false;
 
     const [targetH, targetM] = cond.timeValue.split(':').map(Number);
     const targetMin = targetH * 60 + targetM;
@@ -355,7 +384,7 @@ export class AutomationEvaluatorService {
       timeZone: tz,
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
+      hourCycle: 'h23',
     }).formatToParts(now);
 
     const h = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0');
@@ -365,30 +394,47 @@ export class AutomationEvaluatorService {
     const op = cond.operator ?? 'eq';
     if (op === 'gt') return nowMin > targetMin;
     if (op === 'lt') return nowMin < targetMin;
-    return h === targetH && m === targetM; // eq
+    if (op === 'neq') return nowMin !== targetMin;
+    return nowMin === targetMin;
   }
 
   private evaluateSunCondition(
     cond: any,
     latitude?: number | null,
     longitude?: number | null,
-    _timezone?: string | null,
+    timezone?: string | null,
   ): boolean {
-    if (!cond.sunEvent || latitude == null || longitude == null) return false;
+    if (!['sunrise', 'sunset'].includes(cond.sunEvent) || latitude == null || longitude == null)
+      return false;
 
     const now = new Date();
-    const times = SunCalc.getTimes(now, latitude, longitude);
-    const eventTime: Date = times[cond.sunEvent as keyof typeof times] as Date;
-    if (!eventTime || isNaN(eventTime.getTime())) return false;
-
-    const offset = cond.sunOffsetMin ?? 0;
-    const targetMs = eventTime.getTime() + offset * 60_000;
-
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone ?? 'UTC',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+    const part = (name: string) => Number(parts.find((p) => p.type === name)?.value);
+    // Anchor at solar noon on the user's civil date. Using "now" can select
+    // tomorrow's solar cycle late in the evening, even before local midnight.
+    const anchor = Date.UTC(part('year'), part('month') - 1, part('day'), 12) - longitude * 240_000;
+    const target = (day: number) => {
+      const times = SunCalc.getTimes(new Date(anchor + day * 86_400_000), latitude, longitude);
+      return (
+        (times[cond.sunEvent as 'sunrise' | 'sunset'] as Date).getTime() +
+        (cond.sunOffsetMin ?? 0) * 60_000
+      );
+    };
+    if (!Number.isFinite(target(0))) return false;
     const op = cond.operator ?? 'eq';
-    if (op === 'gt') return now.getTime() > targetMs;
-    if (op === 'lt') return now.getTime() < targetMs;
-    // eq: match within the current minute window
-    return Math.abs(now.getTime() - targetMs) / 60_000 < 1;
+    if (op === 'gt') return now.getTime() > target(0);
+    if (op === 'lt') return now.getTime() < target(0);
+    // Compare calendar minutes, never fire in the minute before the event.
+    // Adjacent solar days cover offsets that cross local midnight.
+    const matches = [-1, 0, 1].some(
+      (day) => Math.floor(now.getTime() / 60_000) === Math.floor(target(day) / 60_000),
+    );
+    return op === 'neq' ? !matches : matches;
   }
 
   // ── Action execution ───────────────────────────────────────────────────────
@@ -396,52 +442,83 @@ export class AutomationEvaluatorService {
   private async executeActions(actions: any[], ownerId: string, ruleName?: string) {
     const sorted = [...actions].sort((a, b) => a.order - b.order);
 
+    const results: { type: string; ok: boolean; attempts: number }[] = [];
     for (const action of sorted) {
-      try {
-        if (action.type === 'notification') {
-          const message =
-            typeof action.value === 'string' && action.value.trim()
-              ? action.value.trim()
-              : `Automation "${ruleName ?? 'rule'}" triggered`;
-          const groupUsers = await this.prisma.user.findMany({
-            where: { OR: [{ id: ownerId }, { createdById: ownerId }] },
-            select: { id: true },
-          });
-          this.gateway.broadcastToUsers(
-            groupUsers.map((u) => u.id),
-            'automation:alert',
-            { message, ruleName },
-          );
-          this.logger.log(`Action: notification sent — "${message}"`);
-        } else if (action.type === 'device_control' && action.deviceId && action.statusCode) {
-          await this.devicesService.sendCommand(ownerId, action.deviceId, [
-            { code: action.statusCode, value: action.value },
-          ]);
-          this.logger.log(
-            `Action: set ${action.statusCode}=${JSON.stringify(action.value)} on device ${action.deviceId}`,
-          );
-        } else if (
-          action.type === 'countdown' &&
-          action.deviceId &&
-          action.statusCode &&
-          action.minutes
-        ) {
-          await this.devicesService.createTimer(
-            ownerId,
-            action.deviceId,
-            action.deviceName ?? '',
-            action.statusCode,
-            action.minutes,
-            true,
-          );
-          this.logger.log(`Action: countdown ${action.minutes}min on device ${action.deviceId}`);
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          if (action.type === 'notification') {
+            const message =
+              typeof action.value === 'string' && action.value.trim()
+                ? action.value.trim()
+                : `Automation "${ruleName ?? 'rule'}" triggered`;
+            const groupUsers = await this.prisma.user.findMany({
+              where: { OR: [{ id: ownerId }, { createdById: ownerId }] },
+              select: { id: true },
+            });
+            this.gateway.broadcastToUsers(
+              groupUsers.map((u) => u.id),
+              'automation:alert',
+              { message, ruleName },
+            );
+            this.logger.log(`Action: notification sent — "${message}"`);
+          } else if (
+            action.type === 'device_control' &&
+            action.deviceId &&
+            action.statusCode &&
+            action.value !== undefined &&
+            action.value !== null
+          ) {
+            await this.devicesService.sendCommand(ownerId, action.deviceId, [
+              { code: action.statusCode, value: action.value },
+            ]);
+            this.logger.log(
+              `Action: set ${action.statusCode}=${JSON.stringify(action.value)} on device ${action.deviceId}`,
+            );
+          } else if (
+            action.type === 'countdown' &&
+            action.deviceId &&
+            action.statusCode &&
+            Number.isInteger(action.minutes) &&
+            action.minutes >= 1 &&
+            action.minutes <= 1440
+          ) {
+            await this.devicesService.createTimer(
+              ownerId,
+              action.deviceId,
+              action.deviceName ?? '',
+              action.statusCode,
+              action.minutes,
+              true,
+            );
+            this.logger.log(`Action: countdown ${action.minutes}min on device ${action.deviceId}`);
+          } else {
+            throw new BadRequestException('Invalid automation action');
+          }
+          await this.recordAction(ownerId, ruleName, action, false);
+          results.push({ type: action.type, ok: true, attempts: attempt });
+          break;
+        } catch (e: any) {
+          const status = e?.getStatus?.() ?? e?.status;
+          const retryable =
+            action.type !== 'notification' &&
+            ['device_control', 'countdown'].includes(action.type) &&
+            (status === undefined || status === 429 || status >= 500);
+          if (retryable && attempt < 3) {
+            await this.retryDelay(attempt * 1000);
+            continue;
+          }
+          this.logger.error(`Action failed after ${attempt} attempt(s): ${e?.message}`);
+          await this.recordAction(ownerId, ruleName, action, true);
+          results.push({ type: action.type, ok: false, attempts: attempt });
+          break;
         }
-        await this.recordAction(ownerId, ruleName, action, false);
-      } catch (e: any) {
-        this.logger.error(`Action failed: ${e?.message}`);
-        await this.recordAction(ownerId, ruleName, action, true);
       }
     }
+    return results;
+  }
+
+  private retryDelay(ms: number) {
+    return new Promise<void>((resolve) => setTimeout(resolve, ms));
   }
 
   private async recordAction(
