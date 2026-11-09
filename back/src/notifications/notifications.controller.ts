@@ -4,8 +4,11 @@ import {
   ArrayMaxSize,
   IsArray,
   IsDefined,
+  IsNumber,
+  IsOptional,
   IsString,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -18,8 +21,9 @@ class KeysDto {
   @IsString() @MaxLength(200) p256dh!: string;
   @IsString() @MaxLength(100) auth!: string;
 }
-class SubscriptionDto {
+export class SubscriptionDto {
   @IsString() @MaxLength(2000) endpoint!: string;
+  @IsOptional() @IsNumber() @Min(0) expirationTime?: number | null;
   @IsDefined() @ValidateNested() @Type(() => KeysDto) keys!: KeysDto;
 }
 class IdsDto {

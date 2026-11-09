@@ -205,3 +205,40 @@ test('VAPID subject uses the household owner contact for members and falls back 
   await f.service.deliver(['other-owner'], 'automation:alert', { message: 'Done' }, f.emit);
   assert.equal(subjects[3], 'mailto:other-contact@example.com');
 });
+
+test('subscription API accepts browser JSON with null, numeric or omitted expirationTime under strict validation', async () => {
+  const { ValidationPipe } = require('@nestjs/common');
+  const {
+    SubscriptionDto,
+    NotificationsController,
+  } = require('../dist/notifications/notifications.controller');
+  const pipe = new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true });
+  const metadata = { type: 'body', metatype: SubscriptionDto };
+  const base = {
+    endpoint: 'https://fcm.googleapis.com/test',
+    keys: { p256dh: 'key', auth: 'auth' },
+  };
+  const calls = [];
+  const controller = new NotificationsController({
+    subscribe: async (...args) => calls.push(['subscribe', ...args]),
+    unsubscribe: async (...args) => calls.push(['unsubscribe', ...args]),
+  });
+  for (const extra of [{}, { expirationTime: null }, { expirationTime: 1800000000000 }]) {
+    const dto = await pipe.transform({ ...base, ...extra }, metadata);
+    await controller.subscribe({ user: { id: 'owner' } }, dto);
+    await controller.unsubscribe({ user: { id: 'owner' } }, dto);
+    assert.equal(calls.at(-2)[1], 'owner');
+    assert.equal(calls.at(-1)[2], base.endpoint);
+  }
+  for (const extra of [
+    { expirationTime: 'tomorrow' },
+    { expirationTime: -1 },
+    { unexpected: true },
+  ]) {
+    await assert.rejects(pipe.transform({ ...base, ...extra }, metadata), { status: 400 });
+  }
+  await assert.rejects(
+    pipe.transform({ ...base, keys: { ...base.keys, unexpected: true } }, metadata),
+    { status: 400 },
+  );
+});
