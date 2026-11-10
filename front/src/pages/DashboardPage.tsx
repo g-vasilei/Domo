@@ -31,6 +31,7 @@ import DashboardHealth from '../components/DashboardHealth';
 import DashboardLayout from '../components/DashboardLayout';
 import DashboardVisibilityControls from '../components/DashboardVisibilityControls';
 import DeviceCard from '../components/DeviceCard';
+import GreeceClock from '../components/GreeceClock';
 import IndoorTemperatureCard from '../components/IndoorTemperatureCard';
 import WeatherCard from '../components/WeatherCard';
 import { api } from '../lib/api';
@@ -369,6 +370,7 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             Το έξυπνο σπίτι σας με μια ματιά
           </p>
+          <GreeceClock />
         </div>
         <button
           onClick={() => setEditing((v) => !v)}
