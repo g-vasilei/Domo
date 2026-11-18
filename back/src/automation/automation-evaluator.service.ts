@@ -86,15 +86,21 @@ export class AutomationEvaluatorService {
     const rules = await this.getEnabledRulesWithDeviceCondition(ownerId, deviceId);
     if (!rules.length) return;
 
-    // Commands may contain only one property; fetch the rest of each rule's inputs.
-    // Reuse reads across rules and overlay the accepted command on Tuya's snapshot,
-    // which can briefly lag behind a successful write.
+    // A command acknowledgement is not a device report. Only reported states may
+    // trigger another device; the regular poll handles delayed state reports.
     const statusMap = await this.fetchRuleStatuses(rules, ownerId);
-    const changedStatus = new Map(
-      (statusMap.get(deviceId) ?? []).map((entry) => [entry.code, entry]),
-    );
-    for (const command of commands) changedStatus.set(command.code, command);
-    statusMap.set(deviceId, [...changedStatus.values()]);
+    const reported = statusMap.get(deviceId);
+    if (
+      !reported ||
+      !commands.every((command) =>
+        reported.some(
+          (entry) =>
+            entry.code === command.code &&
+            JSON.stringify(entry.value) === JSON.stringify(command.value),
+        ),
+      )
+    )
+      return;
     for (const rule of rules) {
       await this.evaluateSafely(rule, ownerId, statusMap);
     }
@@ -109,16 +115,13 @@ export class AutomationEvaluatorService {
         }
       }
     }
-    const statuses = new Map<string, { code: string; value: unknown }[]>();
-    for (const deviceId of deviceIds) {
-      try {
-        const status = await this.devicesService.getDeviceStatus(ownerId, deviceId);
-        if (Array.isArray(status)) statuses.set(deviceId, status);
-      } catch (error: any) {
-        this.logger.warn(`Could not fetch status for device ${deviceId}: ${error?.message}`);
-      }
+    if (!deviceIds.size) return new Map<string, { code: string; value: unknown }[]>();
+    try {
+      return await this.devicesService.getDeviceStatuses(ownerId, [...deviceIds]);
+    } catch (error: any) {
+      this.logger.warn(`Could not fetch device states: ${error?.message}`);
+      return new Map<string, { code: string; value: unknown }[]>();
     }
-    return statuses;
   }
 
   private async evaluateSafely(rule: any, ownerId: string, statusMap?: Map<string, any[]>) {

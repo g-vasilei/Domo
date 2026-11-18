@@ -3,14 +3,34 @@ export default function PowerSwitch({
   label,
   disabled = false,
   pending = false,
+  compact = false,
   onChange,
 }: {
   on: boolean;
   label: string;
   disabled?: boolean;
   pending?: boolean;
+  compact?: boolean;
   onChange: (on: boolean) => void;
 }) {
+  if (compact) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={on}
+        aria-busy={pending}
+        title={`${on ? 'Αναμμένη · ON' : 'Σβηστή · OFF'} — ${on ? 'Σβήσιμο' : 'Άναμμα'}`}
+        disabled={disabled || pending}
+        onClick={() => onChange(!on)}
+        className={`inline-flex h-9 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${on ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
+      >
+        <Power size={14} aria-hidden="true" />
+        {on ? 'ON' : 'OFF'}
+      </button>
+    );
+  }
   return (
     <button
       type="button"
@@ -45,3 +65,4 @@ export default function PowerSwitch({
     </button>
   );
 }
+import { Power } from 'lucide-react';

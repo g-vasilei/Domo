@@ -27,7 +27,10 @@ import PowerSwitch from '../components/PowerSwitch';
 import TimerModal from '../components/TimerModal';
 import { useDeviceCommand } from '../hooks/useDeviceCommand';
 import { useDevicePermissions } from '../hooks/useDevicePermissions';
+import { useDeviceRefresh } from '../hooks/useDeviceRefresh';
 import { api } from '../lib/api';
+import { refreshDeviceCaches } from '../lib/deviceCommands';
+import { powerSwitchCodes } from '../lib/devicePower';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
 import { useTimerStore } from '../store/timer.store';
 
@@ -50,14 +53,6 @@ const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
 
 function sv(status: any[], code: string) {
   return status?.find((s: any) => s.code === code)?.value;
-}
-
-// Return ALL boolean switch codes in a consistent order
-function detectSwitchCodes(status: any[]): string[] {
-  return status
-    .filter((s) => s.code.includes('switch') && typeof s.value === 'boolean')
-    .map((s) => s.code)
-    .sort();
 }
 
 function switchLabel(code: string, total: number): string {
@@ -224,7 +219,7 @@ function DeviceControls({
 }) {
   const status: any[] = device.status ?? [];
   const isAc = device.category === 'kt';
-  const switchCodes = detectSwitchCodes(status);
+  const switchCodes = powerSwitchCodes(device);
 
   const brightness = sv(status, 'bright_value') ?? sv(status, 'bright_value_v2');
   const tempUnit = usePrefsStore((s) => s.tempUnit);
@@ -431,7 +426,7 @@ function TimerControl({
 
   async function handleConfirm(minutes: number) {
     await startTimer(deviceId, deviceName, switchCode!, minutes);
-    await queryClient.invalidateQueries({ queryKey: ['device', deviceId] });
+    await refreshDeviceCaches(queryClient, deviceId);
     setShowModal(false);
   }
 
@@ -492,20 +487,22 @@ function TimerControl({
 export default function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [imgError, setImgError] = useState(false);
 
   const {
     data: device,
     isLoading,
     error,
-    isFetching,
+    isFetching: deviceFetching,
   } = useQuery({
     queryKey: ['device', id],
-    queryFn: () => api.get(`/devices/${id}`).then((r) => r.data),
+    queryFn: ({ signal }) => api.get(`/devices/${id}`, { signal }).then((r) => r.data),
+    staleTime: 0,
     refetchInterval: 15_000,
     enabled: !!id,
   });
+  const deviceRefresh = useDeviceRefresh(['device', id ?? ''], `/devices/${id}`);
+  const isFetching = deviceFetching || deviceRefresh.isPending;
 
   const { sendCommand, isPending, feedback } = useDeviceCommand(id ?? '');
   const { canControl } = useDevicePermissions(id ?? '');
@@ -514,16 +511,20 @@ export default function DeviceDetailPage() {
     ? (CATEGORY_META[device.category] ?? { label: device.category, Icon: Cpu })
     : { label: '', Icon: Cpu };
   const iconUrl = device?.icon ? formatIconUrl(device.icon) : '';
-  const primarySwitchCode = device
-    ? device.category === 'kt'
-      ? (device.status ?? []).some((s: any) => s.code === 'switch' && typeof s.value === 'boolean')
-        ? 'switch'
-        : null
-      : (detectSwitchCodes(device.status ?? [])[0] ?? null)
-    : null;
+  const primarySwitchCode = device ? (powerSwitchCodes(device)[0] ?? null) : null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
+      {deviceRefresh.isError && (
+        <p role="alert" className="text-sm text-red-500">
+          Δεν ανανεώθηκε η κατάσταση της συσκευής.
+        </p>
+      )}
+      {typeof device?.statusUpdatedAt === 'number' && (
+        <p className="text-xs text-slate-400">
+          Τελευταία ενημέρωση: {new Date(device.statusUpdatedAt).toLocaleTimeString('el-GR')}
+        </p>
+      )}
       {/* Back */}
       <button
         onClick={() => navigate('/')}
@@ -597,7 +598,7 @@ export default function DeviceDetailPage() {
                 />
                 <NotifToggle deviceId={device.id} deviceName={device.name} />
                 <button
-                  onClick={() => queryClient.invalidateQueries({ queryKey: ['device', id] })}
+                  onClick={() => deviceRefresh.mutate()}
                   className="p-2 rounded-xl text-slate-400 hover:text-brand hover:bg-brand/5"
                   title="Ανανέωση"
                 >

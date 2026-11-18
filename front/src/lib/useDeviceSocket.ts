@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/auth.store';
 import { useConnectionStore } from '../store/connection.store';
 import { useNotificationsStore } from '../store/notifications.store';
 import { api } from './api';
-import { updateDeviceCaches } from './deviceCommands';
+import { refreshDeviceCaches } from './deviceCommands';
 
 export function useDeviceSocket() {
   const queryClient = useQueryClient();
@@ -61,18 +61,9 @@ export function useDeviceSocket() {
     socket.on('disconnect', markStale);
     socket.on('connect_error', markStale);
 
-    socket.on(
-      'device:update',
-      ({
-        deviceId,
-        commands,
-      }: {
-        deviceId: string;
-        commands: { code: string; value: unknown }[];
-      }) => {
-        updateDeviceCaches(queryClient, deviceId, commands);
-      },
-    );
+    socket.on('device:update', ({ deviceId }: { deviceId: string }) => {
+      void refreshDeviceCaches(queryClient, deviceId);
+    });
 
     socket.on('alarm:state', ({ state, stateAt }: { state: AlarmState; stateAt: string }) => {
       patchAlarmState(state, stateAt);

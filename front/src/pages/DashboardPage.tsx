@@ -16,6 +16,7 @@ import {
   Home,
   LayoutDashboard,
   Plus,
+  RefreshCw,
   Settings2,
   Shield,
   ShieldAlert,
@@ -34,6 +35,7 @@ import DeviceCard from '../components/DeviceCard';
 import GreeceClock from '../components/GreeceClock';
 import IndoorTemperatureCard from '../components/IndoorTemperatureCard';
 import WeatherCard from '../components/WeatherCard';
+import { useDeviceRefresh } from '../hooks/useDeviceRefresh';
 import { api } from '../lib/api';
 import { useAlarmStore } from '../store/alarm.store';
 import { usePrefsStore } from '../store/prefs.store';
@@ -278,14 +280,18 @@ export default function DashboardPage() {
     data: devices = [],
     isLoading,
     error,
-    isFetching,
+    isFetching: devicesFetching,
     dataUpdatedAt,
-    refetch,
   } = useQuery({
     queryKey: ['devices'],
-    queryFn: () => api.get('/devices').then((r) => r.data),
+    queryFn: ({ signal }) => api.get('/devices', { signal }).then((r) => r.data),
+    staleTime: 0,
     refetchInterval: 30_000,
   });
+
+  const deviceRefresh = useDeviceRefresh(['devices'], '/devices');
+  const isFetching = devicesFetching || deviceRefresh.isPending;
+  const refreshDevices = () => deviceRefresh.mutate();
 
   const { data: me, isPending: profileLoading } = useQuery({
     queryKey: ['me'],
@@ -295,7 +301,7 @@ export default function DashboardPage() {
 
   const { data: rooms = [] } = useQuery({
     queryKey: ['rooms'],
-    queryFn: () => api.get('/devices/rooms').then((r) => r.data),
+    queryFn: ({ signal }) => api.get('/devices/rooms', { signal }).then((r) => r.data),
     staleTime: 60_000,
   });
 
@@ -392,6 +398,11 @@ export default function DashboardPage() {
           <p className="text-sm text-red-400">{errorMessage}</p>
         </div>
       )}
+      {deviceRefresh.isError && (
+        <p role="alert" className="text-sm text-red-500">
+          Δεν ανανεώθηκε η κατάσταση των συσκευών.
+        </p>
+      )}
 
       {editing && (
         <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -478,14 +489,24 @@ export default function DashboardPage() {
                       </span>
                     )}
                   </h2>
-                  {editing && (
+                  <div className="flex items-center gap-3">
                     <button
-                      onClick={() => setShowPicker(true)}
-                      className="flex items-center gap-1 text-xs text-brand hover:underline"
+                      onClick={refreshDevices}
+                      disabled={isFetching}
+                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-brand disabled:opacity-50"
                     >
-                      <Plus size={12} /> Προσθήκη συσκευής
+                      <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                      Ανανέωση
                     </button>
-                  )}
+                    {editing && (
+                      <button
+                        onClick={() => setShowPicker(true)}
+                        className="flex items-center gap-1 text-xs text-brand hover:underline"
+                      >
+                        <Plus size={12} /> Προσθήκη συσκευής
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {isLoading && (
@@ -601,10 +622,18 @@ export default function DashboardPage() {
                 viewer={me}
                 loading={isLoading || profileLoading}
                 failed={!!error}
-                updatedAt={dataUpdatedAt}
+                updatedAt={
+                  (devices as any[]).length
+                    ? Math.min(
+                        ...(devices as any[]).map(
+                          (device) => device.statusUpdatedAt ?? dataUpdatedAt,
+                        ),
+                      )
+                    : dataUpdatedAt
+                }
                 refreshing={isFetching}
                 onRefresh={() => {
-                  void refetch();
+                  refreshDevices();
                 }}
               />
             ),

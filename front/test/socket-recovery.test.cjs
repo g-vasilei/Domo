@@ -12,6 +12,7 @@ function setup({ fail = false } = {}) {
   const alarm = {};
   let cleanup;
   let invalidations = 0;
+  const refreshedDevices = [];
   const socket = {
     connected: true,
     on: (event, handler) => {
@@ -50,7 +51,9 @@ function setup({ fail = false } = {}) {
       useNotificationsStore: { getState: () => ({ load: async () => {} }) },
     },
     '../store/prefs.store': {},
-    './deviceCommands': { updateDeviceCaches: () => {} },
+    './deviceCommands': {
+      refreshDeviceCaches: async (_client, deviceId) => refreshedDevices.push(deviceId),
+    },
     './api': { api: { get: async () => ({ data: { state: 'ARMED_AWAY' } }) } },
   };
   const source = fs
@@ -85,6 +88,7 @@ function setup({ fail = false } = {}) {
     socket,
     cleanup: () => cleanup(),
     invalidations: () => invalidations,
+    refreshedDevices,
   };
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
@@ -124,5 +128,13 @@ test('disconnect during sync prevents late response from reporting connected', a
   await flush();
   assert.equal(f.connection.status, 'stale');
   assert.equal(f.alarm.state, undefined);
+  f.cleanup();
+});
+
+test('device command events trigger a fresh read rather than displaying requested state', async () => {
+  const f = setup();
+  f.handlers['device:update']({ deviceId: 'a', commands: [{ code: 'switch', value: true }] });
+  await flush();
+  assert.deepEqual(f.refreshedDevices, ['a']);
   f.cleanup();
 });

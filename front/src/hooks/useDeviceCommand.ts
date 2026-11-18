@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 
 import { api } from '../lib/api';
-import { commandError, DeviceCommand, updateDeviceCaches } from '../lib/deviceCommands';
+import { commandError, DeviceCommand, refreshDeviceCaches } from '../lib/deviceCommands';
 
 export function useDeviceCommand(deviceId: string) {
   const client = useQueryClient();
@@ -28,18 +28,14 @@ export function useDeviceCommand(deviceId: string) {
       return data;
     },
     retry: false,
-    onSuccess: async (_data, { deviceId: targetId, commands }) => {
-      // Keep the last confirmed state until the API accepts the command.
-      await Promise.all([
-        client.cancelQueries({ queryKey: ['device', targetId] }),
-        client.cancelQueries({ queryKey: ['devices'] }),
-        client.cancelQueries({ queryKey: ['rooms'] }),
-      ]);
-      updateDeviceCaches(client, targetId, commands);
-    },
-    onSettled: () => {
-      inFlight.current = false;
-      void client.invalidateQueries({ queryKey: ['activity'] });
+    onSettled: async (_data, _error, { deviceId: targetId }) => {
+      try {
+        // Also reconcile ambiguous failures: the device may have received the command.
+        await refreshDeviceCaches(client, targetId);
+      } finally {
+        inFlight.current = false;
+        void client.invalidateQueries({ queryKey: ['activity'] });
+      }
     },
   });
   return {

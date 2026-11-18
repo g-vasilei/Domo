@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Home, RefreshCw, WifiOff } from 'lucide-react';
 
 import DeviceCard from '../components/DeviceCard';
+import { useDeviceRefresh } from '../hooks/useDeviceRefresh';
 import { api } from '../lib/api';
 
 function EmptyRoom() {
@@ -45,13 +46,16 @@ export default function RoomsPage() {
   const {
     data: rooms = [],
     isLoading,
-    isFetching,
+    isFetching: roomsFetching,
     error,
-    refetch,
   } = useQuery({
     queryKey: ['rooms'],
-    queryFn: () => api.get('/devices/rooms').then((r) => r.data),
+    queryFn: ({ signal }) => api.get('/devices/rooms', { signal }).then((r) => r.data),
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
+  const roomRefresh = useDeviceRefresh(['rooms'], '/devices/rooms');
+  const isFetching = roomsFetching || roomRefresh.isPending;
 
   const errorMessage = (error as any)?.response?.data?.message ?? 'Δεν φορτώθηκαν τα δωμάτια.';
 
@@ -63,7 +67,7 @@ export default function RoomsPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Συσκευές ανά δωμάτιο</p>
         </div>
         <button
-          onClick={() => refetch()}
+          onClick={() => roomRefresh.mutate()}
           disabled={isFetching}
           className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
         >
@@ -88,6 +92,11 @@ export default function RoomsPage() {
             </div>
           ))}
         </div>
+      )}
+      {roomRefresh.isError && (
+        <p role="alert" className="text-sm text-red-500">
+          Δεν ανανεώθηκε η κατάσταση των συσκευών.
+        </p>
       )}
 
       {!isLoading && error && (

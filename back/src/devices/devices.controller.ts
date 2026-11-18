@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -33,18 +34,18 @@ export class DevicesController {
   ) {}
 
   @Get()
-  getDevices(@Req() req: any) {
-    return this.devicesService.getDevices(req.user.id);
+  getDevices(@Req() req: any, @Query('refresh') refresh?: string) {
+    return this.devicesService.getDevices(req.user.id, refresh === 'true');
   }
 
   @Get('rooms')
-  getRooms(@Req() req: any) {
-    return this.devicesService.getRooms(req.user.id);
+  getRooms(@Req() req: any, @Query('refresh') refresh?: string) {
+    return this.devicesService.getRooms(req.user.id, refresh === 'true');
   }
 
   @Get(':id')
-  getDevice(@Req() req: any, @Param('id') deviceId: string) {
-    return this.devicesService.getDevice(req.user.id, deviceId);
+  getDevice(@Req() req: any, @Param('id') deviceId: string, @Query('refresh') refresh?: string) {
+    return this.devicesService.getDevice(req.user.id, deviceId, refresh === 'true');
   }
 
   @Get(':id/specifications')

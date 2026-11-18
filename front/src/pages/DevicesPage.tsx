@@ -21,9 +21,11 @@ import { ArrowLeftRight, Cpu, GripVertical, Home, RefreshCw, WifiOff } from 'luc
 import { useCallback, useEffect, useState } from 'react';
 
 import DeviceCard from '../components/DeviceCard';
+import { useDeviceRefresh } from '../hooks/useDeviceRefresh';
 import { api } from '../lib/api';
 
 const STORAGE_KEY = 'devices_order';
+const EMPTY_ROOMS: any[] = [];
 
 function loadOrder(): { rooms: string[]; devices: Record<string, string[]> } {
   try {
@@ -169,15 +171,18 @@ function SortableRoomSection({ room, rearranging }: { room: any; rearranging: bo
 
 export default function DevicesPage() {
   const {
-    data: rawRooms = [],
+    data: rawRooms = EMPTY_ROOMS,
     isLoading,
-    isFetching,
+    isFetching: roomsFetching,
     error,
-    refetch,
   } = useQuery({
     queryKey: ['rooms'],
-    queryFn: () => api.get('/devices/rooms').then((r) => r.data),
+    queryFn: ({ signal }) => api.get('/devices/rooms', { signal }).then((r) => r.data),
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
+  const roomRefresh = useDeviceRefresh(['rooms'], '/devices/rooms');
+  const isFetching = roomsFetching || roomRefresh.isPending;
 
   const [rearranging, setRearranging] = useState(false);
   const [rooms, setRooms] = useState<any[]>([]);
@@ -186,8 +191,8 @@ export default function DevicesPage() {
 
   // Sync fetched rooms into local state with saved order applied
   useEffect(() => {
-    if (rawRooms.length) setRooms(applyOrder(rawRooms, order));
-  }, [rawRooms]);
+    setRooms(applyOrder(rawRooms, order));
+  }, [rawRooms, order]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -259,7 +264,7 @@ export default function DevicesPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => refetch()}
+            onClick={() => roomRefresh.mutate()}
             disabled={isFetching}
             className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-50 transition-colors"
           >
@@ -298,6 +303,11 @@ export default function DevicesPage() {
             </div>
           ))}
         </div>
+      )}
+      {roomRefresh.isError && (
+        <p role="alert" className="text-sm text-red-500">
+          Δεν ανανεώθηκε η κατάσταση των συσκευών.
+        </p>
       )}
 
       {!isLoading && error && (

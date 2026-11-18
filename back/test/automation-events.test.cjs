@@ -54,6 +54,11 @@ function fixture(conditions) {
         if (!statuses.has(id)) throw Error('offline');
         return statuses.get(id);
       },
+      getDeviceStatuses: async (ownerId, ids) => {
+        assert.equal(ownerId, 'owner');
+        reads.push(...ids);
+        return new Map(ids.filter((id) => statuses.has(id)).map((id) => [id, statuses.get(id)]));
+      },
     },
     { broadcastToUsers: () => fired++ },
   );
@@ -68,7 +73,7 @@ const condition = (deviceId, statusCode = 'switch') => ({
 });
 const command = (value) => [{ code: 'switch', value }];
 
-test('partial command overlays lagging status and evaluates all devices', async () => {
+test('command evaluation waits for reported state and still reads all rule inputs', async () => {
   const f = fixture([condition('a'), condition('a', 'ready'), condition('b')]);
   f.statuses.set('a', [
     { code: 'switch', value: false },
@@ -76,8 +81,11 @@ test('partial command overlays lagging status and evaluates all devices', async 
   ]);
   f.statuses.set('b', command(true));
   await f.service.evaluateOnCommand('owner', 'a', command(true));
-  assert.equal(f.fired(), 1);
+  assert.equal(f.fired(), 0);
   assert.deepEqual(f.reads, ['a', 'b']);
+  f.statuses.get('a')[0].value = true;
+  await f.service.evaluateDeviceStateRules();
+  assert.equal(f.fired(), 1);
 });
 
 test('duplicate commands and concurrent polling claim only one edge; false rearms it', async () => {
@@ -89,8 +97,10 @@ test('duplicate commands and concurrent polling claim only one edge; false rearm
   ]);
   await f.service.evaluateOnCommand('owner', 'a', command(true));
   assert.equal(f.fired(), 1);
+  f.statuses.set('a', command(false));
   await f.service.evaluateOnCommand('owner', 'a', command(false));
   assert.equal(f.rule.conditionMet, false);
+  f.statuses.set('a', command(true));
   await f.service.evaluateOnCommand('owner', 'a', command(true));
   assert.equal(f.fired(), 2);
 });
@@ -107,10 +117,37 @@ test('missing inputs preserve edge state instead of causing a false retrigger', 
   assert.equal(f.fired(), 0);
 });
 
-test('accepted single-property command can evaluate even if status read fails', async () => {
+test('an unreadable device cannot trigger another device after an accepted command', async () => {
   const f = fixture([condition('a')]);
+  const sent = [];
+  f.rule.actions = [{ type: 'device_control', deviceId: 'b', statusCode: 'switch', value: true }];
+  f.service.devicesService.sendCommand = async (...args) => sent.push(args);
   await f.service.evaluateOnCommand('owner', 'a', command(true));
-  assert.equal(f.fired(), 1);
+  assert.equal(sent.length, 0);
+  assert.equal(f.rule.conditionMet, false);
+  f.statuses.set('a', command(false));
+  await f.service.evaluateOnCommand('owner', 'a', command(true));
+  assert.equal(sent.length, 0);
+  f.statuses.set('a', command(true));
+  await f.service.evaluateDeviceStateRules();
+  assert.deepEqual(sent, [['owner', 'b', command(true)]]);
+});
+
+test('a lagging report neither triggers an off command nor rearms an on command', async () => {
+  const turningOff = fixture([condition('a')]);
+  turningOff.statuses.set('a', command(true));
+  await turningOff.service.evaluateOnCommand('owner', 'a', command(false));
+  assert.equal(turningOff.fired(), 0);
+  assert.equal(turningOff.rule.conditionMet, false);
+
+  const turningOn = fixture([condition('a')]);
+  turningOn.rule.conditionMet = true;
+  turningOn.statuses.set('a', command(false));
+  await turningOn.service.evaluateOnCommand('owner', 'a', command(true));
+  assert.equal(turningOn.rule.conditionMet, true);
+  turningOn.statuses.set('a', command(true));
+  await turningOn.service.evaluateDeviceStateRules();
+  assert.equal(turningOn.fired(), 0);
 });
 
 test('time-based evaluation also loads device inputs for mixed rules', async () => {
@@ -123,6 +160,7 @@ test('time-based evaluation also loads device inputs for mixed rules', async () 
 
 test('automation history records successful and failed actions without raw error details', async () => {
   const f = fixture([condition('a')]);
+  f.statuses.set('a', command(true));
   await f.service.evaluateOnCommand('owner', 'a', command(true));
   assert.equal(f.logs[0].context, 'automation');
   assert.equal(f.logs[0].level, 'info');

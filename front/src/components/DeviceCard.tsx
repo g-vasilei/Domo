@@ -6,7 +6,6 @@ import {
   Eye,
   Lightbulb,
   Plug,
-  Power,
   Thermometer,
   Timer,
   Wind,
@@ -17,9 +16,12 @@ import { useNavigate } from 'react-router-dom';
 
 import { useDeviceCommand } from '../hooks/useDeviceCommand';
 import { useDevicePermissions } from '../hooks/useDevicePermissions';
+import { refreshDeviceCaches } from '../lib/deviceCommands';
+import { powerSwitchCodes } from '../lib/devicePower';
 import { convertTemp, usePrefsStore } from '../store/prefs.store';
 import { useTimerStore } from '../store/timer.store';
 import CommandFeedback from './CommandFeedback';
+import PowerSwitch from './PowerSwitch';
 import TimerModal from './TimerModal';
 
 const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
@@ -40,16 +42,6 @@ const CATEGORY_META: Record<string, { label: string; Icon: any }> = {
 
 function sv(status: any[], code: string) {
   return status?.find((s: any) => s.code === code)?.value;
-}
-
-function detectSwitchCode(status: any[]): string | null {
-  for (const code of ['switch', 'switch_1', 'switch_led', 'switch_on']) {
-    const e = status.find((s) => s.code === code);
-    if (e && typeof e.value === 'boolean') return code;
-  }
-  return (
-    status.find((s) => s.code.includes('switch') && typeof s.value === 'boolean')?.code ?? null
-  );
 }
 
 function formatIconUrl(url: string) {
@@ -105,13 +97,17 @@ export default function DeviceCard({ device }: { device: any }) {
 
   const tempUnit = usePrefsStore((s) => s.tempUnit);
   const status: any[] = device.status ?? [];
-  const switchCode =
-    device.category === 'kt'
-      ? typeof sv(status, 'switch') === 'boolean'
-        ? 'switch'
-        : null
-      : detectSwitchCode(status);
+  const switchCode = powerSwitchCodes(device)[0] ?? null;
   const isOn = switchCode ? sv(status, switchCode) === true : null;
+  const expectsPower = ['cz', 'kg', 'dj', 'dd', 'xdd', 'dlq', 'kt', 'wk', 'kj', 'fs'].includes(
+    device.category,
+  );
+  const online = device.online === true;
+  const connectionLabel = online
+    ? 'Σε σύνδεση'
+    : device.online === false
+      ? 'Εκτός σύνδεσης'
+      : 'Άγνωστη σύνδεση';
 
   const temp = sv(status, 'temp_current') ?? sv(status, 'va_temperature');
   const humidity = sv(status, 'humidity_value') ?? sv(status, 'va_humidity');
@@ -126,7 +122,7 @@ export default function DeviceCard({ device }: { device: any }) {
   async function handleTimerConfirm(minutes: number) {
     if (!switchCode) return;
     await startTimer(device.id, device.name, switchCode, minutes);
-    await queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    await refreshDeviceCaches(queryClient, device.id);
     setShowTimerModal(false);
   }
 
@@ -137,7 +133,7 @@ export default function DeviceCard({ device }: { device: any }) {
         <div className="flex items-center gap-3">
           <div
             className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${
-              device.online ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'
+              online ? 'bg-brand/10' : 'bg-slate-100 dark:bg-white/5'
             }`}
           >
             {iconUrl && !imgError ? (
@@ -150,7 +146,7 @@ export default function DeviceCard({ device }: { device: any }) {
             ) : (
               <Icon
                 size={22}
-                className={device.online ? 'text-brand' : 'text-slate-300 dark:text-slate-600'}
+                className={online ? 'text-brand' : 'text-slate-300 dark:text-slate-600'}
               />
             )}
           </div>
@@ -161,16 +157,31 @@ export default function DeviceCard({ device }: { device: any }) {
             </p>
             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
               <p className="text-[11px] text-slate-400">{label}</p>
+              {isOn !== null && (
+                <span
+                  className={`text-[11px] font-medium ${online && isOn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}
+                >
+                  {online ? '' : 'Τελευταία ένδειξη: '}
+                  {isOn ? 'Αναμμένη' : 'Σβηστή'}
+                </span>
+              )}
+              {isOn === null && expectsPower && (
+                <span className="text-[11px] text-slate-500">Άγνωστη κατάσταση</span>
+              )}
               <TimerBadge deviceId={device.id} />
             </div>
           </div>
 
           <span
-            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 self-start mt-1 ${
-              device.online ? 'bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600'
-            }`}
-            title={device.online ? 'Σε σύνδεση' : 'Εκτός σύνδεσης'}
-          />
+            className="flex items-center gap-1.5 flex-shrink-0 self-start mt-1 text-[10px] text-slate-400"
+            title={connectionLabel}
+          >
+            <span
+              aria-hidden="true"
+              className={`w-2 h-2 rounded-full ${online ? 'bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600'}`}
+            />
+            {connectionLabel}
+          </span>
         </div>
 
         {/* Sensor readings */}
@@ -186,6 +197,11 @@ export default function DeviceCard({ device }: { device: any }) {
         )}
 
         <CommandFeedback feedback={feedback} />
+        {typeof device.statusUpdatedAt === 'number' && (
+          <p className="text-[10px] text-slate-400">
+            Τελευταία ενημέρωση: {new Date(device.statusUpdatedAt).toLocaleTimeString('el-GR')}
+          </p>
+        )}
         {timerError && (
           <p role="alert" className="text-xs text-red-500">
             {timerError}
@@ -196,20 +212,14 @@ export default function DeviceCard({ device }: { device: any }) {
           {switchCode !== null && canControl ? (
             <div className="flex items-center gap-2">
               {/* Power toggle */}
-              <button
-                onClick={() => sendCommand([{ code: switchCode, value: !isOn }])}
-                disabled={isPending || !device.online}
-                aria-label={isPending ? 'Αποστολή εντολής' : isOn ? 'Σβήσιμο' : 'Άναμμα'}
-                aria-busy={isPending}
-                title={isOn ? 'Σβήσιμο' : 'Άναμμα'}
-                className={`flex items-center justify-center w-9 h-9 rounded-full border-2 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
-                  isOn
-                    ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
-                    : 'border-red-400 bg-red-400/10 text-red-400 hover:bg-red-400 hover:text-white'
-                }`}
-              >
-                <Power size={15} />
-              </button>
+              <PowerSwitch
+                compact
+                on={isOn === true}
+                label={`${device.name ?? 'Συσκευή'}: Τροφοδοσία`}
+                disabled={!online}
+                pending={isPending}
+                onChange={(value) => sendCommand([{ code: switchCode, value }])}
+              />
 
               {/* Timer button */}
               <button
@@ -221,7 +231,7 @@ export default function DeviceCard({ device }: { device: any }) {
                     );
                   else setShowTimerModal(true);
                 }}
-                disabled={isPending || !device.online}
+                disabled={isPending || !online}
                 title={activeTimer ? 'Ακύρωση χρονοδιακόπτη' : 'Ορισμός αυτόματου σβησίματος'}
                 className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed ${
                   activeTimer

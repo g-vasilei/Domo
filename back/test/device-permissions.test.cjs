@@ -45,12 +45,14 @@ function fixture() {
     'getRooms',
     'getDevice',
     'getDeviceStatus',
+    'getDeviceStatuses',
     'getDeviceSpecifications',
     'sendCommand',
   ]) {
     cloud[method] = async (...args) => {
       calls.push({ method, args });
       if (method === 'getDevices') return { devices };
+      if (method === 'getDeviceStatuses') return devices;
       if (method === 'getRooms') return rooms;
       if (method === 'sendCommand') return true;
       return { id: args[3], status: [] };
@@ -114,6 +116,20 @@ test('direct API reads and notification preferences reject a hidden device befor
   ])
     await assert.rejects(operation, { status: 403 });
   assert.equal(f.calls.length, 0);
+});
+
+test('bulk monitor reads preserve permissions and ignore offline or missing state', async () => {
+  const f = fixture();
+  f.devices[0].status = [{ code: 'switch', value: false }];
+  f.devices[1].status = [{ code: 'switch', value: true }];
+  await assert.rejects(() => f.service.getDeviceStatuses('member', ['hidden']), { status: 403 });
+  assert.equal(f.calls.length, 0);
+  const states = await f.service.getDeviceStatuses('member', ['allowed']);
+  assert.deepEqual([...states.keys()], ['allowed']);
+  assert.equal(states.get('allowed')[0].value, false);
+  assert.equal(f.calls.filter(({ method }) => method === 'getDeviceStatuses').length, 1);
+  f.devices[0].online = false;
+  assert.equal((await f.service.getDeviceStatuses('owner', ['allowed'])).size, 0);
 });
 
 test('read-only members cannot command or start/cancel timers even for a visible device', async () => {

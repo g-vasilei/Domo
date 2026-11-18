@@ -305,15 +305,12 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
 
     // Fetch status for each unique device
     const deviceIds = [...new Set(rules.map((r) => r.deviceId))];
-    const statuses = new Map<string, any[]>();
-
-    for (const deviceId of deviceIds) {
-      try {
-        const status = await this.devicesService.getDeviceStatus(userId, deviceId);
-        statuses.set(deviceId, Array.isArray(status) ? status : []);
-      } catch (e: any) {
-        this.logger.warn(`Could not poll device ${deviceId}: ${e?.message}`);
-      }
+    let statuses: Map<string, { code: string; value: unknown }[]>;
+    try {
+      statuses = await this.devicesService.getDeviceStatuses(userId, deviceIds);
+    } catch (e: any) {
+      this.logger.warn(`Could not poll alarm devices: ${e?.message}`);
+      return;
     }
 
     for (const rule of rules) {

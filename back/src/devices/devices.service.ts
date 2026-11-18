@@ -41,7 +41,7 @@ export class DevicesService {
     return creds;
   }
 
-  async getRooms(userId: string) {
+  async getRooms(userId: string, refresh = false) {
     const viewer = await this.deviceViewer(userId);
     const creds = await this.getCreds(userId);
     try {
@@ -49,6 +49,7 @@ export class DevicesService {
         creds.accessId,
         creds.accessSecret,
         creds.region as any,
+        refresh,
       );
       if (viewer.role === 'OWNER') return rooms;
       return rooms
@@ -62,7 +63,7 @@ export class DevicesService {
     }
   }
 
-  async getDevices(userId: string) {
+  async getDevices(userId: string, refresh = false) {
     const viewer = await this.deviceViewer(userId);
     const creds = await this.getCreds(userId);
     try {
@@ -70,6 +71,7 @@ export class DevicesService {
         creds.accessId,
         creds.accessSecret,
         creds.region as any,
+        refresh,
       );
       const devices = result?.devices ?? result ?? [];
       return devices.filter((device: any) => canAccessDevice(viewer, device.id, 'view'));
@@ -78,7 +80,7 @@ export class DevicesService {
     }
   }
 
-  async getDevice(userId: string, deviceId: string) {
+  async getDevice(userId: string, deviceId: string, refresh = false) {
     await this.deviceAccess(userId, deviceId, 'view');
     const creds = await this.getCreds(userId);
     try {
@@ -87,6 +89,7 @@ export class DevicesService {
         creds.accessSecret,
         creds.region as any,
         deviceId,
+        refresh,
       );
       this.checkBatteryAlert(userId, device).catch(() => {});
       return device;
@@ -122,6 +125,32 @@ export class DevicesService {
       );
     } catch (e: any) {
       throw new BadGatewayException(e?.message ?? 'Failed to retrieve device status from Tuya');
+    }
+  }
+
+  async getDeviceStatuses(userId: string, deviceIds: string[]) {
+    const viewer = await this.deviceViewer(userId);
+    const ids = new Set(deviceIds);
+    if ([...ids].some((id) => !canAccessDevice(viewer, id, 'view'))) {
+      throw new ForbiddenException('No permission for this device action');
+    }
+    const statuses = new Map<string, { code: string; value: unknown }[]>();
+    if (!ids.size) return statuses;
+    const creds = await this.getCreds(userId);
+    try {
+      const devices = await this.tuyaService.getDeviceStatuses(
+        creds.accessId,
+        creds.accessSecret,
+        creds.region as any,
+      );
+      for (const device of devices) {
+        if (ids.has(device.id) && device.online === true && Array.isArray(device.status)) {
+          statuses.set(device.id, device.status);
+        }
+      }
+      return statuses;
+    } catch (error: any) {
+      throw new BadGatewayException(error?.message ?? 'Failed to retrieve device status from Tuya');
     }
   }
 

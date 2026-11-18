@@ -47,7 +47,7 @@ function emptyAction(): Action {
 function useDeviceStatus(deviceId?: string) {
   const { data, isLoading } = useQuery<{ code: string; value: unknown }[]>({
     queryKey: ['device-status', deviceId],
-    queryFn: () => api.get(`/devices/${deviceId}/status`).then((r) => r.data),
+    queryFn: ({ signal }) => api.get(`/devices/${deviceId}/status`, { signal }).then((r) => r.data),
     enabled: !!deviceId,
     staleTime: 30_000,
   });
