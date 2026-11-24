@@ -13,6 +13,7 @@ import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
 import { EncryptionService } from '../encryption/encryption.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { DeviceStateReport } from '../tuya/tuya.service';
 import { AlarmCallService } from './alarm-call.service';
 import {
   CreateRuleDto,
@@ -29,6 +30,8 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
   private exitTimers = new Map<string, NodeJS.Timeout>();
   private entryTimers = new Map<string, NodeJS.Timeout>();
   private pollTimers = new Map<string, NodeJS.Timeout>();
+  private armedStates = new Map<string, 'ARMED_HOME' | 'ARMED_AWAY'>();
+  private unsubscribeReports?: () => void;
 
   constructor(
     private prisma: PrismaService,
@@ -39,6 +42,10 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
+    this.unsubscribeReports = this.devicesService.onReport?.(async (ownerId, report) => {
+      const state = this.armedStates.get(ownerId);
+      if (state) await this.checkRules(ownerId, state, report);
+    });
     // Restore polling for users who were armed when the server last restarted
     const armed = await this.prisma.alarmSettings.findMany({
       where: { state: { in: ['ARMED_HOME', 'ARMED_AWAY', 'EXIT_DELAY', 'ENTRY_DELAY'] } },
@@ -210,21 +217,30 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
     const settings = await this.getSettings(userId);
     if (!['ARMED_HOME', 'ARMED_AWAY'].includes(settings.state)) return;
 
+    const result = await this.setState(userId, 'ENTRY_DELAY', undefined, {
+      state: settings.state,
+      stateAt: settings.stateAt,
+    });
+    if (!result) return;
     this.stopPolling(userId);
     this.clearDelayTimers(userId);
-    const result = await this.setState(userId, 'ENTRY_DELAY');
     await this.scheduleDelay(result);
   }
 
   async triggerImmediate(userId: string) {
     const settings = await this.getSettings(userId);
     if (!['ARMED_HOME', 'ARMED_AWAY'].includes(settings.state)) return;
+    const result = await this.setState(userId, 'TRIGGERED', undefined, {
+      state: settings.state,
+      stateAt: settings.stateAt,
+    });
+    if (!result) return;
     this.stopPolling(userId);
     this.clearDelayTimers(userId);
-    await this.setState(userId, 'TRIGGERED');
   }
 
   onModuleDestroy() {
+    this.unsubscribeReports?.();
     for (const userId of new Set([
       ...this.exitTimers.keys(),
       ...this.entryTimers.keys(),
@@ -272,12 +288,18 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
 
   private startPolling(userId: string, armedState: 'ARMED_HOME' | 'ARMED_AWAY') {
     this.stopPolling(userId);
-    const timer = setInterval(() => this.checkRules(userId, armedState), 30_000);
+    this.armedStates.set(userId, armedState);
+    const timer = setInterval(() => {
+      void this.checkRules(userId, armedState).catch((error) =>
+        this.logger.error('Alarm check failed', error),
+      );
+    }, 30_000);
     this.pollTimers.set(userId, timer);
     this.logger.log(`Polling started for user ${userId} (${armedState})`);
   }
 
   private stopPolling(userId: string) {
+    this.armedStates.delete(userId);
     const t = this.pollTimers.get(userId);
     if (t) {
       clearInterval(t);
@@ -285,13 +307,18 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async checkRules(userId: string, armedState: 'ARMED_HOME' | 'ARMED_AWAY') {
+  private async checkRules(
+    userId: string,
+    armedState: 'ARMED_HOME' | 'ARMED_AWAY',
+    report?: DeviceStateReport,
+  ) {
     const settings = await this.getSettings(userId);
     // Re-check state hasn't changed since timer was started
     if (settings.state !== armedState) {
-      this.stopPolling(userId);
+      if (this.armedStates.get(userId) === armedState) this.stopPolling(userId);
       return;
     }
+    if (report?.observedAt !== undefined && settings.stateAt.getTime() > report.observedAt) return;
 
     const isHome = armedState === 'ARMED_HOME';
     const rules = await this.prisma.alarmRule.findMany({
@@ -302,18 +329,22 @@ export class AlarmService implements OnModuleInit, OnModuleDestroy {
       },
     });
     if (rules.length === 0) return;
+    if (report && !rules.some((rule) => rule.deviceId === report.deviceId)) return;
 
     // Fetch status for each unique device
     const deviceIds = [...new Set(rules.map((r) => r.deviceId))];
     let statuses: Map<string, { code: string; value: unknown }[]>;
     try {
-      statuses = await this.devicesService.getDeviceStatuses(userId, deviceIds);
+      statuses = report
+        ? new Map(report.online === false ? [] : [[report.deviceId, report.status]])
+        : await this.devicesService.getDeviceStatuses(userId, deviceIds);
     } catch (e: any) {
       this.logger.warn(`Could not poll alarm devices: ${e?.message}`);
       return;
     }
 
     for (const rule of rules) {
+      if (report && rule.deviceId !== report.deviceId) continue;
       const status = statuses.get(rule.deviceId) ?? [];
       const entry = status.find((s: any) => s.code === rule.triggerCode);
       if (!entry) continue;

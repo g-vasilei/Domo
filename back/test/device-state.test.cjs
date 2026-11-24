@@ -11,6 +11,7 @@ const device = (id, on, online = true) => ({
 
 function fixture() {
   const service = new TuyaService();
+  service.waitForReport = async () => {};
   const state = {
     devices: [device('a', true)],
     fail: false,
@@ -160,7 +161,7 @@ test('one day of dashboard, rooms and detail polling uses 720 shared state calls
   assert.ok(f.requests.every(({ method }) => method === 'GET'));
 });
 
-test('a write or ambiguous write failure invalidates state without assuming the requested value', async () => {
+test('a write or ambiguous write failure confirms only the affected device without refetching the house', async () => {
   for (const fails of [false, true]) {
     const f = fixture();
     await f.rooms();
@@ -169,9 +170,11 @@ test('a write or ambiguous write failure invalidates state without assuming the 
       f.service.sendCommand('client', 'secret', 'eu', 'a', [{ code: 'switch_1', value: true }]);
     if (fails) await assert.rejects(send, /Command timed out/);
     else await send();
+    await new Promise((resolve) => setImmediate(resolve));
     assert.equal((await f.rooms())[0].devices[0].status[0].value, false);
     assert.equal(f.requests.filter(({ method }) => method === 'POST').length, 1);
-    assert.equal(f.requests.filter(({ path }) => path.includes('associated-users')).length, 2);
+    assert.equal(f.requests.filter(({ path }) => path.includes('associated-users')).length, 1);
+    assert.ok(f.requests.filter(({ path }) => path.endsWith('/status')).length <= 3);
   }
 });
 

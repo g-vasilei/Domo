@@ -76,3 +76,89 @@ test('shutdown cancels pending delays', async () => {
   f.service.onModuleDestroy();
   assert.equal(f.service.entryTimers.size, 0);
 });
+
+async function reportingFixture(t) {
+  const f = fixture('ARMED_AWAY', 10000);
+  let listener;
+  let cloudReads = 0;
+  f.service.devicesService = {
+    onReport: (callback) => {
+      listener = callback;
+      return () => {
+        listener = undefined;
+      };
+    },
+    getDeviceStatuses: async () => {
+      cloudReads++;
+      return new Map([['a', [{ code: 'contact', value: true }]]]);
+    },
+  };
+  f.service.getSettings = async () => f.settings;
+  f.service.prisma.alarmRule = {
+    findMany: async () => [
+      { deviceId: 'a', triggerCode: 'contact', triggerValue: true, action: 'IMMEDIATE' },
+    ],
+  };
+  f.service.prisma.alarmSettings.upsert = async ({ update }) => Object.assign(f.settings, update);
+  t.after(() => f.service.onModuleDestroy());
+  await f.service.onModuleInit();
+  return { ...f, report: (data) => listener('owner', data), cloudReads: () => cloudReads };
+}
+
+test('a brief contact report triggers an armed alarm immediately without another cloud query', async (t) => {
+  const f = await reportingFixture(t);
+  await f.report({
+    deviceId: 'a',
+    status: [{ code: 'contact', value: true }],
+    online: true,
+    observedAt: Date.now(),
+  });
+  assert.equal(f.settings.state, 'TRIGGERED');
+  assert.equal(f.cloudReads(), 0);
+});
+
+test('retained reports from before arming and offline reports do not trigger an alarm', async (t) => {
+  const f = await reportingFixture(t);
+  await f.report({
+    deviceId: 'a',
+    status: [{ code: 'contact', value: true }],
+    online: true,
+    observedAt: f.settings.stateAt.getTime() - 1,
+  });
+  await f.report({
+    deviceId: 'a',
+    status: [{ code: 'contact', value: true }],
+    online: false,
+    observedAt: Date.now(),
+  });
+  assert.equal(f.settings.state, 'ARMED_AWAY');
+  assert.equal(f.cloudReads(), 0);
+  await f.service.checkRules('owner', 'ARMED_AWAY');
+  assert.equal(f.cloudReads(), 1);
+  assert.equal(f.settings.state, 'TRIGGERED', 'the periodic security fallback still works');
+});
+
+test('concurrent push and polling checks claim only one alarm transition', async (t) => {
+  const f = await reportingFixture(t);
+  f.service.getSettings = async () => structuredClone(f.settings);
+  f.service.prisma.alarmSettings.updateMany = async ({ where, data }) => {
+    if (
+      where.state !== f.settings.state ||
+      where.stateAt.getTime() !== f.settings.stateAt.getTime()
+    )
+      return { count: 0 };
+    Object.assign(f.settings, data);
+    return { count: 1 };
+  };
+  await Promise.all([
+    f.report({
+      deviceId: 'a',
+      status: [{ code: 'contact', value: true }],
+      online: true,
+      observedAt: Date.now(),
+    }),
+    f.service.checkRules('owner', 'ARMED_AWAY'),
+  ]);
+  assert.equal(f.settings.state, 'TRIGGERED');
+  assert.equal(f.broadcasts.length, 1);
+});

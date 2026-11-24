@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/auth.store';
 import { useConnectionStore } from '../store/connection.store';
 import { useNotificationsStore } from '../store/notifications.store';
 import { api } from './api';
-import { refreshDeviceCaches } from './deviceCommands';
+import { applyDeviceReport, DeviceStateReport, refreshDeviceCaches } from './deviceCommands';
 
 export function useDeviceSocket() {
   const queryClient = useQueryClient();
@@ -63,6 +63,10 @@ export function useDeviceSocket() {
 
     socket.on('device:update', ({ deviceId }: { deviceId: string }) => {
       void refreshDeviceCaches(queryClient, deviceId);
+    });
+
+    socket.on('device:reported', (report: DeviceStateReport) => {
+      void applyDeviceReport(queryClient, report);
     });
 
     socket.on('alarm:state', ({ state, stateAt }: { state: AlarmState; stateAt: string }) => {

@@ -43,6 +43,11 @@ export class DevicesController {
     return this.devicesService.getRooms(req.user.id, refresh === 'true');
   }
 
+  @Get('connection')
+  getConnection(@Req() req: any) {
+    return this.devicesService.getConnection(req.user.id);
+  }
+
   @Get(':id')
   getDevice(@Req() req: any, @Param('id') deviceId: string, @Query('refresh') refresh?: string) {
     return this.devicesService.getDevice(req.user.id, deviceId, refresh === 'true');

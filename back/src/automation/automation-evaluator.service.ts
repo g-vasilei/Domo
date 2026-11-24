@@ -5,12 +5,14 @@ import * as SunCalc from 'suncalc';
 import { DevicesGateway } from '../devices/devices.gateway';
 import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { DeviceStateReport } from '../tuya/tuya.service';
 
 @Injectable()
 export class AutomationEvaluatorService {
   private readonly logger = new Logger(AutomationEvaluatorService.name);
   private pollingDevices = false;
   private pollingTime = false;
+  private pollingTimers = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -106,18 +108,40 @@ export class AutomationEvaluatorService {
     }
   }
 
-  private async fetchRuleStatuses(rules: any[], ownerId: string) {
+  /** Real push/readback reports react immediately, including brief sensor transitions. */
+  async evaluateOnReport(ownerId: string, report: DeviceStateReport) {
+    const rules = await this.getEnabledRulesWithDeviceCondition(ownerId, report.deviceId);
+    if (!rules.length) return;
+    const statusMap = await this.fetchRuleStatuses(rules, ownerId, report.deviceId);
+    if (report.online === false) statusMap.delete(report.deviceId);
+    else statusMap.set(report.deviceId, report.status);
+    for (const rule of rules) {
+      if (report.observedAt !== undefined && rule.updatedAt?.getTime() > report.observedAt)
+        continue;
+      await this.evaluateSafely(rule, ownerId, statusMap);
+    }
+  }
+
+  private async fetchRuleStatuses(rules: any[], ownerId: string, reportedDeviceId?: string) {
     const deviceIds = new Set<string>();
     for (const rule of rules) {
       for (const condition of rule.conditions) {
-        if (condition.type === 'device_state' && condition.deviceId) {
+        if (
+          condition.type === 'device_state' &&
+          condition.deviceId &&
+          condition.deviceId !== reportedDeviceId
+        ) {
           deviceIds.add(condition.deviceId);
         }
       }
     }
     if (!deviceIds.size) return new Map<string, { code: string; value: unknown }[]>();
     try {
-      return await this.devicesService.getDeviceStatuses(ownerId, [...deviceIds]);
+      return await this.devicesService.getDeviceStatuses(
+        ownerId,
+        [...deviceIds],
+        !!reportedDeviceId,
+      );
     } catch (error: any) {
       this.logger.warn(`Could not fetch device states: ${error?.message}`);
       return new Map<string, { code: string; value: unknown }[]>();
@@ -136,16 +160,21 @@ export class AutomationEvaluatorService {
 
   @Cron('*/5 * * * * *')
   async executeExpiredTimers() {
-    const expired = await this.prisma.deviceTimer.findMany({
-      where: { endsAt: { lte: new Date() } },
-    });
-
-    for (const timer of expired) {
-      try {
-        await this.devicesService.expireTimer(timer.id, timer.deviceId);
-      } catch (e: any) {
-        this.logger.error(`Timer execution failed for device ${timer.deviceId}: ${e?.message}`);
+    if (this.pollingTimers) return;
+    this.pollingTimers = true;
+    try {
+      const expired = await this.prisma.deviceTimer.findMany({
+        where: { endsAt: { lte: new Date() } },
+      });
+      for (const timer of expired) {
+        try {
+          await this.devicesService.expireTimer(timer.id, timer.deviceId);
+        } catch (e: any) {
+          this.logger.error(`Timer execution failed for device ${timer.deviceId}: ${e?.message}`);
+        }
       }
+    } finally {
+      this.pollingTimers = false;
     }
   }
 

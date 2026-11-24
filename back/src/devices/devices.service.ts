@@ -6,11 +6,14 @@ import {
   Inject,
   Injectable,
   Logger,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 
 import { AutomationEvaluatorService } from '../automation/automation-evaluator.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { TuyaService } from '../tuya/tuya.service';
+import { DeviceStateReport, TuyaService } from '../tuya/tuya.service';
+import { TuyaCredentials } from '../tuya/tuya-messages.service';
 import { UsersService } from '../users/users.service';
 import { assertCanViewDevices, canAccessDevice, DeviceAction } from './device-permissions';
 import { DevicesGateway } from './devices.gateway';
@@ -21,7 +24,7 @@ const BATTERY_STATE_CODE = 'battery_state';
 const BATTERY_LOW_THRESHOLD = 20; // percent
 
 @Injectable()
-export class DevicesService {
+export class DevicesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DevicesService.name);
   constructor(
     private readonly usersService: UsersService,
@@ -32,13 +35,82 @@ export class DevicesService {
     private readonly automationEvaluator: AutomationEvaluatorService,
   ) {}
 
+  private readonly ownerProjects = new Map<string, string>();
+  private readonly reportListeners = new Set<
+    (ownerId: string, report: DeviceStateReport) => Promise<void>
+  >();
+  private readonly reportQueues = new Map<string, Promise<void>>();
+  private unsubscribeReports?: () => void;
+
+  onModuleInit() {
+    this.unsubscribeReports = this.tuyaService.onReport?.((creds, report) => {
+      for (const [ownerId, project] of this.ownerProjects) {
+        if (project !== this.projectKey(creds)) continue;
+        // Do not await actions in the transport: an action may itself wait for
+        // another Tuya message. Keep each owner's transitions in arrival order.
+        const previous = this.reportQueues.get(ownerId) ?? Promise.resolve();
+        const next = previous
+          .catch(() => {})
+          .then(() => this.deliverReport(ownerId, creds, report));
+        this.reportQueues.set(ownerId, next);
+        void next
+          .catch((error) => this.logger.error('Device report processing failed', error))
+          .finally(() => {
+            if (this.reportQueues.get(ownerId) === next) this.reportQueues.delete(ownerId);
+          });
+      }
+    });
+  }
+
+  onModuleDestroy() {
+    this.unsubscribeReports?.();
+    this.reportListeners.clear();
+  }
+
+  onReport(listener: (ownerId: string, report: DeviceStateReport) => Promise<void>) {
+    this.reportListeners.add(listener);
+    return () => {
+      this.reportListeners.delete(listener);
+    };
+  }
+
+  private projectKey(creds: TuyaCredentials) {
+    return `${creds.region}:${creds.accessId}:${creds.accessSecret}`;
+  }
+
+  private async deliverReport(ownerId: string, creds: TuyaCredentials, report: DeviceStateReport) {
+    // Credential changes and current view permissions take effect before any broadcast.
+    const current = await this.usersService.getTuyaCredentials(ownerId);
+    if (!current || this.projectKey(current) !== this.projectKey(creds)) return;
+    const ids = await this.deviceRecipients(ownerId, report.deviceId);
+    this.gateway.broadcastToUsers(ids, 'device:reported', report);
+    if (report.source === 'readback') return;
+    await Promise.allSettled([
+      ...[...this.reportListeners].map((listener) => listener(ownerId, report)),
+      this.automationEvaluator.evaluateOnReport(ownerId, report),
+      this.checkBatteryAlert(ownerId, { id: report.deviceId, status: report.status }),
+    ]).then((results) => {
+      for (const result of results)
+        if (result.status === 'rejected')
+          this.logger.error('Device report consumer failed', result.reason);
+    });
+  }
+
   /** deviceId → last-known battery percentage (in-memory dedup) */
   private readonly batteryStates = new Map<string, number>();
 
   private async getCreds(userId: string) {
     const creds = await this.usersService.getTuyaCredentials(userId);
     if (!creds) throw new BadRequestException('Tuya credentials not configured');
+    this.ownerProjects.set(await this.resolveOwnerId(userId), this.projectKey(creds));
     return creds;
+  }
+
+  async getConnection(userId: string) {
+    const viewer = await this.deviceViewer(userId);
+    if (viewer.role !== 'OWNER') throw new ForbiddenException('Only owners can view Tuya usage');
+    const creds = await this.getCreds(userId);
+    return this.tuyaService.getDiagnostics(creds.accessId, creds.accessSecret, creds.region as any);
   }
 
   async getRooms(userId: string, refresh = false) {
@@ -128,7 +200,7 @@ export class DevicesService {
     }
   }
 
-  async getDeviceStatuses(userId: string, deviceIds: string[]) {
+  async getDeviceStatuses(userId: string, deviceIds: string[], cached = false) {
     const viewer = await this.deviceViewer(userId);
     const ids = new Set(deviceIds);
     if ([...ids].some((id) => !canAccessDevice(viewer, id, 'view'))) {
@@ -142,6 +214,7 @@ export class DevicesService {
         creds.accessId,
         creds.accessSecret,
         creds.region as any,
+        cached,
       );
       for (const device of devices) {
         if (ids.has(device.id) && device.online === true && Array.isArray(device.status)) {
@@ -159,7 +232,7 @@ export class DevicesService {
     deviceId: string,
     commands: { code: string; value: unknown }[],
   ) {
-    const ownerId = await this.deviceAccess(userId, deviceId, 'control');
+    await this.deviceAccess(userId, deviceId, 'control');
     const creds = await this.getCreds(userId);
     try {
       const result = await this.tuyaService.sendCommand(
@@ -169,19 +242,18 @@ export class DevicesService {
         deviceId,
         commands,
       );
-      if (result === false) throw new Error('Device rejected command');
-      this.deviceRecipients(ownerId, deviceId)
-        .then((ids) => this.gateway.broadcastToUsers(ids, 'device:update', { deviceId, commands }))
-        .catch((error) => this.logger.error('Could not broadcast device update', error));
       this.logCommand(userId, deviceId, commands).catch((error) =>
         this.logger.error('Could not record device command', error),
       );
-      this.notifyDeviceChange(userId, deviceId, commands).catch((error) =>
-        this.logger.error('Device notification failed', error),
-      );
-      this.automationEvaluator
-        .evaluateOnCommand(ownerId, deviceId, commands)
-        .catch((error) => this.logger.error(`Automation evaluation failed for ${deviceId}`, error));
+      if (result.confirmed && result.report) {
+        this.notifyDeviceChange(
+          userId,
+          deviceId,
+          result.report.status.filter((entry) =>
+            commands.some((command) => command.code === entry.code),
+          ),
+        ).catch((error) => this.logger.error('Device notification failed', error));
+      }
       return result;
     } catch (e: any) {
       await this.logCommand(userId, deviceId, commands, true).catch((error) =>
@@ -353,9 +425,10 @@ export class DevicesService {
     return this.withTimerLock(deviceId, async () => {
       const timer = await this.prisma.deviceTimer.findUnique({ where: { id } });
       if (!timer || timer.endsAt.getTime() > Date.now()) return;
-      await this.sendCommand(timer.userId, timer.deviceId, [
+      const result = await this.sendCommand(timer.userId, timer.deviceId, [
         { code: timer.switchCode, value: false },
       ]);
+      if (result?.confirmed === false) throw new BadGatewayException('Device state not confirmed');
       await this.prisma.deviceTimer.deleteMany({ where: { id: timer.id, endsAt: timer.endsAt } });
     });
   }

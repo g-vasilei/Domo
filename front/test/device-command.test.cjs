@@ -10,7 +10,11 @@ const { QueryClient, QueryObserver } = require('@tanstack/react-query');
 
 function load(file, modules = {}) {
   const js = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src', file), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+      target: ts.ScriptTarget.ES2021,
+    },
   }).outputText;
   const exports = {};
   vm.runInNewContext(js, { exports, require: (name) => modules[name] ?? require(name) });
@@ -49,6 +53,7 @@ function fixture() {
         let data, failure;
         try {
           data = await invocation.mutationFn(variables);
+          mutation.data = data;
           mutation.isSuccess = true;
         } catch (error) {
           failure = error;
@@ -95,13 +100,128 @@ function fixture() {
 }
 const on = [{ code: 'switch', value: true }];
 
+test('confirmed command reports immediately update every view without refetching any active query', async () => {
+  const f = fixture();
+  let reads = 0;
+  const subscriptions = [['device', 'a'], ['devices'], ['rooms']].map((queryKey) => {
+    const observer = new QueryObserver(f.client, {
+      queryKey,
+      staleTime: Infinity,
+      queryFn: async () => {
+        reads++;
+        return f.client.getQueryData(queryKey);
+      },
+    });
+    return observer.subscribe(() => {});
+  });
+  try {
+    f.view().sendCommand(on);
+    assert.equal(f.client.getQueryData(['device', 'a']).status[0].value, false);
+    f.resolve({
+      success: true,
+      confirmed: true,
+      report: { deviceId: 'a', status: on, statusUpdatedAt: 1000, reportVersion: 2 },
+    });
+    await f.done();
+    for (const item of [
+      f.client.getQueryData(['device', 'a']),
+      f.client.getQueryData(['devices'])[0],
+      f.client.getQueryData(['rooms'])[0].devices[0],
+    ]) {
+      assert.equal(item.status[0].value, true);
+      assert.equal(item.status[1].value, 50);
+    }
+    assert.equal(reads, 0);
+    assert.equal(f.view().feedback.message, 'Η κατάσταση επιβεβαιώθηκε.');
+  } finally {
+    subscriptions.forEach((unsubscribe) => unsubscribe());
+    f.client.clear();
+  }
+});
+
+test('accepted but unconfirmed commands retain actual OFF and expose an explicit confirmation failure', async () => {
+  const f = fixture();
+  f.view().sendCommand(on);
+  f.resolve({
+    success: true,
+    confirmed: false,
+    report: {
+      deviceId: 'a',
+      status: [{ code: 'switch', value: false }],
+      statusUpdatedAt: 1000,
+      reportVersion: 2,
+    },
+  });
+  await f.done();
+  assert.equal(f.view().feedback.kind, 'error');
+  assert.ok(f.view().feedback.message.includes('δεν επιβεβαίωσε'));
+  assert.equal(f.client.getQueryData(['device', 'a']).status[0].value, false);
+  assert.equal(f.client.getQueryState(['rooms']).isInvalidated, false);
+});
+
+test('late reports never roll a newer report or raw status cache back', async () => {
+  const f = fixture();
+  f.client.setQueryData(['device-status', 'a'], f.original.status);
+  const newer = { deviceId: 'a', status: on, statusUpdatedAt: 2000, reportVersion: 3 };
+  const older = {
+    deviceId: 'a',
+    status: [{ code: 'switch', value: false }],
+    statusUpdatedAt: 1000,
+    reportVersion: 2,
+  };
+  await commands.applyDeviceReport(f.client, newer);
+  await commands.applyDeviceReport(f.client, older);
+  assert.equal(f.client.getQueryData(['device', 'a']).status[0].value, true);
+  assert.equal(f.client.getQueryData(['rooms'])[0].devices[0].status[0].value, true);
+  assert.equal(f.client.getQueryData(['device-status', 'a'])[0].value, true);
+});
+
+test('a report cancels an older in-flight poll and never creates absent device caches', async () => {
+  const f = fixture();
+  let finishPoll, signal;
+  const observer = new QueryObserver(f.client, {
+    queryKey: ['device', 'a'],
+    staleTime: Infinity,
+    queryFn: (context) => {
+      signal = context.signal;
+      return new Promise((resolve) => {
+        finishPoll = resolve;
+      });
+    },
+  });
+  const unsubscribe = observer.subscribe(() => {});
+  try {
+    const polling = f.client.refetchQueries({ queryKey: ['device', 'a'] });
+    await commands.applyDeviceReport(f.client, {
+      deviceId: 'a',
+      status: on,
+      statusUpdatedAt: 2000,
+      reportVersion: 3,
+    });
+    assert.equal(signal.aborted, true);
+    finishPoll(f.original);
+    await polling;
+    assert.equal(f.client.getQueryData(['device', 'a']).status[0].value, true);
+    await commands.applyDeviceReport(f.client, {
+      deviceId: 'missing',
+      status: on,
+      statusUpdatedAt: 2000,
+      reportVersion: 3,
+    });
+    assert.equal(f.client.getQueryData(['device', 'missing']), undefined);
+  } finally {
+    unsubscribe();
+    f.client.clear();
+  }
+});
+
 test('pending and accepted commands preserve reported state and suppress repeated clicks', async () => {
   const f = fixture();
   const view = f.view();
   view.sendCommand(on);
   view.sendCommand(on);
   assert.equal(f.requests.length, 1);
-  assert.equal(f.requests[0][2].timeout, 15000);
+  assert.equal(f.requests[0][2].timeout, 30000);
   assert.equal(f.view().feedback.kind, 'pending');
   assert.equal(f.client.getQueryData(['device', 'a']).status[0].value, false);
   f.resolve();

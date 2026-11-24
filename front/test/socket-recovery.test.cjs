@@ -13,6 +13,7 @@ function setup({ fail = false } = {}) {
   let cleanup;
   let invalidations = 0;
   const refreshedDevices = [];
+  const reports = [];
   const socket = {
     connected: true,
     on: (event, handler) => {
@@ -53,6 +54,7 @@ function setup({ fail = false } = {}) {
     '../store/prefs.store': {},
     './deviceCommands': {
       refreshDeviceCaches: async (_client, deviceId) => refreshedDevices.push(deviceId),
+      applyDeviceReport: async (_client, report) => reports.push(report),
     },
     './api': { api: { get: async () => ({ data: { state: 'ARMED_AWAY' } }) } },
   };
@@ -89,6 +91,7 @@ function setup({ fail = false } = {}) {
     cleanup: () => cleanup(),
     invalidations: () => invalidations,
     refreshedDevices,
+    reports,
   };
 }
 const flush = () => new Promise((resolve) => setImmediate(resolve));
@@ -136,5 +139,21 @@ test('device command events trigger a fresh read rather than displaying requeste
   f.handlers['device:update']({ deviceId: 'a', commands: [{ code: 'switch', value: true }] });
   await flush();
   assert.deepEqual(f.refreshedDevices, ['a']);
+  f.cleanup();
+});
+
+test('actual device reports update views directly without a read for each connected session', async () => {
+  const f = setup();
+  const report = {
+    deviceId: 'a',
+    status: [{ code: 'switch', value: false }],
+    statusUpdatedAt: 1000,
+    reportVersion: 2,
+  };
+  f.handlers['device:reported'](report);
+  await flush();
+  assert.deepEqual(f.reports, [report]);
+  assert.deepEqual(f.refreshedDevices, []);
+  assert.equal(f.invalidations(), 0);
   f.cleanup();
 });

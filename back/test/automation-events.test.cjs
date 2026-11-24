@@ -73,6 +73,76 @@ const condition = (deviceId, statusCode = 'switch') => ({
 });
 const command = (value) => [{ code: 'switch', value }];
 
+test('real reports evaluate transient transitions without reading the reported device again', async () => {
+  const f = fixture([condition('a')]);
+  f.statuses.set('a', command(false));
+  const report = (value) => ({
+    deviceId: 'a',
+    status: command(value),
+    online: true,
+    reportVersion: 1,
+    statusUpdatedAt: Date.now(),
+  });
+  await f.service.evaluateOnReport('owner', report(true));
+  assert.equal(f.fired(), 1);
+  await f.service.evaluateOnReport('owner', report(false));
+  await f.service.evaluateOnReport('owner', report(true));
+  assert.equal(f.fired(), 2);
+  assert.deepEqual(f.reads, []);
+});
+
+test('a real multi-device report reads only the other inputs and preserves offline unknowns', async () => {
+  const f = fixture([condition('a'), condition('b')]);
+  f.statuses.set('b', command(true));
+  const report = {
+    deviceId: 'a',
+    status: command(true),
+    online: false,
+    reportVersion: 1,
+    statusUpdatedAt: Date.now(),
+  };
+  await f.service.evaluateOnReport('owner', report);
+  assert.equal(f.fired(), 0);
+  await f.service.evaluateOnReport('owner', { ...report, online: true });
+  assert.equal(f.fired(), 1);
+  assert.deepEqual(f.reads, ['b', 'b']);
+});
+
+test('a report predating a rule edit cannot trigger the edited rule', async () => {
+  const f = fixture([condition('a')]);
+  f.rule.updatedAt = new Date();
+  await f.service.evaluateOnReport('owner', {
+    deviceId: 'a',
+    status: command(true),
+    observedAt: Date.now() - 1000,
+  });
+  assert.equal(f.fired(), 0);
+});
+
+test('slow timer commands do not accumulate another expiry operation every five seconds', async () => {
+  const f = fixture([]);
+  let finish;
+  let expiryCalls = 0;
+  f.service.prisma.deviceTimer = { findMany: async () => [{ id: 'timer', deviceId: 'a' }] };
+  f.service.devicesService.expireTimer = async () => {
+    expiryCalls++;
+    await new Promise((resolve) => {
+      finish = resolve;
+    });
+  };
+  const first = f.service.executeExpiredTimers();
+  await new Promise((resolve) => setImmediate(resolve));
+  await f.service.executeExpiredTimers();
+  assert.equal(expiryCalls, 1);
+  finish();
+  await first;
+  f.service.prisma.deviceTimer.findMany = async () => {
+    throw Error('database unavailable');
+  };
+  await assert.rejects(() => f.service.executeExpiredTimers());
+  assert.equal(f.service.pollingTimers, false);
+});
+
 test('command evaluation waits for reported state and still reads all rule inputs', async () => {
   const f = fixture([condition('a'), condition('a', 'ready'), condition('b')]);
   f.statuses.set('a', [

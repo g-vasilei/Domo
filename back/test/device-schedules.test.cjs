@@ -225,6 +225,18 @@ test('expired timers survive failed off command and can be retried after restart
   assert.equal(f.commands.at(-1).value, false);
 });
 
+test('an accepted OFF command must be confirmed before its auto-off timer is removed', async () => {
+  const f = timerFixture();
+  await f.service.createTimer('owner', 'ac', 'AC', 'switch', 40);
+  f.timer.endsAt = new Date(0);
+  f.service.sendCommand = async () => ({ success: true, confirmed: false, report: null });
+  await assert.rejects(() => f.service.expireTimer('timer', 'ac'), /Device state not confirmed/);
+  assert.ok(f.timer);
+  f.service.sendCommand = async () => ({ success: true, confirmed: true });
+  await f.service.expireTimer('timer', 'ac');
+  assert.equal(f.timer, null);
+});
+
 test('members need schedule permission, control permission and access to the device', async () => {
   const f = timerFixture();
   const permissions = {

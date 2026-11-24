@@ -336,6 +336,13 @@ function TuyaTab() {
   });
 
   const saved = me?.tuyaCredentials;
+  const { data: connection, isError: connectionError } = useQuery({
+    queryKey: ['tuya-connection'],
+    queryFn: () => api.get('/devices/connection').then((r) => r.data),
+    enabled: !!saved,
+    refetchInterval: 30_000,
+    retry: false,
+  });
   const [accessId, setAccessId] = useState('');
   const [accessSecret, setAccessSecret] = useState('');
   const [region, setRegion] = useState<'eu' | 'us' | 'cn'>('eu');
@@ -420,6 +427,69 @@ function TuyaTab() {
       >
         {mutation.isPending ? 'Έλεγχος…' : saved ? 'Ενημέρωση στοιχείων' : 'Σύνδεση'}
       </button>
+
+      {saved && (
+        <div className="rounded-xl border border-slate-200 dark:border-white/10 p-4 space-y-3 text-sm">
+          <h3 className="font-semibold text-slate-800 dark:text-slate-100">
+            Ενημέρωση συσκευών και χρήση
+          </h3>
+          {connectionError ? (
+            <p role="status" className="text-amber-600">
+              Δεν είναι διαθέσιμα τα στοιχεία σύνδεσης με την Tuya.
+            </p>
+          ) : !connection ? (
+            <p className="text-slate-500">Έλεγχος σύνδεσης…</p>
+          ) : (
+            <>
+              <p className={connection.messages.connected ? 'text-emerald-600' : 'text-amber-600'}>
+                {connection.messages.connected
+                  ? 'Άμεσες ενημερώσεις: συνδεδεμένες'
+                  : 'Άμεσες ενημερώσεις: εκτός σύνδεσης'}
+              </p>
+              {!connection.messages.connected && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Παραμένουν οι περιοδικοί έλεγχοι συναγερμού και αυτοματισμών, που καταναλώνουν
+                  κλήσεις. Ελέγξτε ότι είναι ενεργά το Message Service και τα Production messaging
+                  rules στο Tuya project.{' '}
+                  <a
+                    href="https://developer.tuya.com/en/docs/iot/Pulsar-SDK-get-message-nodejs?id=Kawfmtxp8yscg"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand underline"
+                  >
+                    Οδηγίες Tuya
+                  </a>
+                </p>
+              )}
+              {connection.messages.connected && !connection.messages.pollingReplaced && (
+                <p className="text-xs text-amber-600">
+                  Οι περιοδικοί έλεγχοι παραμένουν ενεργοί μέχρι να επαληθευτούν οι αναφορές όλων
+                  των συσκευών συναγερμού και αυτοματισμών.
+                </p>
+              )}
+              <dl className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                <div>
+                  <dt className="inline">Κλήσεις από το Domo: </dt>
+                  <dd className="inline font-semibold">
+                    {connection.apiCalls.toLocaleString('el-GR')}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="inline">Αναφορές Tuya: </dt>
+                  <dd className="inline font-semibold">
+                    {(connection.messages.received ?? 0).toLocaleString('el-GR')}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-xs text-slate-400">
+                Καταμέτρηση από {new Date(connection.since).toLocaleString('el-GR')} (τελευταία
+                εκκίνηση διακομιστή). Το συνολικό υπόλοιπο του λογαριασμού εμφανίζεται στην
+                πλατφόρμα Tuya. Οι άμεσες αναφορές καταναλώνουν το όριο μηνυμάτων της Tuya.
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

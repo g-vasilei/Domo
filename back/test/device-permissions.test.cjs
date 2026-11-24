@@ -25,6 +25,7 @@ function fixture() {
   ];
   const calls = [];
   const broadcast = [];
+  const evaluations = [];
   const prisma = {
     user: {
       findUnique: async ({ where }) =>
@@ -39,7 +40,15 @@ function fixture() {
     deviceTimer: { findMany: async () => [] },
     log: { create: async () => ({}) },
   };
-  const cloud = {};
+  let reportListener;
+  const cloud = {
+    onReport: (listener) => {
+      reportListener = listener;
+      return () => {};
+    },
+  };
+  cloud.emitReport = (report) =>
+    reportListener({ accessId: 'test', accessSecret: 'test-secret', region: 'eu' }, report);
   for (const method of [
     'getDevices',
     'getRooms',
@@ -54,7 +63,17 @@ function fixture() {
       if (method === 'getDevices') return { devices };
       if (method === 'getDeviceStatuses') return devices;
       if (method === 'getRooms') return rooms;
-      if (method === 'sendCommand') return true;
+      if (method === 'sendCommand') {
+        const report = {
+          deviceId: args[3],
+          status: [{ code: 'switch', value: false }],
+          statusUpdatedAt: 1000,
+          reportVersion: 1,
+          online: true,
+        };
+        reportListener({ accessId: 'test', accessSecret: 'test-secret', region: 'eu' }, report);
+        return { success: true, confirmed: false, report };
+      }
       return { id: args[3], status: [] };
     };
   }
@@ -68,8 +87,9 @@ function fixture() {
     cloud,
     { broadcastToUsers: (...args) => broadcast.push(args) },
     prisma,
-    { evaluateOnCommand: async () => {} },
+    { evaluateOnReport: async (...args) => evaluations.push(args) },
   );
+  service.onModuleInit();
   return {
     service,
     controller: new DevicesController(service, {}),
@@ -81,6 +101,8 @@ function fixture() {
     calls,
     prisma,
     broadcast,
+    cloud,
+    evaluations,
   };
 }
 const req = { user: { id: 'member' } };
@@ -172,17 +194,74 @@ test('missing users and orphaned members are denied before credentials lookup', 
 test('authorized member command succeeds and broadcasts only to current viewers', async () => {
   const f = fixture();
   f.permissions.canControlDevices = true;
-  assert.equal(
-    await f.controller.sendCommand(req, 'allowed', { commands: [{ code: 'switch', value: true }] }),
-    true,
-  );
+  const result = await f.controller.sendCommand(req, 'allowed', {
+    commands: [{ code: 'switch', value: true }],
+  });
+  assert.equal(result.success, true);
+  assert.equal(result.confirmed, false);
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(f.broadcast[0][0], ['owner', 'member']);
+  assert.equal(f.broadcast[0][1], 'device:reported');
+  assert.equal(f.broadcast[0][2].status[0].value, false);
   f.permissions.allowedDeviceIds = ['hidden'];
   assert.deepEqual(await f.service.deviceRecipients('owner', 'allowed'), ['owner']);
   await assert.rejects(() => f.controller.sendCommand(req, 'allowed', { commands: [] }), {
     status: 403,
   });
+});
+
+test('lagging readbacks refresh the display but cannot fire or rearm automation rules', async () => {
+  const f = fixture();
+  await f.service.getDevices('owner');
+  const report = {
+    deviceId: 'allowed',
+    status: [{ code: 'switch', value: false }],
+    reportVersion: 1,
+    statusUpdatedAt: 1000,
+    source: 'readback',
+  };
+  f.cloud.emitReport(report);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.broadcast.length, 1);
+  assert.equal(f.evaluations.length, 0);
+  f.cloud.emitReport({ ...report, source: 'confirmed' });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.evaluations.length, 1);
+});
+
+test('incoming reports honor permission revocation and ignore replaced project credentials', async () => {
+  const f = fixture();
+  await f.service.getDevices('member');
+  f.permissions.allowedDeviceIds = ['hidden'];
+  const report = {
+    deviceId: 'allowed',
+    status: [{ code: 'switch', value: false }],
+    reportVersion: 1,
+    statusUpdatedAt: 1000,
+    source: 'message',
+  };
+  f.cloud.emitReport(report);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(f.broadcast[0][0], ['owner']);
+  f.service.usersService.getTuyaCredentials = async () => ({
+    accessId: 'different',
+    accessSecret: 'different-secret',
+    region: 'eu',
+  });
+  f.cloud.emitReport(report);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.broadcast.length, 1);
+});
+
+test('usage diagnostics are owner-only and do not call device read endpoints', async () => {
+  const f = fixture();
+  f.cloud.getDiagnostics = () => ({ apiCalls: 10, monitoring: 'messages' });
+  await assert.rejects(() => f.controller.getConnection(req), { status: 403 });
+  assert.deepEqual(await f.service.getConnection('owner'), {
+    apiCalls: 10,
+    monitoring: 'messages',
+  });
+  assert.ok(f.calls.every((call) => call.method === 'credentials'));
 });
 
 function automationFixture() {
