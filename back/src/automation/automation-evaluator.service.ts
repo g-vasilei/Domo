@@ -136,11 +136,19 @@ export class AutomationEvaluatorService {
       }
     }
     if (!deviceIds.size) return new Map<string, { code: string; value: unknown }[]>();
+    // Notification-only rules share the normal two-minute snapshot, even with
+    // no browser open. They must not force a fresh house scan every 30 seconds.
+    // Rules that control devices/countdowns retain their existing fresh reads.
+    const notificationsOnly = rules.every(
+      (rule) =>
+        rule.actions?.length > 0 &&
+        rule.actions.every((action: any) => action.type === 'notification'),
+    );
     try {
       return await this.devicesService.getDeviceStatuses(
         ownerId,
         [...deviceIds],
-        !!reportedDeviceId,
+        !!reportedDeviceId || notificationsOnly,
       );
     } catch (error: any) {
       this.logger.warn(`Could not fetch device states: ${error?.message}`);

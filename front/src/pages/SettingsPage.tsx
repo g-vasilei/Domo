@@ -448,9 +448,9 @@ function TuyaTab() {
               </p>
               {!connection.messages.connected && (
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Παραμένουν οι περιοδικοί έλεγχοι συναγερμού και αυτοματισμών, που καταναλώνουν
-                  κλήσεις. Ελέγξτε ότι είναι ενεργά το Message Service και τα Production messaging
-                  rules στο Tuya project.{' '}
+                  Παραμένουν οι περιοδικοί έλεγχοι συναγερμού και χειρισμού συσκευών, που
+                  καταναλώνουν κλήσεις. Ελέγξτε ότι είναι ενεργά το Message Service και τα
+                  Production messaging rules στο Tuya project.{' '}
                   <a
                     href="https://developer.tuya.com/en/docs/iot/Pulsar-SDK-get-message-nodejs?id=Kawfmtxp8yscg"
                     target="_blank"
@@ -463,8 +463,8 @@ function TuyaTab() {
               )}
               {connection.messages.connected && !connection.messages.pollingReplaced && (
                 <p className="text-xs text-amber-600">
-                  Οι περιοδικοί έλεγχοι παραμένουν ενεργοί μέχρι να επαληθευτούν οι αναφορές όλων
-                  των συσκευών συναγερμού και αυτοματισμών.
+                  Οι απλές ειδοποιήσεις μοιράζονται την ανανέωση των 2 λεπτών. Οι έλεγχοι συναγερμού
+                  και χειρισμού συσκευών παραμένουν ενεργοί μέχρι να επαληθευτούν οι αναφορές Tuya.
                 </p>
               )}
               <dl className="text-xs text-slate-600 dark:text-slate-300 space-y-1">

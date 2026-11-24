@@ -27,13 +27,17 @@ After verifying coverage and opting in, device/room/dashboard reads share a ten-
 
 Without verified message delivery, ordinary UI reads retain the two-minute snapshot. Room membership is cached for six hours and specifications for 24 hours. Manual refresh uses `?refresh=true` with a five-second cooldown (one minute for room membership). Individual confirmed readings update shared snapshots, and recent reports are protected from lagging HTTP list responses. Pagination includes sensors on subsequent device-list pages.
 
+**Notification-only automations also share the two-minute snapshot, regardless of Message Service configuration.** Their 30-second evaluation job no longer forces a cloud read. This applies with all browsers closed and to mixed time/device notification rules. A confirmed Domo command or actual push still evaluates the notification immediately. External changes without a push take around two minutes (plus up to one 30-second evaluation tick if another reader shifts the cache boundary), and brief intermediate changes can be missed by polling. An owner group containing any device-control/countdown rule continues to use fresh 30-second monitoring; armed alarms keep their existing fresh reads. Editing a notification rule into a device-control rule takes effect on the next evaluation without waiting for the two-minute cache.
+
+The live Domo audit on November 24 found two enabled notification-only rules and a disarmed alarm. These rules were forcing 2,880 bulk reads/day despite requiring no device-control actions. `back/test/notification-usage.test.cjs` runs the real evaluator, device service and Tuya cache for a full simulated day: the same workload now makes **720 bulk reads/day**, a 75% reduction that is enabled by default and requires no Tuya account or server configuration change. Open dashboard, detail and room views share that budget. A separate check verifies armed alarms retain 30-second reads and command notifications still fire immediately.
+
 ### Enable in production
 
 1. In the Tuya project, enable Message Service and publish/enable **Production** messaging rules for device property and online/offline events. Include every device used by alarms and automations; use device/BizCode filters to avoid unrelated traffic and duplicate message types. Keep the existing default subscription rather than adding duplicate subscriptions. See [Manage Message Service](https://developer.tuya.com/en/docs/iot/manage-messages?id=Ka49p7loog3ze).
 2. Leave `TUYA_MESSAGES_REPLACE_POLLING=false` while checking actual reports, including a real state change from each monitored sensor/device. Check Production consumption/accumulation in Tuya and connection/received counts under **Settings → Tuya** in Domo.
 3. Once verified, set `TUYA_MESSAGES_REPLACE_POLLING=true` in the server's `back/.env` and recreate the backend container so it receives the new environment. Compose already uses that env file. The default false must not be changed just because the socket opens.
 
-The Tuya account check was deferred by the user on November 24; Production rules and actual account usage have **not** been verified by this repository change. No physical test commands were sent.
+Production message rules and account-wide resource usage have **not** been verified. The notification-only optimization above is active independently of these steps. No physical test commands were sent.
 
 ### Measured request budgets
 
@@ -41,13 +45,13 @@ For one backend process, one project/device-list page and six rooms in one home:
 
 | Mode                                                 | Bulk state reads/day | Room metadata reads/day | 30-day reads before tokens, commands and manual refresh |
 | ---------------------------------------------------- | -------------------: | ----------------------: | ------------------------------------------------------: |
-| Ordinary UI, message replacement not enabled         |                  720 |                      28 |                                                  22,440 |
+| UI + notification-only rules, without messages       |                  720 |                      28 |                                                  22,440 |
 | UI + critical monitoring, verified live messages     |                  144 |                      28 |                                                   5,160 |
 | Continuous critical monitoring without live messages |       At least 2,880 |                      28 |                                         At least 87,240 |
 
 The tests simulate a full day for the ordinary and verified-message cases. Different fallback check schedules can add calls when they do not overlap within the five-second cache. Additional pages, projects, restarts and failures also add requests. The 144/day budget is conditional on a verified, live stream and the opt-in setting; it is not the current verified production rate.
 
-An armed alarm or enabled device-state automation without verified messages can still exceed the Trial allowance. Push messages also consume Tuya resources: this does not make the service unlimited. Tuya's [pricing documentation](https://developer.tuya.com/en/docs/iot/membership-service?id=K9m8k45jwvg9j) describes shared base resources for API calls and messages. The email showing **7% remaining** means approximately 93% of that allowance was consumed; it does not identify which API, message type or project caused it.
+An armed alarm or enabled device-control/countdown automation without verified messages can still exceed the Trial allowance. Push messages also consume Tuya resources: this does not make the service unlimited. Tuya's [pricing documentation](https://developer.tuya.com/en/docs/iot/membership-service?id=K9m8k45jwvg9j) describes shared base resources for API calls and messages. The email showing **7% remaining** means approximately 93% of that allowance was consumed; it does not identify which API, message type or project caused it.
 
 The owner-only `/devices/connection` endpoint and **Settings → Tuya** show actual outgoing API attempts (including token calls and failures), counts by normalized endpoint, received messages, connection status and whether polling replacement is active. Counters are per process/project since server startup, not the vendor's monthly bill. Reading diagnostics does not issue Tuya API calls. Use Tuya **Cloud → Data Statistics → Usage / API Statistics / Message Statistics** for account-wide attribution.
 
